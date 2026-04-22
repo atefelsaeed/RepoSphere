@@ -1,0 +1,87 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../data/datasources/github_remote_datasource.dart';
+import '../../data/repositories/github_repo_repository_impl.dart';
+import '../../domain/entities/repo_entity.dart';
+import '../../domain/entities/user_entity.dart';
+import '../../domain/repositories/git_provider.dart';
+
+final _httpClientProvider = Provider<http.Client>((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return client;
+});
+
+final githubDatasourceProvider = Provider<GitHubRemoteDatasource?>((ref) {
+  final token = ref.watch(authProvider).valueOrNull;
+  if (token == null || token.isEmpty) return null;
+  final client = ref.watch(_httpClientProvider);
+  return GitHubRemoteDatasource(client: client, token: token);
+});
+
+final gitProviderProvider = Provider<GitProvider?>((ref) {
+  final datasource = ref.watch(githubDatasourceProvider);
+  if (datasource == null) return null;
+  return GitHubRepoRepositoryImpl(datasource);
+});
+
+final currentUserProvider = FutureProvider<UserEntity?>((ref) async {
+  final provider = ref.watch(gitProviderProvider);
+  if (provider == null) return null;
+  return provider.getUser();
+});
+
+final allReposProvider = FutureProvider<List<RepoEntity>>((ref) async {
+  final provider = ref.watch(gitProviderProvider);
+  if (provider == null) return [];
+  return provider.getRepos();
+});
+
+final starredReposProvider = FutureProvider<List<RepoEntity>>((ref) async {
+  final provider = ref.watch(gitProviderProvider);
+  if (provider == null) return [];
+  return provider.getStarredRepos();
+});
+
+final repoFilterProvider = StateProvider<RepoFilter>((ref) => RepoFilter.all);
+final searchQueryProvider = StateProvider<String>((ref) => '');
+
+final filteredReposProvider = Provider<AsyncValue<List<RepoEntity>>>((ref) {
+  final filter = ref.watch(repoFilterProvider);
+  final query = ref.watch(searchQueryProvider).toLowerCase().trim();
+  final userLogin = ref.watch(currentUserProvider).valueOrNull?.login ?? '';
+
+  final baseAsync = filter == RepoFilter.starred
+      ? ref.watch(starredReposProvider)
+      : ref.watch(allReposProvider);
+
+  return baseAsync.whenData((repos) {
+    var filtered = repos;
+
+    switch (filter) {
+      case RepoFilter.owned:
+        filtered =
+            filtered.where((r) => !r.isFork && r.ownerLogin == userLogin).toList();
+      case RepoFilter.forked:
+        filtered = filtered.where((r) => r.isFork).toList();
+      case RepoFilter.publicOnly:
+        filtered = filtered.where((r) => !r.isPrivate).toList();
+      case RepoFilter.privateOnly:
+        filtered = filtered.where((r) => r.isPrivate).toList();
+      default:
+        break;
+    }
+
+    if (query.isNotEmpty) {
+      filtered = filtered
+          .where((r) =>
+              r.name.toLowerCase().contains(query) ||
+              (r.description?.toLowerCase().contains(query) ?? false) ||
+              (r.language?.toLowerCase().contains(query) ?? false))
+          .toList();
+    }
+
+    return filtered;
+  });
+});
