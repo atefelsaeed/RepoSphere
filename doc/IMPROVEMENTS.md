@@ -297,9 +297,9 @@ jobs:
 
 | ID    | Item                          | Sprint | Status |
 |-------|-------------------------------|--------|--------|
-| S1-1  | Settings + GitLab UI          | 1      | [ ]    |
-| S1-2  | `_checkResponse` all codes    | 1      | [ ]    |
-| S1-3  | Token expiry → auto logout    | 1      | [ ]    |
+| S1-1  | Settings + GitLab UI          | 1      | [x]    |
+| S1-2  | `_checkResponse` all codes    | 1      | [x]    |
+| S1-3  | Token expiry → auto logout    | 1      | [x]    |
 | S2-1  | Notifications badge           | 2      | [ ]    |
 | S2-2  | Commit diff view              | 2      | [ ]    |
 | S2-3  | Repos pagination              | 2      | [ ]    |
