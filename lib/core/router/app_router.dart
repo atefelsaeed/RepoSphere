@@ -18,6 +18,7 @@ import '../../features/repos/presentation/screens/repo_issue_detail_screen.dart'
 import '../../features/repos/presentation/screens/repo_issues_screen.dart';
 import '../../features/repos/presentation/screens/repo_pr_detail_screen.dart';
 import '../../features/repos/presentation/screens/repo_prs_screen.dart';
+import '../../features/repos/presentation/screens/activity_screen.dart';
 import '../../features/repos/presentation/screens/repo_readme_screen.dart';
 import '../../features/repos/presentation/screens/repos_screen.dart';
 
@@ -42,6 +43,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/search',
         name: 'search',
         builder: (_, __) => const SearchScreen(),
+      ),
+      GoRoute(
+        path: '/activity',
+        name: 'activity',
+        builder: (_, __) => const ActivityScreen(),
       ),
       GoRoute(
         path: '/repos',

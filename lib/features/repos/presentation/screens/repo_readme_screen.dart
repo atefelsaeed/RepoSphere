@@ -51,40 +51,43 @@ class RepoReadmeScreen extends ConsumerWidget {
             );
           }
 
-          return Markdown(
-            data: content,
-            selectable: true,
-            onTapLink: (_, href, __) {
-              if (href != null) {
-                launchUrl(Uri.parse(href),
-                    mode: LaunchMode.externalApplication);
-              }
-            },
-            key: const ValueKey('readme-content'),
-            styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-              code: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 13,
-                backgroundColor: cs.surfaceContainerHighest,
-              ),
-              codeblockDecoration: BoxDecoration(
-                color: cs.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              blockquoteDecoration: BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: cs.primary, width: 3),
+          return RefreshIndicator(
+            onRefresh: () async => ref.invalidate(repoReadmeProvider),
+            child: Markdown(
+              data: content,
+              selectable: true,
+              onTapLink: (_, href, __) {
+                if (href != null) {
+                  launchUrl(Uri.parse(href),
+                      mode: LaunchMode.externalApplication);
+                }
+              },
+              key: const ValueKey('readme-content'),
+              styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+                code: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  backgroundColor: cs.surfaceContainerHighest,
                 ),
-                color: cs.primaryContainer.withAlpha(60),
-              ),
-              horizontalRuleDecoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: cs.outlineVariant),
+                codeblockDecoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                blockquoteDecoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: cs.primary, width: 3),
+                  ),
+                  color: cs.primaryContainer.withAlpha(60),
+                ),
+                horizontalRuleDecoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: cs.outlineVariant),
+                  ),
                 ),
               ),
-            ),
-            padding: const EdgeInsets.all(24),
-          ).animate().fadeIn(duration: 350.ms);
+              padding: const EdgeInsets.all(24),
+            ).animate().fadeIn(duration: 350.ms),
+          );
         },
         loading: () => ListView(
           padding: const EdgeInsets.all(24),

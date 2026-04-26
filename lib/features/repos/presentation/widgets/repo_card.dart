@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -17,6 +18,24 @@ class RepoCard extends StatefulWidget {
 
 class _RepoCardState extends State<RepoCard> {
   bool _hovered = false;
+  bool _copied = false;
+  Timer? _copyTimer;
+
+  @override
+  void dispose() {
+    _copyTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _copyLink() async {
+    await Clipboard.setData(ClipboardData(text: widget.repo.htmlUrl));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    _copyTimer?.cancel();
+    _copyTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -177,21 +196,25 @@ class _RepoCardState extends State<RepoCard> {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(4),
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: repo.htmlUrl));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Link copied'),
-                          duration: Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                          width: 200,
+                  Tooltip(
+                    message: _copied ? 'Copied!' : 'Copy link',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(4),
+                      onTap: _copyLink,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          _copied
+                              ? Icons.check_rounded
+                              : Icons.link_rounded,
+                          key: ValueKey(_copied),
+                          size: 14,
+                          color: _copied
+                              ? const Color(0xFF3FB950)
+                              : cs.onSurfaceVariant,
                         ),
-                      );
-                    },
-                    child: Icon(Icons.link_rounded,
-                        size: 14, color: cs.onSurfaceVariant),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 4),
                   InkWell(

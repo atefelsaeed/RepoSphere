@@ -4,9 +4,11 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/exceptions.dart';
 import '../../domain/entities/commit_detail_entity.dart';
 import '../../domain/entities/repo_content_entity.dart';
+import '../models/activity_event_model.dart';
 import '../models/branch_model.dart';
 import '../models/commit_detail_model.dart';
 import '../models/commit_model.dart';
+import '../models/contributor_model.dart';
 import '../models/issue_model.dart';
 import '../models/pull_request_model.dart';
 import '../models/repo_model.dart';
@@ -235,6 +237,49 @@ class GitHubRemoteDatasource {
       content: decoded,
       encoding: m['encoding'] as String? ?? 'base64',
     );
+  }
+
+  Future<Map<String, int>> getLanguages(String owner, String repo) async {
+    final response = await _client.get(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/languages'),
+      headers: _headers,
+    );
+    if (response.statusCode == 404) return {};
+    _checkResponse(response);
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    return json.map((k, v) => MapEntry(k, v as int));
+  }
+
+  Future<List<ContributorModel>> getContributors(
+      String owner, String repo, {int perPage = 8}) async {
+    final response = await _client.get(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/contributors?per_page=$perPage&anon=false'),
+      headers: _headers,
+    );
+    if (response.statusCode == 204) return [];
+    _checkResponse(response);
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list
+        .where((e) => (e as Map)['type'] == 'User')
+        .map((e) => ContributorModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<ActivityEventModel>> getUserEvents(String username,
+      {int perPage = 30}) async {
+    final response = await _client.get(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/users/$username/events?per_page=$perPage'),
+      headers: _headers,
+    );
+    _checkResponse(response);
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list
+        .map((e) =>
+            ActivityEventModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   ContentType _parseType(String type) => switch (type) {

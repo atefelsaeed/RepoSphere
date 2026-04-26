@@ -55,6 +55,12 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
           ],
         ),
         actions: [
+          // Activity feed
+          IconButton(
+            tooltip: 'Activity',
+            icon: const Icon(Icons.timeline_rounded),
+            onPressed: () => context.goNamed('activity'),
+          ),
           // Global search
           IconButton(
             tooltip: 'Explore GitHub',

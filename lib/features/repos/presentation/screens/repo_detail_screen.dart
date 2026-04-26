@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -8,20 +9,53 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/language_colors.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_commits_provider.dart';
+import '../providers/repo_contributors_provider.dart';
+import '../providers/repo_languages_provider.dart';
 import '../widgets/commit_tile.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 
-class RepoDetailScreen extends ConsumerWidget {
+class RepoDetailScreen extends ConsumerStatefulWidget {
   final RepoEntity repo;
 
   const RepoDetailScreen({super.key, required this.repo});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RepoDetailScreen> createState() => _RepoDetailScreenState();
+}
+
+class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
+  bool _copied = false;
+  Timer? _copyTimer;
+
+  @override
+  void dispose() {
+    _copyTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _copyLink() async {
+    await Clipboard.setData(ClipboardData(text: widget.repo.htmlUrl));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    _copyTimer?.cancel();
+    _copyTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final repo = widget.repo;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final commitsAsync = ref.watch(
       repoCommitsProvider((owner: repo.ownerLogin, repo: repo.name)),
+    );
+    final languagesAsync = ref.watch(
+      repoLanguagesProvider((owner: repo.ownerLogin, repo: repo.name)),
+    );
+    final contributorsAsync = ref.watch(
+      repoContributorsProvider((owner: repo.ownerLogin, repo: repo.name)),
     );
 
     return Scaffold(
@@ -38,20 +72,19 @@ class RepoDetailScreen extends ConsumerWidget {
             label: const Text('Browse Code'),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            tooltip: 'Copy link',
-            icon: const Icon(Icons.link_rounded),
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: repo.htmlUrl));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Link copied to clipboard'),
-                  duration: Duration(seconds: 2),
-                  behavior: SnackBarBehavior.floating,
-                  width: 260,
+          Tooltip(
+            message: _copied ? 'Copied!' : 'Copy link',
+            child: IconButton(
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  _copied ? Icons.check_rounded : Icons.link_rounded,
+                  key: ValueKey(_copied),
+                  color: _copied ? const Color(0xFF3FB950) : null,
                 ),
-              );
-            },
+              ),
+              onPressed: _copyLink,
+            ),
           ),
           FilledButton.tonalIcon(
             onPressed: () => launchUrl(
@@ -218,6 +251,23 @@ class RepoDetailScreen extends ConsumerWidget {
                     ),
                 ],
               ),
+
+              // Language stats bar
+              if (languagesAsync.hasValue &&
+                  languagesAsync.value!.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _LanguageBar(languages: languagesAsync.value!),
+              ],
+
+              // Top contributors
+              if (contributorsAsync.hasValue &&
+                  contributorsAsync.value!.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _ContributorsRow(contributors: contributorsAsync.value!),
+              ],
+
+              const SizedBox(height: 20),
+              _CloneSection(repo: repo),
 
               // Topics
               if (repo.topics.isNotEmpty) ...[
@@ -474,6 +524,265 @@ class _DateTile extends StatelessWidget {
               ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
       ],
+    );
+  }
+}
+
+class _LanguageBar extends StatelessWidget {
+  final Map<String, int> languages;
+  const _LanguageBar({required this.languages});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final total = languages.values.fold(0, (a, b) => a + b);
+    final sorted = languages.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Languages', style: theme.textTheme.labelLarge),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Row(
+            children: sorted.map((e) {
+              final color =
+                  kLanguageColors[e.key] ?? cs.primary;
+              return Flexible(
+                flex: ((e.value / total) * 10000).round(),
+                child: Container(height: 8, color: color),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 4,
+          children: sorted.take(8).map((e) {
+            final pct = (e.value / total * 100).toStringAsFixed(1);
+            final color = kLanguageColors[e.key] ?? cs.primary;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                      color: color, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 4),
+                Text('${e.key} $pct%',
+                    style: theme.textTheme.labelSmall
+                        ?.copyWith(color: cs.onSurfaceVariant)),
+              ],
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _ContributorsRow extends StatelessWidget {
+  final List contributors;
+  const _ContributorsRow({required this.contributors});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Contributors', style: theme.textTheme.labelLarge),
+        const SizedBox(height: 10),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: contributors.take(10).map<Widget>((c) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Column(
+                  children: [
+                    Tooltip(
+                      message:
+                          '${c.login} · ${c.contributions} commits',
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundImage: NetworkImage(c.avatarUrl),
+                        backgroundColor: cs.surfaceContainerHighest,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      c.login,
+                      style: theme.textTheme.labelSmall
+                          ?.copyWith(color: cs.onSurfaceVariant),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CloneSection extends StatefulWidget {
+  final RepoEntity repo;
+  const _CloneSection({required this.repo});
+
+  @override
+  State<_CloneSection> createState() => _CloneSectionState();
+}
+
+class _CloneSectionState extends State<_CloneSection> {
+  bool _httpscopied = false;
+  bool _sshCopied = false;
+  Timer? _httpsTimer;
+  Timer? _sshTimer;
+
+  @override
+  void dispose() {
+    _httpsTimer?.cancel();
+    _sshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _copyHttps() async {
+    final url =
+        'https://github.com/${widget.repo.ownerLogin}/${widget.repo.name}.git';
+    await Clipboard.setData(ClipboardData(text: url));
+    if (!mounted) return;
+    setState(() => _httpscopied = true);
+    _httpsTimer?.cancel();
+    _httpsTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _httpscopied = false);
+    });
+  }
+
+  Future<void> _copySsh() async {
+    final url =
+        'git@github.com:${widget.repo.ownerLogin}/${widget.repo.name}.git';
+    await Clipboard.setData(ClipboardData(text: url));
+    if (!mounted) return;
+    setState(() => _sshCopied = true);
+    _sshTimer?.cancel();
+    _sshTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _sshCopied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final httpsUrl =
+        'https://github.com/${widget.repo.ownerLogin}/${widget.repo.name}.git';
+    final sshUrl =
+        'git@github.com:${widget.repo.ownerLogin}/${widget.repo.name}.git';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Clone', style: theme.textTheme.labelLarge),
+        const SizedBox(height: 8),
+        _CloneRow(
+          label: 'HTTPS',
+          url: httpsUrl,
+          copied: _httpscopied,
+          onCopy: _copyHttps,
+        ),
+        const SizedBox(height: 6),
+        _CloneRow(
+          label: 'SSH',
+          url: sshUrl,
+          copied: _sshCopied,
+          onCopy: _copySsh,
+        ),
+      ],
+    );
+  }
+}
+
+class _CloneRow extends StatelessWidget {
+  final String label;
+  final String url;
+  final bool copied;
+  final VoidCallback onCopy;
+
+  const _CloneRow({
+    required this.label,
+    required this.url,
+    required this.copied,
+    required this.onCopy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: copied ? const Color(0xFF3FB950).withAlpha(120) : cs.outlineVariant,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: cs.onPrimaryContainer,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              url,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                color: cs.onSurfaceVariant,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Tooltip(
+            message: copied ? 'Copied!' : 'Copy',
+            child: GestureDetector(
+              onTap: onCopy,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  copied ? Icons.check_rounded : Icons.copy_rounded,
+                  key: ValueKey(copied),
+                  size: 16,
+                  color: copied ? const Color(0xFF3FB950) : cs.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

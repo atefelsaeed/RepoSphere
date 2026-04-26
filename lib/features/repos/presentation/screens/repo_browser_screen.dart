@@ -79,41 +79,53 @@ class RepoBrowserScreen extends ConsumerWidget {
           // File list
           Expanded(
             child: contentsAsync.when(
-              data: (items) => items.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+              data: (items) => RefreshIndicator(
+                onRefresh: () async => ref.invalidate(repoContentsProvider),
+                child: items.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         children: [
-                          Icon(Icons.folder_open_rounded,
-                              size: 48,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant),
-                          const SizedBox(height: 12),
-                          Text('Empty directory',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(
+                          SizedBox(
+                            height: 300,
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.folder_open_rounded,
+                                      size: 48,
                                       color: Theme.of(context)
                                           .colorScheme
-                                          .onSurfaceVariant)),
+                                          .onSurfaceVariant),
+                                  const SizedBox(height: 12),
+                                  Text('Empty directory',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant)),
+                                ],
+                              ).animate().fadeIn(duration: 300.ms),
+                            ),
+                          ),
                         ],
-                      ).animate().fadeIn(duration: 300.ms),
-                    )
-                  : ListView.separated(
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) => Divider(
-                        height: 1,
-                        color:
-                            Theme.of(context).colorScheme.outlineVariant,
+                      )
+                    : ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) => Divider(
+                          height: 1,
+                          color:
+                              Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                        itemBuilder: (ctx, i) =>
+                            _ContentTile(item: items[i], repo: repo)
+                                .animate(delay: (i * 25).clamp(0, 250).ms)
+                                .fadeIn(duration: 200.ms)
+                                .slideY(begin: 0.04, curve: Curves.easeOut),
                       ),
-                      itemBuilder: (ctx, i) =>
-                          _ContentTile(item: items[i], repo: repo)
-                              .animate(delay: (i * 25).clamp(0, 250).ms)
-                              .fadeIn(duration: 200.ms)
-                              .slideY(begin: 0.04, curve: Curves.easeOut),
-                    ),
+              ),
               loading: () => ListView.separated(
                 itemCount: 14,
                 separatorBuilder: (_, __) => Divider(
