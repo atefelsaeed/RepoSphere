@@ -414,18 +414,47 @@ class GitHubRemoteDatasource {
   }
 
   void _checkResponse(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) return;
     switch (response.statusCode) {
-      case 200:
-        return;
       case 401:
         throw const GitHubAuthException(
             'Invalid or expired token. Please reconnect.');
       case 403:
+        final remaining = response.headers['x-ratelimit-remaining'];
+        if (remaining == '0') {
+          final resetTs =
+              int.tryParse(response.headers['x-ratelimit-reset'] ?? '');
+          final resetIn =
+              resetTs != null ? _resetTimeString(resetTs) : 'a moment';
+          throw GitHubRateLimitException(
+              'Rate limit exceeded. Resets in $resetIn.');
+        }
+        throw const GitHubApiException(
+            'Access forbidden. Check your token scopes.');
+      case 404:
+        throw const GitHubApiException('Resource not found.');
+      case 422:
+        throw const GitHubApiException(
+            'Invalid request. Check the data and try again.');
+      case 429:
         throw const GitHubRateLimitException(
-            'API rate limit exceeded. Try again later.');
+            'Too many requests. Try again in a moment.');
       default:
+        if (response.statusCode >= 500) {
+          throw const GitHubApiException(
+              'GitHub is having issues. Try again later.');
+        }
         throw GitHubApiException(
-            'Request failed with status ${response.statusCode}.');
+            'Unexpected error (${response.statusCode}).');
     }
+  }
+
+  String _resetTimeString(int unixTimestamp) {
+    final resetAt =
+        DateTime.fromMillisecondsSinceEpoch(unixTimestamp * 1000);
+    final diff = resetAt.difference(DateTime.now());
+    if (diff.inSeconds < 60) return 'less than a minute';
+    if (diff.inMinutes == 1) return '1 minute';
+    return '${diff.inMinutes} minutes';
   }
 }

@@ -27,6 +27,11 @@ class ProfileScreen extends ConsumerWidget {
             icon: const Icon(Icons.code_rounded),
             onPressed: () => context.goNamed('gists'),
           ),
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.goNamed('settings'),
+          ),
         ],
       ),
       body: userAsync.when(
@@ -139,7 +144,7 @@ class ProfileScreen extends ConsumerWidget {
         },
         loading: () => _ProfileShimmer(),
         error: (e, _) => ErrorView(
-          message: e.toString(),
+          error: e,
           onRetry: () => ref.invalidate(currentUserProvider),
         ),
       ),

@@ -123,7 +123,7 @@ class RepoReadmeScreen extends ConsumerWidget {
           ],
         ),
         error: (e, _) => ErrorView(
-          message: e.toString(),
+          error: e,
           onRetry: () => ref.invalidate(repoReadmeProvider),
         ),
       ),

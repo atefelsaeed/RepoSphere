@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/providers/theme_provider.dart';
+import 'core/utils/exceptions.dart';
+import 'features/auth/presentation/providers/auth_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,10 +29,26 @@ void main() async {
 
   runApp(
     ProviderScope(
+      observers: [_AuthErrorObserver()],
       overrides: [
         themeModeProvider.overrideWith((ref) => initialTheme),
       ],
       child: const RepoSphereApp(),
     ),
   );
+}
+
+/// Watches every provider for [GitHubAuthException] and auto-logs out.
+class _AuthErrorObserver extends ProviderObserver {
+  @override
+  void providerDidFail(
+    ProviderBase<Object?> provider,
+    Object error,
+    StackTrace stackTrace,
+    ProviderContainer container,
+  ) {
+    if (error is GitHubAuthException) {
+      container.read(authProvider.notifier).logout();
+    }
+  }
 }

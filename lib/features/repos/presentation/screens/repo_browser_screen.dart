@@ -135,7 +135,7 @@ class RepoBrowserScreen extends ConsumerWidget {
                 itemBuilder: (_, __) => const ShimmerListTile(),
               ),
               error: (e, _) => ErrorView(
-                message: e.toString(),
+                error: e,
                 onRetry: () => ref.invalidate(repoContentsProvider),
               ),
             ),

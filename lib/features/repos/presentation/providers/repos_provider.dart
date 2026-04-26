@@ -63,6 +63,18 @@ final gitlabDatasourceProvider =
   return GitLabRemoteDatasource(client: http.Client(), token: token);
 });
 
+/// Returns the connected GitLab username, or null if not connected.
+final gitlabConnectedUserProvider = FutureProvider<String?>((ref) async {
+  final dsAsync = ref.watch(gitlabDatasourceProvider);
+  final ds = dsAsync.valueOrNull;
+  if (ds == null) return null;
+  try {
+    return await ds.verifyToken();
+  } catch (_) {
+    return null;
+  }
+});
+
 final gitlabReposProvider = FutureProvider<List<RepoEntity>>((ref) async {
   final dsAsync = ref.watch(gitlabDatasourceProvider);
   final ds = dsAsync.valueOrNull;

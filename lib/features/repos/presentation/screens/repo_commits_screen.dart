@@ -119,8 +119,8 @@ class _RepoCommitsScreenState extends ConsumerState<RepoCommitsScreen> {
         }
 
         if (commitsState.error != null && commitsState.commits.isEmpty) {
-          return ErrorView(
-            message: commitsState.error!,
+          return ErrorView.message(
+            commitsState.error!,
             onRetry: notifier.refresh,
           );
         }

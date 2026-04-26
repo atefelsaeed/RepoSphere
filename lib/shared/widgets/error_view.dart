@@ -1,29 +1,34 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/exceptions.dart';
 
 class ErrorView extends StatelessWidget {
-  final String message;
+  final Object error;
   final VoidCallback? onRetry;
 
-  const ErrorView({super.key, required this.message, this.onRetry});
+  const ErrorView({super.key, required this.error, this.onRetry});
+
+  /// Convenience: build from a raw string (legacy call sites).
+  const ErrorView.message(String message, {super.key, this.onRetry})
+      : error = message;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final (icon, color, message) = _resolve(error, cs);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline_rounded,
-              size: 56,
-              color: Theme.of(context).colorScheme.error,
-            ),
+            Icon(icon, size: 56, color: color),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge,
+              style: theme.textTheme.bodyLarge,
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 20),
@@ -37,5 +42,38 @@ class ErrorView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static (IconData, Color, String) _resolve(Object error, ColorScheme cs) {
+    if (error is GitHubAuthException) {
+      return (
+        Icons.lock_outline_rounded,
+        cs.error,
+        error.message,
+      );
+    }
+    if (error is GitHubRateLimitException) {
+      return (
+        Icons.hourglass_empty_rounded,
+        const Color(0xFFF59E0B),
+        error.message,
+      );
+    }
+    if (error is GitHubApiException) {
+      return (
+        Icons.cloud_off_rounded,
+        cs.onSurfaceVariant,
+        error.message,
+      );
+    }
+    // Raw string or unknown — strip "Exception: " prefix if present
+    final msg = error
+        .toString()
+        .replaceFirst('Exception: ', '')
+        .replaceFirst('GitHubAuthException: ', '')
+        .replaceFirst('GitHubApiException: ', '')
+        .replaceFirst('GitHubRateLimitException: ', '');
+
+    return (Icons.error_outline_rounded, cs.error, msg);
   }
 }

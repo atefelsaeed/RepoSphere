@@ -54,7 +54,7 @@ class CommitDetailScreen extends ConsumerWidget {
         data: (detail) => _CommitDetailBody(detail: detail),
         loading: () => _CommitDetailShimmer(),
         error: (e, _) => ErrorView(
-          message: e.toString(),
+          error: e,
           onRetry: () => ref.invalidate(commitDetailProvider),
         ),
       ),

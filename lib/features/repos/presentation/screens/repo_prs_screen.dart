@@ -88,7 +88,7 @@ class _RepoPrsScreenState extends ConsumerState<RepoPrsScreen>
           );
         }
         if (state.error != null && state.prs.isEmpty) {
-          return ErrorView(message: state.error!, onRetry: notifier.refresh);
+          return ErrorView.message(state.error!, onRetry: notifier.refresh);
         }
         if (state.prs.isEmpty) {
           return Center(

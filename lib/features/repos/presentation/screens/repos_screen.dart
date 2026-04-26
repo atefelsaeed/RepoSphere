@@ -82,6 +82,12 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
           ],
         ),
         actions: [
+          // Settings
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.goNamed('settings'),
+          ),
           // Notifications
           IconButton(
             tooltip: 'Notifications',
@@ -354,7 +360,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
               ),
               error: (e, _) => SliverFillRemaining(
                 child: ErrorView(
-                  message: e.toString(),
+                  error: e,
                   onRetry: _refresh,
                 ),
               ),

@@ -103,7 +103,7 @@ class _RepoIssuesScreenState extends ConsumerState<RepoIssuesScreen>
           );
         }
         if (state.error != null && state.issues.isEmpty) {
-          return ErrorView(message: state.error!, onRetry: notifier.refresh);
+          return ErrorView.message(state.error!, onRetry: notifier.refresh);
         }
         if (state.issues.isEmpty) {
           return Center(

@@ -24,6 +24,7 @@ import '../../features/repos/presentation/screens/repo_readme_screen.dart';
 import '../../features/repos/presentation/screens/repo_releases_screen.dart';
 import '../../features/repos/presentation/screens/gists_screen.dart';
 import '../../features/repos/presentation/screens/repos_screen.dart';
+import '../../features/repos/presentation/screens/settings_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
@@ -87,6 +88,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/gists',
         name: 'gists',
         builder: (_, __) => const GistsScreen(),
+      ),
+      GoRoute(
+        path: '/settings',
+        name: 'settings',
+        builder: (_, __) => const SettingsScreen(),
       ),
       GoRoute(
         path: '/repos',

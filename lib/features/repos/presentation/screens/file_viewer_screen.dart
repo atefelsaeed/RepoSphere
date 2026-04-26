@@ -80,7 +80,7 @@ class FileViewerScreen extends ConsumerWidget {
         ),
         loading: () => const ShimmerCodeView(),
         error: (e, _) => ErrorView(
-          message: e.toString(),
+          error: e,
           onRetry: () => ref.invalidate(fileContentProvider),
         ),
       ),
