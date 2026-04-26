@@ -44,12 +44,16 @@ final starredReposProvider = FutureProvider<List<RepoEntity>>((ref) async {
   return provider.getStarredRepos();
 });
 
+enum RepoSort { updated, stars, name, created }
+
 final repoFilterProvider = StateProvider<RepoFilter>((ref) => RepoFilter.all);
 final searchQueryProvider = StateProvider<String>((ref) => '');
+final repoSortProvider = StateProvider<RepoSort>((ref) => RepoSort.updated);
 
 final filteredReposProvider = Provider<AsyncValue<List<RepoEntity>>>((ref) {
   final filter = ref.watch(repoFilterProvider);
   final query = ref.watch(searchQueryProvider).toLowerCase().trim();
+  final sort = ref.watch(repoSortProvider);
   final userLogin = ref.watch(currentUserProvider).valueOrNull?.login ?? '';
 
   final baseAsync = filter == RepoFilter.starred
@@ -80,6 +84,17 @@ final filteredReposProvider = Provider<AsyncValue<List<RepoEntity>>>((ref) {
               (r.description?.toLowerCase().contains(query) ?? false) ||
               (r.language?.toLowerCase().contains(query) ?? false))
           .toList();
+    }
+
+    switch (sort) {
+      case RepoSort.updated:
+        filtered.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      case RepoSort.stars:
+        filtered.sort((a, b) => b.stargazersCount.compareTo(a.stargazersCount));
+      case RepoSort.name:
+        filtered.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      case RepoSort.created:
+        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
 
     return filtered;

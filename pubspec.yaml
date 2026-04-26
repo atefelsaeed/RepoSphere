@@ -18,6 +18,11 @@ dependencies:
   url_launcher: ^6.3.0
   timeago: ^3.7.0
   flutter_highlight: ^0.7.0
+  flutter_markdown_plus: ^1.0.7
+  flutter_animate: ^4.5.0
+  shimmer: ^3.0.0
+  google_fonts: ^6.2.1
+  shared_preferences: ^2.3.2
 
 dev_dependencies:
   flutter_test:

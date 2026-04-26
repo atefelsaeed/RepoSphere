@@ -5,22 +5,56 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/language_colors.dart';
 import '../../domain/entities/repo_entity.dart';
 
-class RepoCard extends StatelessWidget {
+class RepoCard extends StatefulWidget {
   final RepoEntity repo;
   final VoidCallback? onTap;
 
   const RepoCard({super.key, required this.repo, this.onTap});
 
   @override
+  State<RepoCard> createState() => _RepoCardState();
+}
+
+class _RepoCardState extends State<RepoCard> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final repo = widget.repo;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _hovered
+                ? cs.primary.withAlpha(120)
+                : cs.outlineVariant,
+          ),
+          boxShadow: _hovered
+              ? [
+                  BoxShadow(
+                    color: cs.primary.withAlpha(28),
+                    blurRadius: 20,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : [],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: widget.onTap,
+            child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,6 +206,8 @@ class RepoCard extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+        ),
           ),
         ),
       ),

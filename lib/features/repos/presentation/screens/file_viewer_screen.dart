@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_contents_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
+import '../../../../shared/widgets/shimmer_box.dart';
 
 class FileViewerScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -77,7 +78,7 @@ class FileViewerScreen extends ConsumerWidget {
           fileName: name,
           isDark: isDark,
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const ShimmerCodeView(),
         error: (e, _) => ErrorView(
           message: e.toString(),
           onRetry: () => ref.invalidate(fileContentProvider),

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../../domain/repositories/git_provider.dart';
 import '../providers/repos_provider.dart';
 import '../widgets/repo_card.dart';
+import '../../../../core/providers/theme_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
+import '../../../../shared/widgets/shimmer_box.dart';
 
 class ReposScreen extends ConsumerStatefulWidget {
   const ReposScreen({super.key});
@@ -51,12 +55,62 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
           ],
         ),
         actions: [
+          // Global search
+          IconButton(
+            tooltip: 'Explore GitHub',
+            icon: const Icon(Icons.travel_explore_rounded),
+            onPressed: () => context.goNamed('search'),
+          ),
+          // Sort dropdown
+          PopupMenuButton<RepoSort>(
+            tooltip: 'Sort',
+            icon: const Icon(Icons.sort_rounded),
+            initialValue: ref.watch(repoSortProvider),
+            onSelected: (s) =>
+                ref.read(repoSortProvider.notifier).state = s,
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                  value: RepoSort.updated, child: Text('Last updated')),
+              PopupMenuItem(value: RepoSort.stars, child: Text('Stars')),
+              PopupMenuItem(value: RepoSort.name, child: Text('Name')),
+              PopupMenuItem(value: RepoSort.created, child: Text('Created')),
+            ],
+          ),
+          // Theme toggle
+          IconButton(
+            tooltip: 'Toggle theme',
+            icon: Icon(
+              ref.watch(themeModeProvider) == ThemeMode.dark
+                  ? Icons.light_mode_rounded
+                  : ref.watch(themeModeProvider) == ThemeMode.light
+                      ? Icons.dark_mode_rounded
+                      : Icons.brightness_auto_rounded,
+            ),
+            onPressed: () async {
+              final current = ref.read(themeModeProvider);
+              final next = switch (current) {
+                ThemeMode.system => ThemeMode.light,
+                ThemeMode.light => ThemeMode.dark,
+                ThemeMode.dark => ThemeMode.system,
+              };
+              ref.read(themeModeProvider.notifier).state = next;
+              final prefs = await SharedPreferences.getInstance();
+              prefs.setString('themeMode', next.name);
+            },
+          ),
+          // Avatar → profile
           if (user != null)
             Padding(
               padding: const EdgeInsets.only(right: 4),
-              child: CircleAvatar(
-                radius: 14,
-                backgroundImage: NetworkImage(user.avatarUrl),
+              child: GestureDetector(
+                onTap: () => context.goNamed('profile'),
+                child: Tooltip(
+                  message: 'Profile',
+                  child: CircleAvatar(
+                    radius: 14,
+                    backgroundImage: NetworkImage(user.avatarUrl),
+                  ),
+                ),
               ),
             ),
           IconButton(
@@ -67,8 +121,8 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                 context: context,
                 builder: (ctx) => AlertDialog(
                   title: const Text('Disconnect'),
-                  content:
-                      const Text('Remove your GitHub token from this device?'),
+                  content: const Text(
+                      'Remove your GitHub token from this device?'),
                   actions: [
                     TextButton(
                       onPressed: () => ctx.pop(false),
@@ -127,13 +181,19 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
                   children: RepoFilter.values.map((f) {
+                    final isSelected = filter == f;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(_filterLabel(f)),
-                        selected: filter == f,
-                        onSelected: (_) =>
-                            ref.read(repoFilterProvider.notifier).state = f,
+                      child: AnimatedScale(
+                        scale: isSelected ? 1.06 : 1.0,
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.elasticOut,
+                        child: FilterChip(
+                          label: Text(_filterLabel(f)),
+                          selected: isSelected,
+                          onSelected: (_) =>
+                              ref.read(repoFilterProvider.notifier).state = f,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -179,18 +239,21 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                             ),
                           ),
                         ],
-                      ),
+                      )
+                          .animate()
+                          .fadeIn(duration: 300.ms)
+                          .slideY(begin: 0.1, curve: Curves.easeOut),
                     ),
                   );
                 }
-
                 return SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                   sliver: _RepoGrid(repos: repos),
                 );
               },
-              loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
+              loading: () => SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                sliver: _ShimmerGrid(),
               ),
               error: (e, _) => SliverFillRemaining(
                 child: ErrorView(
@@ -243,7 +306,10 @@ class _RepoGrid extends StatelessWidget {
                 pathParameters: {'id': '${repos[i].id}'},
                 extra: repos[i],
               ),
-            ),
+            )
+                .animate(delay: (i * 40).clamp(0, 400).ms)
+                .fadeIn(duration: 300.ms)
+                .slideY(begin: 0.06, curve: Curves.easeOut),
           );
         }
 
@@ -262,7 +328,47 @@ class _RepoGrid extends StatelessWidget {
               pathParameters: {'id': '${repos[i].id}'},
               extra: repos[i],
             ),
+          )
+              .animate(delay: (i * 40).clamp(0, 400).ms)
+              .fadeIn(duration: 300.ms)
+              .slideY(begin: 0.06, curve: Curves.easeOut),
+        );
+      },
+    );
+  }
+}
+
+class _ShimmerGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.crossAxisExtent;
+        final columns = width >= 1200
+            ? 4
+            : width >= 900
+                ? 3
+                : width >= 600
+                    ? 2
+                    : 1;
+
+        if (columns == 1) {
+          return SliverList.separated(
+            itemCount: 6,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (_, __) => const ShimmerRepoCard(),
+          );
+        }
+
+        return SliverGrid.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisExtent: 168,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
           ),
+          itemCount: columns * 3,
+          itemBuilder: (_, __) => const ShimmerRepoCard(),
         );
       },
     );

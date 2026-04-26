@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../domain/entities/repo_content_entity.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_contents_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
+import '../../../../shared/widgets/shimmer_box.dart';
 
 class RepoBrowserScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -78,7 +80,27 @@ class RepoBrowserScreen extends ConsumerWidget {
           Expanded(
             child: contentsAsync.when(
               data: (items) => items.isEmpty
-                  ? const Center(child: Text('Empty directory'))
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.folder_open_rounded,
+                              size: 48,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                          const SizedBox(height: 12),
+                          Text('Empty directory',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
+                        ],
+                      ).animate().fadeIn(duration: 300.ms),
+                    )
                   : ListView.separated(
                       itemCount: items.length,
                       separatorBuilder: (_, __) => Divider(
@@ -87,10 +109,19 @@ class RepoBrowserScreen extends ConsumerWidget {
                             Theme.of(context).colorScheme.outlineVariant,
                       ),
                       itemBuilder: (ctx, i) =>
-                          _ContentTile(item: items[i], repo: repo),
+                          _ContentTile(item: items[i], repo: repo)
+                              .animate(delay: (i * 25).clamp(0, 250).ms)
+                              .fadeIn(duration: 200.ms)
+                              .slideY(begin: 0.04, curve: Curves.easeOut),
                     ),
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => ListView.separated(
+                itemCount: 14,
+                separatorBuilder: (_, __) => Divider(
+                  height: 1,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+                itemBuilder: (_, __) => const ShimmerListTile(),
+              ),
               error: (e, _) => ErrorView(
                 message: e.toString(),
                 onRetry: () => ref.invalidate(repoContentsProvider),

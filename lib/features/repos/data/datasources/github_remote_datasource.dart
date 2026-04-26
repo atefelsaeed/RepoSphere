@@ -2,7 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/exceptions.dart';
+import '../../domain/entities/commit_detail_entity.dart';
 import '../../domain/entities/repo_content_entity.dart';
+import '../models/branch_model.dart';
+import '../models/commit_detail_model.dart';
+import '../models/commit_model.dart';
+import '../models/issue_model.dart';
+import '../models/pull_request_model.dart';
 import '../models/repo_model.dart';
 import '../models/user_model.dart';
 
@@ -55,6 +61,134 @@ class GitHubRemoteDatasource {
     return list
         .map((e) => RepoModel.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<List<BranchModel>> getBranches(String owner, String repo) async {
+    final response = await _client.get(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/branches?per_page=100'),
+      headers: _headers,
+    );
+    _checkResponse(response);
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list
+        .map((e) => BranchModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<CommitModel>> getCommits(
+    String owner,
+    String repo, {
+    String? branch,
+    int page = 1,
+    int perPage = 30,
+  }) async {
+    final uri = Uri.parse(
+            '${AppConstants.githubApiBase}/repos/$owner/$repo/commits')
+        .replace(queryParameters: {
+      'per_page': '$perPage',
+      'page': '$page',
+      if (branch != null && branch.isNotEmpty) 'sha': branch,
+    });
+    final response = await _client.get(uri, headers: _headers);
+    _checkResponse(response);
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list
+        .map((e) => CommitModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<PullRequestModel>> getPullRequests(
+    String owner,
+    String repo, {
+    String state = 'open',
+    int page = 1,
+    int perPage = 30,
+  }) async {
+    final uri =
+        Uri.parse('${AppConstants.githubApiBase}/repos/$owner/$repo/pulls')
+            .replace(queryParameters: {
+      'state': state,
+      'per_page': '$perPage',
+      'page': '$page',
+      'sort': 'updated',
+    });
+    final response = await _client.get(uri, headers: _headers);
+    _checkResponse(response);
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list
+        .map((e) => PullRequestModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<IssueModel>> getIssues(
+    String owner,
+    String repo, {
+    String state = 'open',
+    int page = 1,
+    int perPage = 30,
+  }) async {
+    final uri =
+        Uri.parse('${AppConstants.githubApiBase}/repos/$owner/$repo/issues')
+            .replace(queryParameters: {
+      'state': state,
+      'per_page': '$perPage',
+      'page': '$page',
+      'sort': 'updated',
+    });
+    final response = await _client.get(uri, headers: _headers);
+    _checkResponse(response);
+    final list = jsonDecode(response.body) as List<dynamic>;
+    // GitHub issues endpoint returns PRs too — filter them out
+    return list
+        .where((e) => (e as Map<String, dynamic>)['pull_request'] == null)
+        .map((e) => IssueModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<RepoModel>> searchRepos(String query,
+      {int page = 1, int perPage = 30}) async {
+    final uri =
+        Uri.parse('${AppConstants.githubApiBase}/search/repositories').replace(
+      queryParameters: {
+        'q': query,
+        'sort': 'stars',
+        'order': 'desc',
+        'per_page': '$perPage',
+        'page': '$page',
+      },
+    );
+    final response = await _client.get(uri, headers: _headers);
+    _checkResponse(response);
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final items = json['items'] as List<dynamic>;
+    return items
+        .map((e) => RepoModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<CommitDetailEntity> getCommitDetail(
+      String owner, String repo, String sha) async {
+    final response = await _client.get(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/commits/$sha'),
+      headers: _headers,
+    );
+    _checkResponse(response);
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    return CommitDetailModel.fromJson(json).entity;
+  }
+
+  Future<String?> getReadme(String owner, String repo) async {
+    final response = await _client.get(
+      Uri.parse('${AppConstants.githubApiBase}/repos/$owner/$repo/readme'),
+      headers: _headers,
+    );
+    if (response.statusCode == 404) return null;
+    _checkResponse(response);
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final raw = (json['content'] as String? ?? '').replaceAll('\n', '');
+    return utf8.decode(base64.decode(raw));
   }
 
   Future<List<RepoContentItem>> getContents(

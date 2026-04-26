@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/language_colors.dart';
 import '../../domain/entities/repo_entity.dart';
+import '../providers/repo_commits_provider.dart';
+import '../widgets/commit_tile.dart';
+import '../../../../shared/widgets/shimmer_box.dart';
 
-class RepoDetailScreen extends StatelessWidget {
+class RepoDetailScreen extends ConsumerWidget {
   final RepoEntity repo;
 
   const RepoDetailScreen({super.key, required this.repo});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final commitsAsync = ref.watch(
+      repoCommitsProvider((owner: repo.ownerLogin, repo: repo.name)),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -121,7 +129,62 @@ class RepoDetailScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Stats row
-              _StatsRow(repo: repo),
+              _StatsRow(repo: repo)
+                  .animate()
+                  .fadeIn(duration: 300.ms)
+                  .slideY(begin: 0.06, curve: Curves.easeOut),
+
+              const SizedBox(height: 20),
+
+              // Quick nav buttons
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _NavButton(
+                    icon: Icons.call_merge_rounded,
+                    label: 'Pull Requests',
+                    color: const Color(0xFF3FB950),
+                    onTap: () => context.goNamed('repo-prs',
+                        pathParameters: {'id': '${repo.id}'},
+                        extra: repo),
+                  ),
+                  _NavButton(
+                    icon: Icons.circle_outlined,
+                    label: 'Issues',
+                    color: const Color(0xFFF59E0B),
+                    onTap: () => context.goNamed('repo-issues',
+                        pathParameters: {'id': '${repo.id}'},
+                        extra: repo),
+                  ),
+                  _NavButton(
+                    icon: Icons.article_outlined,
+                    label: 'README',
+                    color: cs.primary,
+                    onTap: () => context.goNamed('repo-readme',
+                        pathParameters: {'id': '${repo.id}'},
+                        extra: repo),
+                  ),
+                  _NavButton(
+                    icon: Icons.commit_rounded,
+                    label: 'Commits',
+                    color: const Color(0xFFA371F7),
+                    onTap: () => context.goNamed('repo-commits',
+                        pathParameters: {'id': '${repo.id}'},
+                        extra: (repo: repo, branch: repo.defaultBranch)),
+                  ),
+                  _NavButton(
+                    icon: Icons.folder_open_rounded,
+                    label: 'Browse Code',
+                    color: cs.secondary,
+                    onTap: () => context.goNamed('repo-browser',
+                        pathParameters: {'id': '${repo.id}'},
+                        extra: (repo: repo, path: '')),
+                  ),
+                ],
+              ).animate(delay: 60.ms)
+                  .fadeIn(duration: 300.ms)
+                  .slideY(begin: 0.06, curve: Curves.easeOut),
 
               const SizedBox(height: 24),
 
@@ -200,6 +263,91 @@ class RepoDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+
+              // Commits section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.commit_rounded,
+                          size: 18, color: cs.onSurfaceVariant),
+                      const SizedBox(width: 8),
+                      Text('Recent Commits',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  TextButton.icon(
+                    onPressed: () => context.goNamed(
+                      'repo-commits',
+                      pathParameters: {'id': '${repo.id}'},
+                      extra: (repo: repo, branch: repo.defaultBranch),
+                    ),
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+                    label: const Text('View all'),
+                    style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              commitsAsync.when(
+                data: (commits) => commits.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text('No commits found',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                                color: cs.onSurfaceVariant)),
+                      )
+                    : Column(
+                        children: commits.asMap().entries.map((e) {
+                          final i = e.key;
+                          final c = e.value;
+                          return Column(
+                            children: [
+                              CommitTile(
+                                commit: c,
+                                onTap: () => context.goNamed(
+                                  'commit-detail',
+                                  pathParameters: {'id': '${repo.id}'},
+                                  extra: (repo: repo, commit: c),
+                                ),
+                              )
+                                  .animate(
+                                      delay: (i * 40).clamp(0, 200).ms)
+                                  .fadeIn(duration: 250.ms)
+                                  .slideX(
+                                      begin: -0.04,
+                                      curve: Curves.easeOut),
+                              if (c != commits.last)
+                                Divider(
+                                    height: 1, color: cs.outlineVariant),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                loading: () => Column(
+                  children: List.generate(
+                    3,
+                    (i) => Column(children: [
+                      const ShimmerListTile(),
+                      if (i < 2) const Divider(height: 1),
+                    ]),
+                  ),
+                ),
+                error: (e, _) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text('Failed to load commits: $e',
+                      style:
+                          TextStyle(color: theme.colorScheme.error)),
+                ),
               ),
             ],
           ),
@@ -326,6 +474,81 @@ class _DateTile extends StatelessWidget {
               ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
       ],
+    );
+  }
+}
+
+class _NavButton extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _NavButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  State<_NavButton> createState() => _NavButtonState();
+}
+
+class _NavButtonState extends State<_NavButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: _hovered
+                  ? widget.color.withAlpha(180)
+                  : cs.outlineVariant,
+            ),
+            borderRadius: BorderRadius.circular(10),
+            color: widget.color.withAlpha(_hovered ? 30 : 15),
+            boxShadow: _hovered
+                ? [
+                    BoxShadow(
+                      color: widget.color.withAlpha(30),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.icon, size: 16, color: widget.color),
+              const SizedBox(width: 7),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: widget.color,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right_rounded,
+                  size: 14, color: widget.color.withAlpha(160)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
