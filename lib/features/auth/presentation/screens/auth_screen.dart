@@ -9,6 +9,11 @@ import '../../../../core/utils/exceptions.dart';
 import '../../data/github_device_auth.dart';
 import '../providers/auth_provider.dart';
 
+// Auth priority:
+//   1. AppConfig.hasSupabase    → Supabase GitHub OAuth (web redirect)
+//   2. AppConfig.hasGitHubOAuth → GitHub Device Flow
+//   3. fallback                 → Personal Access Token form
+
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
 
@@ -49,6 +54,27 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           _errorMessage = 'Connection error. Check your internet and try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithSupabase() async {
+    final service = ref.read(supabaseAuthServiceProvider);
+    if (service == null) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      await service.signInWithGitHub();
+      // On web: browser redirects — loading stays true until navigation.
+      // On error the catch below resets it.
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
     }
   }
 
@@ -273,10 +299,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
                 const SizedBox(height: 36),
 
-                // ── OAuth path ─────────────────────────────────────
-                if (hasOAuth) ...[
+                // ── OAuth path (Supabase › Device Flow › PAT) ──────
+                if (AppConfig.hasSupabase || hasOAuth) ...[
                   FilledButton.icon(
-                    onPressed: _isLoading ? null : _startDeviceFlow,
+                    onPressed: _isLoading
+                        ? null
+                        : AppConfig.hasSupabase
+                            ? _signInWithSupabase
+                            : _startDeviceFlow,
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       backgroundColor: const Color(0xFF24292F),
