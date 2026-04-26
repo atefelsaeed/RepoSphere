@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,11 +22,30 @@ class ReposScreen extends ConsumerStatefulWidget {
 
 class _ReposScreenState extends ConsumerState<ReposScreen> {
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_handleKey);
+  }
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleKey);
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
+  }
+
+  bool _handleKey(KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.slash &&
+        !_searchFocus.hasFocus) {
+      _searchFocus.requestFocus();
+      return true;
+    }
+    return false;
   }
 
   Future<void> _refresh() async {
@@ -66,6 +86,12 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
             tooltip: 'Activity',
             icon: const Icon(Icons.timeline_rounded),
             onPressed: () => context.goNamed('activity'),
+          ),
+          // Gists
+          IconButton(
+            tooltip: 'Gists',
+            icon: const Icon(Icons.code_rounded),
+            onPressed: () => context.goNamed('gists'),
           ),
           // Global search
           IconButton(
@@ -164,6 +190,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: TextField(
                   controller: _searchController,
+                  focusNode: _searchFocus,
                   decoration: InputDecoration(
                     hintText: 'Search repositories…',
                     prefixIcon: const Icon(Icons.search_rounded),
