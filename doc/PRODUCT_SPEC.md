@@ -1,5 +1,5 @@
 # RepoSphere — Product & Architecture Spec
-> Version 3.0 | Last updated: April 2026
+> Version 4.0 | Last updated: April 2026
 
 ---
 
@@ -82,6 +82,7 @@ Closed / Error:   #EF4444   (red)
 Draft / Muted:    #6B7280   (gray)
 Warning:          #F59E0B   (amber)
 File / Branch:    #54AEFF   (blue)
+GitLab:           #FC6D26   (orange)
 ```
 
 ### 4.3 Typography
@@ -127,6 +128,7 @@ Hover effects     → AnimatedContainer, 150-160ms, Curves.easeOut
   Theme toggle:     instant icon swap (system/light/dark)
 
 Copy micro-animation → AnimatedSwitcher: link icon → green checkmark (2s)
+Pin micro-animation  → AnimatedSwitcher: outlined pin → filled primary pin
 
 Durations:
   Micro:    150-160ms (hover transitions, copy feedback)
@@ -154,20 +156,24 @@ No native splash; purely Flutter-rendered for consistency.
 lib/
 ├── core/
 │   ├── router/           GoRouter + _RouterNotifier (auth redirect)
-│   │                     17 named routes
+│   │                     18 named routes + 404 errorBuilder
 │   ├── theme/            AppTheme — dark + light ThemeData, AppColors
-│   ├── providers/        themeModeProvider (StateProvider<ThemeMode>)
+│   ├── providers/        themeModeProvider, supabaseClientProvider
 │   ├── constants/        AppConstants (API base), kLanguageColors map
+│   ├── config/           AppConfig (OAuth + Supabase credentials)
 │   └── utils/            GitHubAuthException, GitHubRateLimitException
 │
 ├── features/
 │   ├── auth/
 │   │   ├── data/         SecureTokenStorage (flutter_secure_storage)
-│   │   └── presentation/ AuthScreen + AuthNotifier
+│   │   │                 GitHubDeviceAuth (Device Flow + polling)
+│   │   │                 SupabaseAuthService (OAuth via Supabase)
+│   │   └── presentation/ AuthScreen (three-tier) + AuthNotifier
 │   │
 │   └── repos/
 │       ├── domain/
-│       │   ├── entities/ RepoEntity, UserEntity, CommitEntity,
+│       │   ├── entities/ RepoEntity (+ RepoProvider enum),
+│       │   │             UserEntity, CommitEntity,
 │       │   │             CommitDetailEntity, BranchEntity,
 │       │   │             PullRequestEntity, IssueEntity,
 │       │   │             IssueCommentEntity, RepoContentItem,
@@ -182,8 +188,10 @@ lib/
 │       │   │             PullRequestModel, IssueModel,
 │       │   │             IssueCommentModel, ContributorModel,
 │       │   │             ActivityEventModel, NotificationModel,
-│       │   │             ReleaseModel, GistModel
-│       │   ├── datasources/  GitHubRemoteDatasource (24 API methods)
+│       │   │             ReleaseModel, GistModel,
+│       │   │             GitLabProjectModel
+│       │   ├── datasources/  GitHubRemoteDatasource (25 API methods)
+│       │   │                 GitLabRemoteDatasource (projects, starred)
 │       │   └── repositories/ GitHubRepoRepositoryImpl
 │       │
 │       └── presentation/
@@ -196,7 +204,8 @@ lib/
 │           │             ActivityScreen, NotificationsScreen,
 │           │             GistsScreen, SearchScreen, ProfileScreen
 │           │
-│           ├── providers/ repos_provider (filter, sort, search),
+│           ├── providers/ repos_provider (filter, sort, search,
+│           │             gitlab merge), pinned_repos_provider,
 │           │             commits_notifier (paginated),
 │           │             commit_detail_provider,
 │           │             repo_branches_provider,
@@ -216,16 +225,18 @@ lib/
 │           │             global_search_provider,
 │           │             recent_searches_provider
 │           │
-│           └── widgets/  RepoCard (hover-aware StatefulWidget),
+│           └── widgets/  RepoCard (ConsumerStatefulWidget,
+│                         pin indicator + GL badge),
 │                         CommitTile, LabelChip,
-│                         CommentThread + CommentCard
+│                         CommentThread + CommentCard,
+│                         CreateIssueSheet
 │
 ├── shared/
 │   └── widgets/          ErrorView, ShimmerBox, ShimmerRepoCard,
 │                         ShimmerListTile
 │
 ├── app.dart              RepoSphereApp + _SplashScreen (animated)
-└── main.dart
+└── main.dart             Supabase.initialize() (guarded by AppConfig)
 ```
 
 ### 5.2 Provider Abstraction
@@ -239,8 +250,8 @@ abstract class GitProvider {
 
 // Implementations:
 // ✅ GitHubRepoRepositoryImpl
-// 🔜 GitLabRepoRepositoryImpl   (Phase 2)
-// 🔜 BitbucketRepoRepositoryImpl (Phase 2)
+// ✅ GitLabRemoteDatasource  (direct datasource — merged in allReposProvider)
+// 🔜 BitbucketRepoRepositoryImpl (Phase 4)
 ```
 
 ### 5.3 State Management (Riverpod 2.x)
@@ -249,17 +260,21 @@ abstract class GitProvider {
 Core:
   authProvider              AsyncNotifier<String?>
   githubDatasourceProvider  Provider<GitHubRemoteDatasource?>
+  gitlabDatasourceProvider  FutureProvider<GitLabRemoteDatasource?>
   gitProviderProvider       Provider<GitProvider?>
+  supabaseClientProvider    Provider<SupabaseClient?>
   themeModeProvider         StateProvider<ThemeMode>
 
 User & Repos:
   currentUserProvider       FutureProvider<UserEntity?>
-  allReposProvider          FutureProvider<List<RepoEntity>>
+  allReposProvider          FutureProvider<List<RepoEntity>>   ← GitHub + GitLab merged
   starredReposProvider      FutureProvider<List<RepoEntity>>
+  gitlabReposProvider       FutureProvider<List<RepoEntity>>
   filteredReposProvider     Provider<AsyncValue<List<RepoEntity>>>
   repoFilterProvider        StateProvider<RepoFilter>
   searchQueryProvider       StateProvider<String>
   repoSortProvider          StateProvider<RepoSort>
+  pinnedReposProvider       StateNotifierProvider<Set<int>>    ← persisted SharedPreferences
 
 Discovery:
   globalSearchProvider      FutureProvider.family<List<RepoEntity>, String>
@@ -298,7 +313,7 @@ Commits, PRs, and Issues all use the same `StateNotifier` pagination pattern:
 //     "load more" slot at end of list shows ShimmerListTile while loading
 ```
 
-### 5.5 Router — Named Routes (17 total)
+### 5.5 Router — Named Routes (18 total)
 
 ```
 /auth                         AuthScreen
@@ -318,22 +333,41 @@ Commits, PRs, and Issues all use the same `StateNotifier` pagination pattern:
 /search                       SearchScreen
 /activity                     ActivityScreen
 /notifications                NotificationsScreen
-[/gists]                      GistsScreen            ⬜ route pending
+/gists                        GistsScreen
+[errorBuilder]                404 page (icon + route label + Go home)
 ```
 
-### 5.6 Architecture Evolution by Phase
+### 5.6 Three-Tier Auth System
+
+```
+Priority order (highest → lowest):
+
+1. Supabase OAuth   — if AppConfig.hasSupabase
+   SupabaseAuthService.signInWithGitHub() → web OAuth redirect
+   providerToken extracted from Supabase session on return
+   AuthNotifier subscribes to onAuthStateChange stream
+
+2. GitHub Device Flow — if AppConfig.hasGitHubOAuth
+   POST /login/device/code → device_code + user_code
+   Dialog: monospace XXXX-YYYY code + "Open github.com/login/device"
+   Poll /login/oauth/access_token every N seconds until approved
+
+3. PAT fallback — always available
+   TextField → validate via GET /user → store in SecureStorage
+```
+
+### 5.7 Architecture Evolution by Phase
 
 ```
 Phase 1 (MVP — ✅ complete):
   Flutter App ──► GitHub REST API v3
                   Local SecureStorage (PAT token)
-                  SharedPreferences (theme, recent searches)
+                  SharedPreferences (theme, recent searches, pinned repos)
 
-Phase 2 (SaaS):
-  Flutter App ──► Supabase Auth
-              ──► GitHub OAuth / GitLab OAuth
-              ──► Supabase DB (encrypted tokens per user)
-              ──► Supabase Edge Functions (API proxy)
+Phase 2 (Auth — ✅ complete):
+  Flutter App ──► GitHub OAuth Device Flow (no backend required)
+              ──► Supabase Auth (optional — web OAuth)
+              ──► GitLab PAT (read repos, merged into dashboard)
 
 Phase 3 (Scale):
   Flutter App ──► API Gateway
@@ -352,7 +386,7 @@ Phase 3 (Scale):
 #### Core Infrastructure
 ```
 ✅ Clean architecture (domain / data / presentation)
-✅ GoRouter with auth-based redirect guard (17 named routes)
+✅ GoRouter with auth-based redirect guard (18 named routes + 404 page)
 ✅ GitHub PAT token auth (secure storage)
 ✅ Dark + Light + System theme with toggle in AppBar
 ✅ Theme mode persisted via shared_preferences
@@ -360,11 +394,12 @@ Phase 3 (Scale):
 ✅ Error views with retry across all screens
 ✅ Responsive grid (1→2→3→4 columns based on width)
 ✅ No CircularProgressIndicator anywhere — shimmer-only loading
+✅ / keyboard shortcut → focus inline search bar on ReposScreen
 ```
 
 #### Repos List Screen
 ```
-✅ All repos (owner + collaborator + org member)
+✅ All repos (owner + collaborator + org member) — GitHub + GitLab merged
 ✅ Starred repos tab
 ✅ Filter chips: All / Owned / Forked / Starred / Public / Private
 ✅ Sort dropdown: Last Updated / Stars / Name / Created
@@ -373,18 +408,22 @@ Phase 3 (Scale):
 ✅ Shimmer skeleton grid on load
 ✅ Staggered card entrance animations
 ✅ Pull-to-refresh
+✅ Pinned repos section — horizontal chip row, shown when filter=All
+      and no active search query and at least one repo is pinned
 ```
 
 #### Repo Card
 ```
 ✅ Owner avatar + full name
 ✅ Private badge
+✅ GitLab badge (orange "GL" chip for GitLab repos)
+✅ Pin indicator (push_pin icon when pinned)
 ✅ Language dot + name
 ✅ Fork indicator
 ✅ Star count
 ✅ Last updated (timeago)
 ✅ Copy link button with AnimatedSwitcher → green checkmark (2s)
-✅ Open on GitHub button
+✅ Open on GitHub/GitLab button
 ✅ Hover lift effect (border + glow shadow)
 ✅ Spring filter chip animation on select
 ```
@@ -395,6 +434,7 @@ Phase 3 (Scale):
 ✅ Public / Private chip
 ✅ Description
 ✅ Stats row: Stars / Forks / Watchers / Open Issues
+✅ Pin / Unpin toggle in AppBar (AnimatedSwitcher: outlined ↔ filled primary)
 ✅ Star / Unstar toggle button in AppBar (live state via isStarredProvider)
 ✅ Copy link button with checkmark micro-animation in AppBar
 ✅ Quick nav buttons: PRs / Issues / README / Commits / Browse / Releases
@@ -508,6 +548,7 @@ Phase 3 (Scale):
 ✅ Labels (colored chips)
 ✅ Comment count
 ✅ Tap → in-app Issue Detail screen
+✅ Create Issue FAB (GitHub repos only) → bottom sheet form
 ✅ Shimmer skeleton on load
 ✅ Staggered animation
 ✅ Pull-to-refresh
@@ -528,6 +569,16 @@ Phase 3 (Scale):
 ✅ Staggered section animations
 ```
 
+#### Create Issue Sheet
+```
+✅ Modal bottom sheet (GitHub repos only)
+✅ Title field (required, validated)
+✅ Description field (multiline, optional)
+✅ Loading state (CircularProgressIndicator inside button)
+✅ Error banner on failure
+✅ On success: dismisses sheet + triggers issues list refresh
+```
+
 #### README Screen
 ```
 ✅ Full Markdown rendering (flutter_markdown_plus)
@@ -544,7 +595,7 @@ Phase 3 (Scale):
 ```
 ✅ Paginated release list per repo
 ✅ Tag chip (monospace)
-✅ Badge: Latest / Pre-release / Draft
+✅ Badge: Latest (first stable only) / Pre-release / Draft
 ✅ Author avatar + login
 ✅ Full release notes rendered in Markdown
 ✅ Timeago
@@ -564,7 +615,7 @@ Phase 3 (Scale):
 ✅ Timeago
 ✅ Tap → open event on GitHub
 ✅ Pull-to-refresh
-✅ Shimmer skeleton on load
+✅ Shimmer skeleton on load (no spinner — shimmer only)
 ✅ Staggered animation
 ✅ Empty state
 ```
@@ -587,6 +638,7 @@ Phase 3 (Scale):
 #### Gists Screen
 ```
 ✅ Authenticated user's gists list
+✅ /gists named route in GoRouter
 ✅ Public / Secret badge
 ✅ File chips: name + language (up to 5 per gist)
 ✅ Updated timeago
@@ -596,7 +648,6 @@ Phase 3 (Scale):
 ✅ Shimmer skeleton on load
 ✅ Staggered animation
 ✅ Empty state
-⬜ /gists route missing from GoRouter (pending)
 ```
 
 #### Search Screen
@@ -625,43 +676,89 @@ Phase 3 (Scale):
 ✅ Stats: Repos / Followers / Following
 ✅ Shimmer skeleton on load
 ✅ Staggered info row animations
+✅ Pull-to-refresh
+✅ ErrorView on failure
+✅ Gists shortcut in AppBar
 ✅ Accessible via avatar tap in repos AppBar
 ```
 
-### Phase 2 — SaaS Foundation `[Next]`
+---
 
+### Phase 2 — Auth Evolution ✅ Complete
+
+#### GitHub OAuth Device Flow
 ```
-Auth:
-  ⬜ Supabase project setup
-  ⬜ Email/Password signup + login
-  ⬜ GitHub OAuth (replace PAT)
-  ⬜ GitLab OAuth
-  ⬜ "Forgot password" flow
-
-Provider Management:
-  ⬜ Provider connection screen
-  ⬜ Connected providers list
-  ⬜ Multi-provider repo aggregation
-
-User Account:
-  ⬜ Subscription status badge on profile
-  ⬜ Connected providers overview
+✅ AppConfig.githubClientId — fill in to enable Device Flow
+✅ GitHubDeviceAuth: POST /login/device/code → poll for token
+✅ Dialog: verification URL button + large monospace XXXX-YYYY code
+✅ Copy-on-tap for user code
+✅ Polling spinner with cancel button
+✅ Handles: authorization_pending, slow_down, expired_token, access_denied
+✅ PAT fallback always available ("Use a token instead")
 ```
 
-### Phase 3 — Power Features
+#### Supabase Auth (optional backend)
+```
+✅ AppConfig.supabaseUrl + supabaseAnonKey — fill in to enable
+✅ SupabaseAuthService.signInWithGitHub() → web OAuth redirect
+✅ AuthNotifier subscribes to onAuthStateChange stream
+✅ providerToken (GitHub OAuth token) extracted from Supabase session
+✅ Logout: calls supabase.auth.signOut() when configured
+✅ Supabase.initialize() guarded by AppConfig.hasSupabase in main.dart
+```
+
+#### Auth Priority
+```
+Priority (highest → lowest):
+  1. Supabase OAuth    — if AppConfig.hasSupabase
+  2. Device Flow       — elif AppConfig.hasGitHubOAuth
+  3. PAT entry form    — always
+```
+
+#### GitLab Integration
+```
+✅ GitLabRemoteDatasource — Bearer token, /api/v4/projects
+✅ GitLabProjectModel → toEntity() with RepoProvider.gitlab
+✅ gitlabDatasourceProvider — reads token from SecureStorage (opt-in)
+✅ gitlabReposProvider — maps projects to RepoEntity list
+✅ allReposProvider — merges GitHub + GitLab repos
+✅ RepoProvider enum on RepoEntity (github | gitlab)
+✅ Orange "GL" badge on repo cards for GitLab repos
+✅ Create Issue FAB hidden for GitLab repos (GitHub-only action)
+```
+
+#### Repo Pinning
+```
+✅ pinnedReposProvider — StateNotifierProvider<Set<int>>
+✅ Persisted via SharedPreferences (pinned_repo_ids)
+✅ toggle(repoId) — adds/removes + auto-saves
+✅ Pin indicator (push_pin icon) on repo cards
+✅ Pin/Unpin toggle in repo detail AppBar (AnimatedSwitcher)
+✅ Pinned section on repos screen — horizontal scrollable chip row
+      Visible only when: filter=All AND search empty AND ≥1 pinned
+```
+
+---
+
+### Phase 3 — Power Features `[Next]`
 
 ```
 Repo Management:
   ⬜ PR Review (view diff, approve, request changes, comment)
-  ⬜ Issues: create, assign, label, close
-  ⬜ Repo pinning (dashboard favorites)
+  ⬜ Issue management: assign, label, close/reopen
+  ⬜ Comment on issues and PRs
   ⬜ Custom collections (group repos by project/client)
   ⬜ Code diff viewer (compare branches/commits)
 
 Multi-Provider:
-  ⬜ GitLab repos + commits + MRs
+  ⬜ GitLab commits, MRs, issues (in-app screens)
+  ⬜ GitLab OAuth (replace PAT)
   ⬜ Bitbucket repos + PRs
-  ⬜ Provider badge on each repo card
+
+Productivity:
+  ⬜ Cross-repo notifications (webhook-driven)
+  ⬜ Mobile push notifications
+  ⬜ Keyboard navigation (arrow keys for lists)
 ```
 
 ### Phase 4 — Monetization & Scale
@@ -714,7 +811,8 @@ Tech:
 ✅ GET  /repos/{owner}/{repo}/commits            Paginated commits
 ✅ GET  /repos/{owner}/{repo}/commits/{sha}      Commit detail + files
 ✅ GET  /repos/{owner}/{repo}/pulls              Paginated PRs
-✅ GET  /repos/{owner}/{repo}/issues             Paginated issues
+✅ GET  /repos/{owner}/{repo}/issues             Paginated issues (PRs filtered out)
+✅ POST /repos/{owner}/{repo}/issues             Create issue
 ✅ GET  /repos/{owner}/{repo}/issues/{n}/comments  Issue/PR comments
 ✅ GET  /repos/{owner}/{repo}/readme             README (base64 decoded)
 ✅ GET  /repos/{owner}/{repo}/contents/{path}    File browser + content
@@ -734,15 +832,28 @@ Tech:
 ✅ GET  /gists                                   Authenticated user's gists
 
 ── Planned ───────────────────────────────────────────────────────────
-⬜ POST /repos/{owner}/{repo}/issues             Create issue
 ⬜ POST /repos/{owner}/{repo}/issues/{n}/comments  Comment on issue
+⬜ PATCH /repos/{owner}/{repo}/issues/{n}         Update issue (close/assign)
 ⬜ POST /repos/{owner}/{repo}/pulls/{n}/reviews  Review PR
 ⬜ GET  /repos/{owner}/{repo}/compare/{b}...{h}  Diff view
 ```
 
+## 8. GitLab API Coverage
+
+```
+── Projects ──────────────────────────────────────────────────────────
+✅ GET  /api/v4/projects                         User's projects (membership)
+✅ GET  /api/v4/projects?starred=true            Starred projects
+
+── Planned ───────────────────────────────────────────────────────────
+⬜ GET  /api/v4/projects/{id}/repository/commits  Commits
+⬜ GET  /api/v4/projects/{id}/merge_requests      Merge Requests
+⬜ GET  /api/v4/projects/{id}/issues              Issues
+```
+
 ---
 
-## 8. Tech Stack
+## 9. Tech Stack
 
 ```
 Frontend:
@@ -750,10 +861,10 @@ Frontend:
   State:            Riverpod 2.x (Provider, FutureProvider.family,
                                   StateNotifierProvider.family,
                                   StateProvider, AsyncNotifier)
-  Navigation:       GoRouter 14.x (named routes, auth redirect)
-  HTTP:             http (→ dio in Phase 2 for interceptors + retry)
+  Navigation:       GoRouter 14.x (named routes, auth redirect, 404 page)
+  HTTP:             http (→ dio in Phase 3 for interceptors + retry)
   Auth storage:     flutter_secure_storage (Keychain / EncryptedSharedPrefs)
-  Persistence:      shared_preferences (theme mode, recent searches)
+  Persistence:      shared_preferences (theme, recent searches, pinned repos)
   Animations:       flutter_animate (stagger, fade, slide, scale, elastic)
   Loading:          shimmer (ShimmerBox, ShimmerRepoCard, ShimmerListTile)
   Markdown:         flutter_markdown_plus
@@ -762,7 +873,11 @@ Frontend:
   Time display:     timeago
   Font:             google_fonts (Inter)
 
-Backend (Phase 2+):
+Auth (optional — fill AppConfig to enable):
+  OAuth Device Flow: github.com/login/device (no backend needed)
+  Supabase:          supabase_flutter — web OAuth + session management
+
+Backend (Phase 3+):
   Auth + DB:        Supabase
   Payments:         Stripe
   Hosting (web):    Vercel / Cloudflare Pages
@@ -776,7 +891,7 @@ CI/CD:
 
 ---
 
-## 9. UX Principles
+## 10. UX Principles
 
 ```
 1. Zero friction
@@ -795,9 +910,9 @@ CI/CD:
    No blank states. Shimmer skeletons appear instantly.
    Staggered list animations give a sense of progressive loading.
 
-5. Keyboard friendly (planned)
-   / to focus search.
-   Arrow keys to navigate lists.
+5. Keyboard friendly
+   / to focus search (implemented).
+   Arrow keys to navigate lists (planned).
 
 6. Responsive by default
    4-column grid ≥1200px → 3 ≥900px → 2 ≥600px → 1 on mobile.
@@ -807,11 +922,15 @@ CI/CD:
    No links that kick users to GitHub for content we can show.
    PRs, Issues, Commits, READMEs, Files, Releases — all in-app.
    Comments rendered inline with Markdown.
+
+8. Provider-aware actions
+   GitLab repos show GL badge and suppress GitHub-only actions
+   (Create Issue FAB, star/unstar). Actions always match the provider.
 ```
 
 ---
 
-## 10. Open Source Strategy
+## 11. Open Source Strategy
 
 RepoSphere is built in the open. The core product is open source.
 Revenue comes from the hosted SaaS (auth, sync, teams, subscriptions).
@@ -821,6 +940,7 @@ Open source (free forever):
   - Self-hosted version
   - Core repo viewer + file browser + commit/PR/issue viewer
   - Single provider, local token storage
+  - Repo pinning + GitLab read access
 
 Closed / SaaS only:
   - Multi-provider sync via backend
@@ -832,95 +952,42 @@ Closed / SaaS only:
 
 ---
 
-## 11. Pending Items (Phase 1 Cleanup)
-
-```
-✅ Add /gists route to GoRouter and wire GistsScreen
-✅ Add Gists entry point in UI (profile AppBar + repos AppBar)
-✅ Keyboard shortcut: / → focus inline search bar on ReposScreen
-✅ Fix token scopes: add notifications + gist to auth URL
-✅ Add GoRouter 404 error page
-✅ Profile screen: pull-to-refresh + ErrorView + Gists shortcut
-✅ Fix CircularProgressIndicator in activity screen → shimmer
-✅ Fix releases Latest badge (only first stable release)
-✅ dart analyze — zero issues maintained throughout
-```
-
----
-
-## 12. Phase 2 — GitHub OAuth Device Flow ✅ In Progress
-
-**Goal:** Replace PAT entry with a real "Sign in with GitHub" OAuth flow.
-No backend required — uses GitHub's Device Authorization Grant (RFC 8628).
-
-### How it works
-
-```
-1. App POSTs to https://github.com/login/device/code
-   → GitHub returns: device_code, user_code, verification_uri, interval
-
-2. App shows user a dialog:
-   "Open github.com/login/device and enter: XXXX-YYYY"
-   → Copy code button + Open in browser button
-
-3. App polls https://github.com/login/oauth/access_token every N seconds
-   → On success: receives OAuth token (gho_...)
-   → Saves token to SecureStorage, navigates to repos
-
-4. PAT path remains as fallback ("Use a token instead")
-```
-
-### Configuration
+## 12. Configuration Reference
 
 ```dart
 // lib/core/config/app_config.dart
 class AppConfig {
-  static const githubClientId = '';  // ← fill in your GitHub OAuth App client_id
-  static const supabaseUrl = '';     // ← Phase 2.5 (Supabase backend)
-  static const supabaseAnonKey = ''; // ← Phase 2.5
-  
+  // GitHub OAuth App client_id (device flow — no secret needed)
+  static const githubClientId = '';
+
+  // Supabase project URL and anon key
+  static const supabaseUrl = '';
+  static const supabaseAnonKey = '';
+
   static bool get hasGitHubOAuth => githubClientId.isNotEmpty;
+  static bool get hasSupabase =>
+      supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+}
+
+class StorageKeys {
+  static const githubToken = 'github_pat';
+  static const githubUserLogin = 'github_user_login';
+  static const gitlabToken = 'gitlab_pat';
 }
 ```
 
-**To create a GitHub OAuth App:**
+**To enable Device Flow:**
 1. github.com/settings/developers → OAuth Apps → New OAuth App
-2. Set Homepage URL to your web app URL
-3. Authorization callback URL: not used for device flow (set to http://localhost)
-4. Copy the Client ID into `AppConfig.githubClientId`
-5. **Do NOT enable a client secret** — device flow is secret-free
+2. Set Homepage URL + callback URL (http://localhost for device flow)
+3. Copy Client ID → `AppConfig.githubClientId`
+4. No client secret needed
 
-### New files
+**To enable GitLab:**
+- User enters their GitLab PAT in the auth/settings screen
+- Token stored in SecureStorage under `StorageKeys.gitlabToken`
+- Repos appear automatically in the unified list with an orange GL badge
 
-```
-lib/core/config/app_config.dart              — credential placeholders
-lib/features/auth/data/github_device_auth.dart — Device Flow logic + polling
-```
-
-### Modified files
-
-```
-lib/features/auth/presentation/providers/auth_provider.dart — OAuth path
-lib/features/auth/presentation/screens/auth_screen.dart     — new UI
-```
-
----
-
-## 13. Next Steps (Phase 2.5 — Supabase Backend)
-
-```
-Auth:
-  ⬜ Supabase project setup + auth schema
-  ⬜ Replace SecureStorage with Supabase session management
-  ⬜ Email/Password signup + login
-  ⬜ GitLab OAuth
-
-Provider Management:
-  ⬜ Provider connection screen
-  ⬜ Connected providers list
-  ⬜ Multi-provider repo aggregation with provider badge on cards
-
-User Account:
-  ⬜ Subscription status badge on profile
-  ⬜ Connected providers overview
-```
+**To enable Supabase:**
+1. Create a Supabase project, enable GitHub OAuth provider
+2. Fill `AppConfig.supabaseUrl` + `AppConfig.supabaseAnonKey`
+3. Add redirect URL to Supabase dashboard
