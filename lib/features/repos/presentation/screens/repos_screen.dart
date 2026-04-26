@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../../domain/repositories/git_provider.dart';
+import '../providers/pinned_repos_provider.dart';
 import '../providers/repos_provider.dart';
 import '../widgets/repo_card.dart';
 import '../../../../core/providers/theme_provider.dart';
@@ -60,7 +61,13 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
     final cs = theme.colorScheme;
     final user = ref.watch(currentUserProvider).valueOrNull;
     final filter = ref.watch(repoFilterProvider);
+    final query = ref.watch(searchQueryProvider);
     final filteredAsync = ref.watch(filteredReposProvider);
+    final pinnedIds = ref.watch(pinnedReposProvider);
+    final allRepos = ref.watch(allReposProvider).valueOrNull ?? [];
+    final pinnedRepos = (filter == RepoFilter.all && query.isEmpty && pinnedIds.isNotEmpty)
+        ? allRepos.where((r) => pinnedIds.contains(r.id)).toList()
+        : <RepoEntity>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -242,6 +249,57 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
 
             const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
+            // Pinned repos section
+            if (pinnedRepos.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.push_pin_rounded,
+                              size: 14, color: cs.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Pinned',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: cs.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      height: 80,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: pinnedRepos.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(width: 8),
+                        itemBuilder: (ctx, i) {
+                          final r = pinnedRepos[i];
+                          return _PinnedChip(
+                            repo: r,
+                            onTap: () => ctx.goNamed(
+                              'repo-detail',
+                              pathParameters: {'id': '${r.id}'},
+                              extra: r,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Divider(height: 1, color: cs.outlineVariant),
+                    const SizedBox(height: 4),
+                  ],
+                ),
+              ),
+
             // Repo count badge
             filteredAsync.when(
               data: (repos) => SliverToBoxAdapter(
@@ -373,6 +431,76 @@ class _RepoGrid extends StatelessWidget {
               .slideY(begin: 0.06, curve: Curves.easeOut),
         );
       },
+    );
+  }
+}
+
+class _PinnedChip extends StatelessWidget {
+  final RepoEntity repo;
+  final VoidCallback onTap;
+  const _PinnedChip({required this.repo, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 160,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          border: Border.all(color: cs.outlineVariant),
+          borderRadius: BorderRadius.circular(10),
+          color: cs.surface,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 10,
+                  backgroundImage: NetworkImage(repo.ownerAvatarUrl),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    repo.ownerLogin,
+                    style: theme.textTheme.labelSmall
+                        ?.copyWith(color: cs.onSurfaceVariant),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              repo.name,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: cs.primary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const Spacer(),
+            Row(
+              children: [
+                Icon(Icons.star_border_rounded,
+                    size: 11, color: cs.onSurfaceVariant),
+                const SizedBox(width: 2),
+                Text(
+                  '${repo.stargazersCount}',
+                  style: theme.textTheme.labelSmall
+                      ?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

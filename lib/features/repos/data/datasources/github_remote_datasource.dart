@@ -390,6 +390,29 @@ class GitHubRemoteDatasource {
         _ => ContentType.file,
       };
 
+  Future<IssueModel> createIssue(
+    String owner,
+    String repo, {
+    required String title,
+    String? body,
+    List<String> labels = const [],
+  }) async {
+    final response = await _client.post(
+      Uri.parse('${AppConstants.githubApiBase}/repos/$owner/$repo/issues'),
+      headers: _headers,
+      body: jsonEncode({
+        'title': title,
+        if (body != null && body.isNotEmpty) 'body': body,
+        if (labels.isNotEmpty) 'labels': labels,
+      }),
+    );
+    if (response.statusCode != 201) {
+      _checkResponse(response);
+    }
+    return IssueModel.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
   void _checkResponse(http.Response response) {
     switch (response.statusCode) {
       case 200:

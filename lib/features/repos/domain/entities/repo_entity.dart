@@ -1,3 +1,5 @@
+enum RepoProvider { github, gitlab }
+
 class RepoEntity {
   final int id;
   final String name;
@@ -17,6 +19,7 @@ class RepoEntity {
   final String ownerAvatarUrl;
   final List<String> topics;
   final String? defaultBranch;
+  final RepoProvider provider;
 
   const RepoEntity({
     required this.id,
@@ -37,5 +40,6 @@ class RepoEntity {
     required this.ownerAvatarUrl,
     required this.topics,
     this.defaultBranch,
+    this.provider = RepoProvider.github,
   });
 }

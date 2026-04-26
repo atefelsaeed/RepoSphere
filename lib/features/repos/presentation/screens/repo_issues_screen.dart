@@ -6,6 +6,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_issues_provider.dart';
+import '../widgets/create_issue_sheet.dart';
 import '../widgets/label_chip.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
@@ -55,6 +56,21 @@ class _RepoIssuesScreenState extends ConsumerState<RepoIssuesScreen>
     final notifier = ref.read(repoIssuesProvider(_args).notifier);
 
     return Scaffold(
+      floatingActionButton: widget.repo.provider == RepoProvider.github
+          ? FloatingActionButton.extended(
+              onPressed: () => showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => CreateIssueSheet(
+                  repo: widget.repo,
+                  onCreated: notifier.refresh,
+                ),
+              ),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('New Issue'),
+            )
+          : null,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

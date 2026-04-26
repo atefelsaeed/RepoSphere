@@ -17,3 +17,10 @@ class AppConfig {
   static bool get hasSupabase =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 }
+
+/// Keys used in SecureStorage — centralised to avoid typos.
+class StorageKeys {
+  static const githubToken = 'github_pat';
+  static const githubUserLogin = 'github_user_login';
+  static const gitlabToken = 'gitlab_pat';
+}

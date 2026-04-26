@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/language_colors.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/is_starred_provider.dart';
+import '../providers/pinned_repos_provider.dart';
 import '../providers/repo_commits_provider.dart';
 import '../providers/repo_contributors_provider.dart';
 import '../providers/repo_languages_provider.dart';
@@ -61,11 +62,28 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
     );
     final starArgs = (owner: repo.ownerLogin, repo: repo.name);
     final isStarredAsync = ref.watch(isStarredProvider(starArgs));
+    final isPinned = ref.watch(pinnedReposProvider).contains(repo.id);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(repo.name),
         actions: [
+          Tooltip(
+            message: isPinned ? 'Unpin' : 'Pin',
+            child: IconButton(
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+                  key: ValueKey(isPinned),
+                  color: isPinned ? cs.primary : null,
+                ),
+              ),
+              onPressed: () => ref
+                  .read(pinnedReposProvider.notifier)
+                  .toggle(repo.id),
+            ),
+          ),
           FilledButton.icon(
             onPressed: () => context.goNamed(
               'repo-browser',

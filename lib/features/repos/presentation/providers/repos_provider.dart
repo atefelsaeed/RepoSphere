@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import '../../../auth/data/secure_token_storage.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/datasources/github_remote_datasource.dart';
+import '../../data/datasources/gitlab_remote_datasource.dart';
 import '../../data/repositories/github_repo_repository_impl.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../../domain/entities/user_entity.dart';
@@ -34,8 +36,9 @@ final currentUserProvider = FutureProvider<UserEntity?>((ref) async {
 
 final allReposProvider = FutureProvider<List<RepoEntity>>((ref) async {
   final provider = ref.watch(gitProviderProvider);
-  if (provider == null) return [];
-  return provider.getRepos();
+  final githubRepos = provider == null ? <RepoEntity>[] : await provider.getRepos();
+  final gitlabRepos = await ref.watch(gitlabReposProvider.future);
+  return [...githubRepos, ...gitlabRepos];
 });
 
 final starredReposProvider = FutureProvider<List<RepoEntity>>((ref) async {
@@ -49,6 +52,24 @@ enum RepoSort { updated, stars, name, created }
 final repoFilterProvider = StateProvider<RepoFilter>((ref) => RepoFilter.all);
 final searchQueryProvider = StateProvider<String>((ref) => '');
 final repoSortProvider = StateProvider<RepoSort>((ref) => RepoSort.updated);
+
+/// GitLab datasource — null when no token is saved.
+final gitlabDatasourceProvider =
+    FutureProvider<GitLabRemoteDatasource?>((ref) async {
+  // Re-evaluate when GitHub auth changes (logout clears all tokens too)
+  ref.watch(authProvider);
+  final token = await SecureTokenStorage.readGitLabToken();
+  if (token == null || token.isEmpty) return null;
+  return GitLabRemoteDatasource(client: http.Client(), token: token);
+});
+
+final gitlabReposProvider = FutureProvider<List<RepoEntity>>((ref) async {
+  final dsAsync = ref.watch(gitlabDatasourceProvider);
+  final ds = dsAsync.valueOrNull;
+  if (ds == null) return [];
+  final projects = await ds.getProjects();
+  return projects.map((p) => p.toEntity()).toList();
+});
 
 final filteredReposProvider = Provider<AsyncValue<List<RepoEntity>>>((ref) {
   final filter = ref.watch(repoFilterProvider);
