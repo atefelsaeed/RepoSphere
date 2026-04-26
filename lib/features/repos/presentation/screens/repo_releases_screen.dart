@@ -69,7 +69,10 @@ class RepoReleasesScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               itemCount: releases.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (ctx, i) => _ReleaseTile(release: releases[i])
+              itemBuilder: (ctx, i) => _ReleaseTile(
+                  release: releases[i],
+                  isLatest: i == 0 && !releases[i].isDraft && !releases[i].isPreRelease,
+                )
                   .animate(delay: (i * 40).clamp(0, 300).ms)
                   .fadeIn(duration: 280.ms)
                   .slideY(begin: 0.06, curve: Curves.easeOut),
@@ -83,7 +86,8 @@ class RepoReleasesScreen extends ConsumerWidget {
 
 class _ReleaseTile extends StatelessWidget {
   final ReleaseEntity release;
-  const _ReleaseTile({required this.release});
+  final bool isLatest;
+  const _ReleaseTile({required this.release, this.isLatest = false});
 
   @override
   Widget build(BuildContext context) {
@@ -121,7 +125,7 @@ class _ReleaseTile extends StatelessWidget {
                   _Badge('Pre-release', const Color(0xFFF59E0B))
                 else if (release.isDraft)
                   _Badge('Draft', cs.onSurfaceVariant)
-                else
+                else if (isLatest)
                   _Badge('Latest', const Color(0xFF3FB950)),
               ],
             ),

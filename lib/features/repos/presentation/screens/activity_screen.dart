@@ -12,18 +12,11 @@ class ActivityScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider).valueOrNull;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-
-    if (user == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Activity')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final eventsAsync = ref.watch(activityProvider(user.login));
+    final user = ref.watch(currentUserProvider).valueOrNull;
+    final eventsAsync =
+        user != null ? ref.watch(activityProvider(user.login)) : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -32,9 +25,10 @@ class ActivityScreen extends ConsumerWidget {
           children: [
             const Text('Activity',
                 style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('@${user.login}',
-                style: theme.textTheme.labelSmall
-                    ?.copyWith(color: cs.onSurfaceVariant)),
+            if (user != null)
+              Text('@${user.login}',
+                  style: theme.textTheme.labelSmall
+                      ?.copyWith(color: cs.onSurfaceVariant)),
           ],
         ),
         actions: [
@@ -45,7 +39,15 @@ class ActivityScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: eventsAsync.when(
+      body: eventsAsync == null
+          ? ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: 12,
+              separatorBuilder: (_, __) =>
+                  Divider(height: 1, color: cs.outlineVariant),
+              itemBuilder: (_, __) => const ShimmerListTile(),
+            )
+          : eventsAsync.when(
         loading: () => ListView.separated(
           padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: 12,
