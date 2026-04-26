@@ -725,6 +725,14 @@ Priority (highest → lowest):
 ✅ RepoProvider enum on RepoEntity (github | gitlab)
 ✅ Orange "GL" badge on repo cards for GitLab repos
 ✅ Create Issue FAB hidden for GitLab repos (GitHub-only action)
+✅ Repo detail screen: provider-aware rendering
+      → GitHub-only providers (commits, languages, contributors, starred)
+        are NOT called for GitLab repos — no wasted/failed API calls
+      → Browse Code + Star buttons hidden for GitLab
+      → "Open on GitHub" label changes to "Open on GitLab" dynamically
+      → Nav buttons grid, language bar, contributors, clone section,
+        and recent commits section all hidden for GitLab repos
+      → GitLab repos show: stats, description, info chips, topics, dates
 ```
 
 #### Repo Pinning
