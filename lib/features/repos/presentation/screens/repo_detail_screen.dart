@@ -51,18 +51,21 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
     final repo = widget.repo;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final commitsAsync = ref.watch(
-      repoCommitsProvider((owner: repo.ownerLogin, repo: repo.name)),
-    );
-    final languagesAsync = ref.watch(
-      repoLanguagesProvider((owner: repo.ownerLogin, repo: repo.name)),
-    );
-    final contributorsAsync = ref.watch(
-      repoContributorsProvider((owner: repo.ownerLogin, repo: repo.name)),
-    );
-    final starArgs = (owner: repo.ownerLogin, repo: repo.name);
-    final isStarredAsync = ref.watch(isStarredProvider(starArgs));
+    final isGitLab = repo.provider == RepoProvider.gitlab;
     final isPinned = ref.watch(pinnedReposProvider).contains(repo.id);
+
+    // GitHub-only providers — only watched for GitHub repos
+    final commitsAsync = isGitLab
+        ? null
+        : ref.watch(repoCommitsProvider((owner: repo.ownerLogin, repo: repo.name)));
+    final languagesAsync = isGitLab
+        ? null
+        : ref.watch(repoLanguagesProvider((owner: repo.ownerLogin, repo: repo.name)));
+    final contributorsAsync = isGitLab
+        ? null
+        : ref.watch(repoContributorsProvider((owner: repo.ownerLogin, repo: repo.name)));
+    final starArgs = (owner: repo.ownerLogin, repo: repo.name);
+    final isStarredAsync = isGitLab ? null : ref.watch(isStarredProvider(starArgs));
 
     return Scaffold(
       appBar: AppBar(
@@ -84,40 +87,43 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                   .toggle(repo.id),
             ),
           ),
-          FilledButton.icon(
-            onPressed: () => context.goNamed(
-              'repo-browser',
-              pathParameters: {'id': '${repo.id}'},
-              extra: (repo: repo, path: ''),
-            ),
-            icon: const Icon(Icons.folder_open_rounded, size: 16),
-            label: const Text('Browse Code'),
-          ),
-          const SizedBox(width: 8),
-          isStarredAsync.whenOrNull(
-            data: (starred) => Tooltip(
-              message: starred ? 'Unstar' : 'Star',
-              child: IconButton(
-                icon: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    starred ? Icons.star_rounded : Icons.star_border_rounded,
-                    key: ValueKey(starred),
-                    color: starred ? const Color(0xFFF59E0B) : null,
-                  ),
-                ),
-                onPressed: () async {
-                  final ds = ref.read(githubDatasourceProvider);
-                  if (ds == null) return;
-                  starred
-                      ? await ds.unstarRepo(repo.ownerLogin, repo.name)
-                      : await ds.starRepo(repo.ownerLogin, repo.name);
-                  ref.invalidate(isStarredProvider(starArgs));
-                  ref.invalidate(starredReposProvider);
-                },
+          if (!isGitLab) ...[
+            FilledButton.icon(
+              onPressed: () => context.goNamed(
+                'repo-browser',
+                pathParameters: {'id': '${repo.id}'},
+                extra: (repo: repo, path: ''),
               ),
+              icon: const Icon(Icons.folder_open_rounded, size: 16),
+              label: const Text('Browse Code'),
             ),
-          ) ?? const SizedBox.shrink(),
+            const SizedBox(width: 8),
+            isStarredAsync?.whenOrNull(
+              data: (starred) => Tooltip(
+                message: starred ? 'Unstar' : 'Star',
+                child: IconButton(
+                  icon: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      starred ? Icons.star_rounded : Icons.star_border_rounded,
+                      key: ValueKey(starred),
+                      color: starred ? const Color(0xFFF59E0B) : null,
+                    ),
+                  ),
+                  onPressed: () async {
+                    final ds = ref.read(githubDatasourceProvider);
+                    if (ds == null) return;
+                    starred
+                        ? await ds.unstarRepo(repo.ownerLogin, repo.name)
+                        : await ds.starRepo(repo.ownerLogin, repo.name);
+                    ref.invalidate(isStarredProvider(starArgs));
+                    ref.invalidate(starredReposProvider);
+                  },
+                ),
+              ),
+            ) ?? const SizedBox.shrink(),
+            const SizedBox(width: 8),
+          ],
           Tooltip(
             message: _copied ? 'Copied!' : 'Copy link',
             child: IconButton(
@@ -138,7 +144,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
               mode: LaunchMode.externalApplication,
             ),
             icon: const Icon(Icons.open_in_new_rounded, size: 16),
-            label: const Text('Open on GitHub'),
+            label: Text(isGitLab ? 'Open on GitLab' : 'Open on GitHub'),
           ),
           const SizedBox(width: 12),
         ],
@@ -215,63 +221,64 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
 
               const SizedBox(height: 20),
 
-              // Quick nav buttons
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _NavButton(
-                    icon: Icons.call_merge_rounded,
-                    label: 'Pull Requests',
-                    color: const Color(0xFF3FB950),
-                    onTap: () => context.goNamed('repo-prs',
-                        pathParameters: {'id': '${repo.id}'},
-                        extra: repo),
-                  ),
-                  _NavButton(
-                    icon: Icons.circle_outlined,
-                    label: 'Issues',
-                    color: const Color(0xFFF59E0B),
-                    onTap: () => context.goNamed('repo-issues',
-                        pathParameters: {'id': '${repo.id}'},
-                        extra: repo),
-                  ),
-                  _NavButton(
-                    icon: Icons.article_outlined,
-                    label: 'README',
-                    color: cs.primary,
-                    onTap: () => context.goNamed('repo-readme',
-                        pathParameters: {'id': '${repo.id}'},
-                        extra: repo),
-                  ),
-                  _NavButton(
-                    icon: Icons.commit_rounded,
-                    label: 'Commits',
-                    color: const Color(0xFFA371F7),
-                    onTap: () => context.goNamed('repo-commits',
-                        pathParameters: {'id': '${repo.id}'},
-                        extra: (repo: repo, branch: repo.defaultBranch)),
-                  ),
-                  _NavButton(
-                    icon: Icons.folder_open_rounded,
-                    label: 'Browse Code',
-                    color: cs.secondary,
-                    onTap: () => context.goNamed('repo-browser',
-                        pathParameters: {'id': '${repo.id}'},
-                        extra: (repo: repo, path: '')),
-                  ),
-                  _NavButton(
-                    icon: Icons.new_releases_outlined,
-                    label: 'Releases',
-                    color: const Color(0xFF54AEFF),
-                    onTap: () => context.goNamed('repo-releases',
-                        pathParameters: {'id': '${repo.id}'},
-                        extra: repo),
-                  ),
-                ],
-              ).animate(delay: 60.ms)
-                  .fadeIn(duration: 300.ms)
-                  .slideY(begin: 0.06, curve: Curves.easeOut),
+              // Quick nav buttons (GitHub only)
+              if (!isGitLab)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _NavButton(
+                      icon: Icons.call_merge_rounded,
+                      label: 'Pull Requests',
+                      color: const Color(0xFF3FB950),
+                      onTap: () => context.goNamed('repo-prs',
+                          pathParameters: {'id': '${repo.id}'},
+                          extra: repo),
+                    ),
+                    _NavButton(
+                      icon: Icons.circle_outlined,
+                      label: 'Issues',
+                      color: const Color(0xFFF59E0B),
+                      onTap: () => context.goNamed('repo-issues',
+                          pathParameters: {'id': '${repo.id}'},
+                          extra: repo),
+                    ),
+                    _NavButton(
+                      icon: Icons.article_outlined,
+                      label: 'README',
+                      color: cs.primary,
+                      onTap: () => context.goNamed('repo-readme',
+                          pathParameters: {'id': '${repo.id}'},
+                          extra: repo),
+                    ),
+                    _NavButton(
+                      icon: Icons.commit_rounded,
+                      label: 'Commits',
+                      color: const Color(0xFFA371F7),
+                      onTap: () => context.goNamed('repo-commits',
+                          pathParameters: {'id': '${repo.id}'},
+                          extra: (repo: repo, branch: repo.defaultBranch)),
+                    ),
+                    _NavButton(
+                      icon: Icons.folder_open_rounded,
+                      label: 'Browse Code',
+                      color: cs.secondary,
+                      onTap: () => context.goNamed('repo-browser',
+                          pathParameters: {'id': '${repo.id}'},
+                          extra: (repo: repo, path: '')),
+                    ),
+                    _NavButton(
+                      icon: Icons.new_releases_outlined,
+                      label: 'Releases',
+                      color: const Color(0xFF54AEFF),
+                      onTap: () => context.goNamed('repo-releases',
+                          pathParameters: {'id': '${repo.id}'},
+                          extra: repo),
+                    ),
+                  ],
+                ).animate(delay: 60.ms)
+                    .fadeIn(duration: 300.ms)
+                    .slideY(begin: 0.06, curve: Curves.easeOut),
 
               const SizedBox(height: 24),
 
@@ -306,22 +313,21 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                 ],
               ),
 
-              // Language stats bar
-              if (languagesAsync.hasValue &&
-                  languagesAsync.value!.isNotEmpty) ...[
+              // GitHub-only: language stats bar, contributors, clone
+              if (!isGitLab) ...[
+                if (languagesAsync!.hasValue &&
+                    languagesAsync.value!.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  _LanguageBar(languages: languagesAsync.value!),
+                ],
+                if (contributorsAsync!.hasValue &&
+                    contributorsAsync.value!.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  _ContributorsRow(contributors: contributorsAsync.value!),
+                ],
                 const SizedBox(height: 20),
-                _LanguageBar(languages: languagesAsync.value!),
+                _CloneSection(repo: repo),
               ],
-
-              // Top contributors
-              if (contributorsAsync.hasValue &&
-                  contributorsAsync.value!.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                _ContributorsRow(contributors: contributorsAsync.value!),
-              ],
-
-              const SizedBox(height: 20),
-              _CloneSection(repo: repo),
 
               // Topics
               if (repo.topics.isNotEmpty) ...[
@@ -369,90 +375,92 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                 ],
               ),
 
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
+              // GitHub-only: recent commits section
+              if (!isGitLab) ...[
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 16),
 
-              // Commits section
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.commit_rounded,
-                          size: 18, color: cs.onSurfaceVariant),
-                      const SizedBox(width: 8),
-                      Text('Recent Commits',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  TextButton.icon(
-                    onPressed: () => context.goNamed(
-                      'repo-commits',
-                      pathParameters: {'id': '${repo.id}'},
-                      extra: (repo: repo, branch: repo.defaultBranch),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.commit_rounded,
+                            size: 18, color: cs.onSurfaceVariant),
+                        const SizedBox(width: 8),
+                        Text('Recent Commits',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold)),
+                      ],
                     ),
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 14),
-                    label: const Text('View all'),
-                    style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              commitsAsync.when(
-                data: (commits) => commits.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Text('No commits found',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                                color: cs.onSurfaceVariant)),
-                      )
-                    : Column(
-                        children: commits.asMap().entries.map((e) {
-                          final i = e.key;
-                          final c = e.value;
-                          return Column(
-                            children: [
-                              CommitTile(
-                                commit: c,
-                                onTap: () => context.goNamed(
-                                  'commit-detail',
-                                  pathParameters: {'id': '${repo.id}'},
-                                  extra: (repo: repo, commit: c),
-                                ),
-                              )
-                                  .animate(
-                                      delay: (i * 40).clamp(0, 200).ms)
-                                  .fadeIn(duration: 250.ms)
-                                  .slideX(
-                                      begin: -0.04,
-                                      curve: Curves.easeOut),
-                              if (c != commits.last)
-                                Divider(
-                                    height: 1, color: cs.outlineVariant),
-                            ],
-                          );
-                        }).toList(),
+                    TextButton.icon(
+                      onPressed: () => context.goNamed(
+                        'repo-commits',
+                        pathParameters: {'id': '${repo.id}'},
+                        extra: (repo: repo, branch: repo.defaultBranch),
                       ),
-                loading: () => Column(
-                  children: List.generate(
-                    3,
-                    (i) => Column(children: [
-                      const ShimmerListTile(),
-                      if (i < 2) const Divider(height: 1),
-                    ]),
+                      icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+                      label: const Text('View all'),
+                      style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                commitsAsync!.when(
+                  data: (commits) => commits.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Text('No commits found',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: cs.onSurfaceVariant)),
+                        )
+                      : Column(
+                          children: commits.asMap().entries.map((e) {
+                            final i = e.key;
+                            final c = e.value;
+                            return Column(
+                              children: [
+                                CommitTile(
+                                  commit: c,
+                                  onTap: () => context.goNamed(
+                                    'commit-detail',
+                                    pathParameters: {'id': '${repo.id}'},
+                                    extra: (repo: repo, commit: c),
+                                  ),
+                                )
+                                    .animate(
+                                        delay: (i * 40).clamp(0, 200).ms)
+                                    .fadeIn(duration: 250.ms)
+                                    .slideX(
+                                        begin: -0.04,
+                                        curve: Curves.easeOut),
+                                if (c != commits.last)
+                                  Divider(
+                                      height: 1, color: cs.outlineVariant),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                  loading: () => Column(
+                    children: List.generate(
+                      3,
+                      (i) => Column(children: [
+                        const ShimmerListTile(),
+                        if (i < 2) const Divider(height: 1),
+                      ]),
+                    ),
+                  ),
+                  error: (e, _) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Text('Failed to load commits: $e',
+                        style:
+                            TextStyle(color: theme.colorScheme.error)),
                   ),
                 ),
-                error: (e, _) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text('Failed to load commits: $e',
-                      style:
-                          TextStyle(color: theme.colorScheme.error)),
-                ),
-              ),
+              ],
             ],
           ),
         ),
