@@ -31,6 +31,32 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/repos',
     refreshListenable: notifier,
     redirect: notifier.redirect,
+    errorBuilder: (context, state) => Scaffold(
+      appBar: AppBar(title: const Text('Page not found')),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.link_off_rounded,
+                size: 56,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            const SizedBox(height: 16),
+            Text('Route not found',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(state.uri.toString(),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => context.goNamed('repos'),
+              icon: const Icon(Icons.home_rounded, size: 16),
+              label: const Text('Go home'),
+            ),
+          ],
+        ),
+      ),
+    ),
     routes: [
       GoRoute(
         path: '/auth',

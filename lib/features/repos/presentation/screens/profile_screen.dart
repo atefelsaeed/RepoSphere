@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/repos_provider.dart';
+import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -19,13 +21,22 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Profile',
             style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            tooltip: 'Gists',
+            icon: const Icon(Icons.code_rounded),
+            onPressed: () => context.goNamed('gists'),
+          ),
+        ],
       ),
       body: userAsync.when(
         data: (user) {
           if (user == null) {
             return const Center(child: Text('No profile data'));
           }
-          return ListView(
+          return RefreshIndicator(
+            onRefresh: () async => ref.invalidate(currentUserProvider),
+            child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
               // Avatar + name block
@@ -123,10 +134,14 @@ class ProfileScreen extends ConsumerWidget {
                       .fadeIn(duration: 260.ms)
                       .slideX(begin: -0.04, curve: Curves.easeOut)),
             ],
+          ),
           );
         },
         loading: () => _ProfileShimmer(),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => ErrorView(
+          message: e.toString(),
+          onRetry: () => ref.invalidate(currentUserProvider),
+        ),
       ),
     );
   }

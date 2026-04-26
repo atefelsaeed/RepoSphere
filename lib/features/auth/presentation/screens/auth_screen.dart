@@ -176,7 +176,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 TextButton.icon(
                   onPressed: () => launchUrl(
                     Uri.parse(
-                        'https://github.com/settings/tokens/new?scopes=repo,read:user&description=RepoSphere'),
+                        'https://github.com/settings/tokens/new?scopes=repo,read:user,notifications,gist&description=RepoSphere'),
                     mode: LaunchMode.externalApplication,
                   ),
                   icon: const Icon(Icons.open_in_new_rounded, size: 16),
@@ -184,7 +184,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Required scopes: repo, read:user',
+                  'Required scopes: repo, read:user, notifications, gist',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: cs.onSurfaceVariant,
