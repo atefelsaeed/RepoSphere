@@ -8,9 +8,11 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/language_colors.dart';
 import '../../domain/entities/repo_entity.dart';
+import '../providers/is_starred_provider.dart';
 import '../providers/repo_commits_provider.dart';
 import '../providers/repo_contributors_provider.dart';
 import '../providers/repo_languages_provider.dart';
+import '../providers/repos_provider.dart';
 import '../widgets/commit_tile.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 
@@ -57,6 +59,8 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
     final contributorsAsync = ref.watch(
       repoContributorsProvider((owner: repo.ownerLogin, repo: repo.name)),
     );
+    final starArgs = (owner: repo.ownerLogin, repo: repo.name);
+    final isStarredAsync = ref.watch(isStarredProvider(starArgs));
 
     return Scaffold(
       appBar: AppBar(
@@ -72,6 +76,30 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
             label: const Text('Browse Code'),
           ),
           const SizedBox(width: 8),
+          isStarredAsync.whenOrNull(
+            data: (starred) => Tooltip(
+              message: starred ? 'Unstar' : 'Star',
+              child: IconButton(
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    starred ? Icons.star_rounded : Icons.star_border_rounded,
+                    key: ValueKey(starred),
+                    color: starred ? const Color(0xFFF59E0B) : null,
+                  ),
+                ),
+                onPressed: () async {
+                  final ds = ref.read(githubDatasourceProvider);
+                  if (ds == null) return;
+                  starred
+                      ? await ds.unstarRepo(repo.ownerLogin, repo.name)
+                      : await ds.starRepo(repo.ownerLogin, repo.name);
+                  ref.invalidate(isStarredProvider(starArgs));
+                  ref.invalidate(starredReposProvider);
+                },
+              ),
+            ),
+          ) ?? const SizedBox.shrink(),
           Tooltip(
             message: _copied ? 'Copied!' : 'Copy link',
             child: IconButton(
@@ -213,6 +241,14 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                     onTap: () => context.goNamed('repo-browser',
                         pathParameters: {'id': '${repo.id}'},
                         extra: (repo: repo, path: '')),
+                  ),
+                  _NavButton(
+                    icon: Icons.new_releases_outlined,
+                    label: 'Releases',
+                    color: const Color(0xFF54AEFF),
+                    onTap: () => context.goNamed('repo-releases',
+                        pathParameters: {'id': '${repo.id}'},
+                        extra: repo),
                   ),
                 ],
               ).animate(delay: 60.ms)

@@ -19,7 +19,9 @@ import '../../features/repos/presentation/screens/repo_issues_screen.dart';
 import '../../features/repos/presentation/screens/repo_pr_detail_screen.dart';
 import '../../features/repos/presentation/screens/repo_prs_screen.dart';
 import '../../features/repos/presentation/screens/activity_screen.dart';
+import '../../features/repos/presentation/screens/notifications_screen.dart';
 import '../../features/repos/presentation/screens/repo_readme_screen.dart';
+import '../../features/repos/presentation/screens/repo_releases_screen.dart';
 import '../../features/repos/presentation/screens/repos_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -48,6 +50,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/activity',
         name: 'activity',
         builder: (_, __) => const ActivityScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        builder: (_, __) => const NotificationsScreen(),
       ),
       GoRoute(
         path: '/repos',
@@ -125,6 +132,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: 'repo-readme',
             builder: (_, state) =>
                 RepoReadmeScreen(repo: state.extra as RepoEntity),
+          ),
+          GoRoute(
+            path: ':id/releases',
+            name: 'repo-releases',
+            builder: (_, state) =>
+                RepoReleasesScreen(repo: state.extra as RepoEntity),
           ),
           GoRoute(
             path: ':id/file',

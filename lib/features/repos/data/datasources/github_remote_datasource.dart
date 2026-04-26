@@ -6,6 +6,8 @@ import '../../domain/entities/commit_detail_entity.dart';
 import '../../domain/entities/repo_content_entity.dart';
 import '../models/activity_event_model.dart';
 import '../models/branch_model.dart';
+import '../models/notification_model.dart';
+import '../models/release_model.dart';
 import '../models/commit_detail_model.dart';
 import '../models/commit_model.dart';
 import '../models/contributor_model.dart';
@@ -264,6 +266,75 @@ class GitHubRemoteDatasource {
     return list
         .where((e) => (e as Map)['type'] == 'User')
         .map((e) => ContributorModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<bool> isStarred(String owner, String repo) async {
+    final response = await _client.get(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/user/starred/$owner/$repo'),
+      headers: _headers,
+    );
+    return response.statusCode == 204;
+  }
+
+  Future<void> starRepo(String owner, String repo) async {
+    await _client.put(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/user/starred/$owner/$repo'),
+      headers: {..._headers, 'Content-Length': '0'},
+    );
+  }
+
+  Future<void> unstarRepo(String owner, String repo) async {
+    await _client.delete(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/user/starred/$owner/$repo'),
+      headers: _headers,
+    );
+  }
+
+  Future<List<NotificationModel>> getNotifications(
+      {bool unreadOnly = false}) async {
+    final response = await _client.get(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/notifications?all=${!unreadOnly}&per_page=50'),
+      headers: _headers,
+    );
+    _checkResponse(response);
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list
+        .map((e) =>
+            NotificationModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> markNotificationRead(String threadId) async {
+    await _client.patch(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/notifications/threads/$threadId'),
+      headers: _headers,
+    );
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    await _client.put(
+      Uri.parse('${AppConstants.githubApiBase}/notifications'),
+      headers: {..._headers, 'Content-Length': '0'},
+    );
+  }
+
+  Future<List<ReleaseModel>> getReleases(String owner, String repo,
+      {int perPage = 10}) async {
+    final response = await _client.get(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/releases?per_page=$perPage'),
+      headers: _headers,
+    );
+    _checkResponse(response);
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list
+        .map((e) => ReleaseModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 

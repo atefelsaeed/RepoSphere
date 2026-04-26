@@ -55,6 +55,12 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
           ],
         ),
         actions: [
+          // Notifications
+          IconButton(
+            tooltip: 'Notifications',
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () => context.goNamed('notifications'),
+          ),
           // Activity feed
           IconButton(
             tooltip: 'Activity',
