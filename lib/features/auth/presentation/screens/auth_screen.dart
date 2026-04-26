@@ -1,7 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/utils/exceptions.dart';
+import '../../data/github_device_auth.dart';
 import '../providers/auth_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -16,6 +21,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _obscureToken = true;
   bool _isLoading = false;
+  bool _showPatForm = false;
   String? _errorMessage;
 
   @override
@@ -24,7 +30,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     super.dispose();
   }
 
-  Future<void> _connect() async {
+  Future<void> _connectPat() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _isLoading = true;
@@ -39,17 +45,199 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     } on GitHubRateLimitException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(
-          () => _errorMessage = 'Connection error. Check your internet and try again.');
+      setState(() =>
+          _errorMessage = 'Connection error. Check your internet and try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _startDeviceFlow() async {
+    final deviceAuth = ref.read(githubDeviceAuthProvider);
+    if (deviceAuth == null) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final code = await deviceAuth.requestDeviceCode();
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      await _showDeviceFlowDialog(deviceAuth, code);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  Future<void> _showDeviceFlowDialog(
+      GitHubDeviceAuth deviceAuth, DeviceCodeResponse code) async {
+    StreamSubscription<String?>? sub;
+    String? oauthError;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          sub ??= deviceAuth
+              .pollForToken(code.deviceCode, interval: code.interval)
+              .listen(
+            (token) {
+              if (token != null) {
+                sub?.cancel();
+                if (ctx.mounted) Navigator.of(ctx).pop();
+                ref.read(authProvider.notifier).saveOAuthToken(token);
+              }
+            },
+            onError: (e) {
+              sub?.cancel();
+              setLocal(() =>
+                  oauthError = e.toString().replaceFirst('Exception: ', ''));
+            },
+          );
+
+          final theme = Theme.of(ctx);
+          final cs = theme.colorScheme;
+
+          return AlertDialog(
+            title: const Text('Sign in with GitHub'),
+            content: SizedBox(
+              width: 360,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (oauthError != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: cs.errorContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded,
+                              color: cs.onErrorContainer, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(oauthError!,
+                                style:
+                                    TextStyle(color: cs.onErrorContainer)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    Text('1. Open this URL in your browser:',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: cs.onSurfaceVariant)),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => launchUrl(
+                        Uri.parse(code.verificationUri),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                      icon: const Icon(Icons.open_in_new_rounded, size: 14),
+                      label: Text(code.verificationUri,
+                          style: const TextStyle(fontFamily: 'monospace')),
+                      style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact),
+                    ),
+                    const SizedBox(height: 20),
+                    Text('2. Enter this code:',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: cs.onSurfaceVariant)),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(
+                              ClipboardData(text: code.userCode));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Code copied!'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: cs.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                            border:
+                                Border.all(color: cs.primary.withAlpha(80)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                code.userCode,
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'monospace',
+                                  letterSpacing: 4,
+                                  color: cs.onPrimaryContainer,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Icon(Icons.copy_rounded,
+                                  size: 16, color: cs.onPrimaryContainer),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: cs.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text('Waiting for authorisation…',
+                            style: theme.textTheme.bodySmall
+                                ?.copyWith(color: cs.onSurfaceVariant)),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  sub?.cancel();
+                  Navigator.of(ctx).pop();
+                },
+                child: const Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final hasOAuth = AppConfig.hasGitHubOAuth;
 
     return Scaffold(
       body: Center(
@@ -61,139 +249,238 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo & title
-                Icon(
-                  Icons.hub_rounded,
-                  size: 56,
-                  color: cs.primary,
-                ),
+                // Logo + title
+                Icon(Icons.hub_rounded, size: 56, color: cs.primary)
+                    .animate()
+                    .scale(
+                        duration: 600.ms,
+                        curve: Curves.elasticOut,
+                        begin: const Offset(0.4, 0.4)),
                 const SizedBox(height: 16),
                 Text(
                   'RepoSphere',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: cs.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                      fontWeight: FontWeight.bold),
+                ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.2),
+                const SizedBox(height: 6),
                 Text(
-                  'Connect your GitHub account to get started',
+                  'Your entire Git universe, one dashboard.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: cs.onSurfaceVariant),
+                ).animate(delay: 320.ms).fadeIn(),
+
                 const SizedBox(height: 36),
 
-                // Form card
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            'GitHub Personal Access Token',
-                            style: theme.textTheme.labelLarge,
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _tokenController,
-                            obscureText: _obscureToken,
-                            decoration: InputDecoration(
-                              hintText: 'ghp_xxxxxxxxxxxxxxxxxxxx',
-                              suffixIcon: IconButton(
-                                icon: Icon(_obscureToken
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined),
-                                onPressed: () => setState(
-                                    () => _obscureToken = !_obscureToken),
-                              ),
-                            ),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'Please enter your token';
-                              }
-                              if (v.trim().length < 20) {
-                                return 'Token looks too short';
-                              }
-                              return null;
-                            },
-                            onFieldSubmitted: (_) => _connect(),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Error message
-                          if (_errorMessage != null)
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: cs.errorContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.warning_amber_rounded,
-                                      color: cs.onErrorContainer, size: 18),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      _errorMessage!,
-                                      style: TextStyle(
-                                          color: cs.onErrorContainer),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                          if (_errorMessage != null) const SizedBox(height: 16),
-
-                          // Connect button
-                          FilledButton(
-                            onPressed: _isLoading ? null : _connect,
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  )
-                                : const Text('Connect to GitHub'),
-                          ),
-                        ],
-                      ),
+                // ── OAuth path ─────────────────────────────────────
+                if (hasOAuth) ...[
+                  FilledButton.icon(
+                    onPressed: _isLoading ? null : _startDeviceFlow,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: const Color(0xFF24292F),
+                      foregroundColor: Colors.white,
                     ),
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.login_rounded),
+                    label: const Text('Sign in with GitHub',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 15)),
+                  ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.1),
+
+                  const SizedBox(height: 16),
+
+                  // Error banner
+                  if (_errorMessage != null)
+                    _ErrorBanner(message: _errorMessage!)
+                        .animate()
+                        .fadeIn(duration: 200.ms),
+
+                  // PAT toggle
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => _showPatForm = !_showPatForm),
+                    child: Text(
+                      _showPatForm
+                          ? 'Hide token form'
+                          : 'Use a Personal Access Token instead',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: cs.onSurfaceVariant),
+                    ),
+                  ).animate(delay: 480.ms).fadeIn(),
+
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeOut,
+                    child: _showPatForm
+                        ? _PatCard(
+                            formKey: _formKey,
+                            controller: _tokenController,
+                            obscure: _obscureToken,
+                            isLoading: _isLoading,
+                            onToggleObscure: () =>
+                                setState(() => _obscureToken = !_obscureToken),
+                            onSubmit: _connectPat,
+                            showError: !hasOAuth,
+                            errorMessage: _errorMessage,
+                          )
+                        : const SizedBox.shrink(),
                   ),
-                ),
+                ] else ...[
+                  // ── PAT-only path (no client ID configured) ───────
+                  _PatCard(
+                    formKey: _formKey,
+                    controller: _tokenController,
+                    obscure: _obscureToken,
+                    isLoading: _isLoading,
+                    onToggleObscure: () =>
+                        setState(() => _obscureToken = !_obscureToken),
+                    onSubmit: _connectPat,
+                    showError: true,
+                    errorMessage: _errorMessage,
+                  ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.06),
+                ],
 
                 const SizedBox(height: 16),
 
-                // Help link
-                TextButton.icon(
-                  onPressed: () => launchUrl(
-                    Uri.parse(
-                        'https://github.com/settings/tokens/new?scopes=repo,read:user,notifications,gist&description=RepoSphere'),
-                    mode: LaunchMode.externalApplication,
+                // Token creation link (always shown)
+                if (!hasOAuth || _showPatForm) ...[
+                  TextButton.icon(
+                    onPressed: () => launchUrl(
+                      Uri.parse(
+                          'https://github.com/settings/tokens/new?scopes=repo,read:user,notifications,gist&description=RepoSphere'),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                    label: const Text('Create a token on GitHub'),
                   ),
-                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                  label: const Text('Create a token on GitHub'),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Required scopes: repo, read:user, notifications, gist',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
+                  const SizedBox(height: 4),
+                  Text(
+                    'Required scopes: repo, read:user, notifications, gist',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: cs.onSurfaceVariant),
                   ),
-                ),
+                ],
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─── Shared sub-widgets ───────────────────────────────────────────────────────
+
+class _PatCard extends StatelessWidget {
+  final GlobalKey<FormState> formKey;
+  final TextEditingController controller;
+  final bool obscure;
+  final bool isLoading;
+  final bool showError;
+  final String? errorMessage;
+  final VoidCallback onToggleObscure;
+  final VoidCallback onSubmit;
+
+  const _PatCard({
+    required this.formKey,
+    required this.controller,
+    required this.obscure,
+    required this.isLoading,
+    required this.showError,
+    required this.errorMessage,
+    required this.onToggleObscure,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Personal Access Token',
+                  style: theme.textTheme.labelLarge),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: controller,
+                obscureText: obscure,
+                decoration: InputDecoration(
+                  hintText: 'ghp_xxxxxxxxxxxxxxxxxxxx',
+                  suffixIcon: IconButton(
+                    icon: Icon(obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined),
+                    onPressed: onToggleObscure,
+                  ),
+                ),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Please enter your token';
+                  }
+                  if (v.trim().length < 20) return 'Token looks too short';
+                  return null;
+                },
+                onFieldSubmitted: (_) => onSubmit(),
+              ),
+              const SizedBox(height: 14),
+              if (showError && errorMessage != null) ...[
+                _ErrorBanner(message: errorMessage!),
+                const SizedBox(height: 14),
+              ],
+              FilledButton(
+                onPressed: isLoading ? null : onSubmit,
+                child: isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Connect'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+  const _ErrorBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded,
+              color: cs.onErrorContainer, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(message,
+                style: TextStyle(color: cs.onErrorContainer)),
+          ),
+        ],
       ),
     );
   }

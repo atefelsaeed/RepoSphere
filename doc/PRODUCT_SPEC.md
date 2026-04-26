@@ -835,20 +835,92 @@ Closed / SaaS only:
 ## 11. Pending Items (Phase 1 Cleanup)
 
 ```
-⬜ Add /gists route to GoRouter and wire GistsScreen
-⬜ Add Gists entry point in UI (profile screen or nav button)
-⬜ Keyboard shortcut: / → focus search bar
-⬜ dart analyze — keep zero issues as invariant
+✅ Add /gists route to GoRouter and wire GistsScreen
+✅ Add Gists entry point in UI (profile AppBar + repos AppBar)
+✅ Keyboard shortcut: / → focus inline search bar on ReposScreen
+✅ Fix token scopes: add notifications + gist to auth URL
+✅ Add GoRouter 404 error page
+✅ Profile screen: pull-to-refresh + ErrorView + Gists shortcut
+✅ Fix CircularProgressIndicator in activity screen → shimmer
+✅ Fix releases Latest badge (only first stable release)
+✅ dart analyze — zero issues maintained throughout
 ```
 
-## 12. Next Steps (Phase 2 Kickoff)
+---
 
-In order:
+## 12. Phase 2 — GitHub OAuth Device Flow ✅ In Progress
 
-1. `⬜` Supabase project setup + auth schema
-2. `⬜` GitHub OAuth flow (device flow or web redirect)
-3. `⬜` Replace PAT screen with OAuth "Connect GitHub" button
-4. `⬜` Token stored in Supabase (encrypted) instead of local storage
-5. `⬜` GitLab OAuth + API adapter
-6. `⬜` Provider management screen (connect / disconnect)
-7. `⬜` Multi-provider repo aggregation with provider badge on cards
+**Goal:** Replace PAT entry with a real "Sign in with GitHub" OAuth flow.
+No backend required — uses GitHub's Device Authorization Grant (RFC 8628).
+
+### How it works
+
+```
+1. App POSTs to https://github.com/login/device/code
+   → GitHub returns: device_code, user_code, verification_uri, interval
+
+2. App shows user a dialog:
+   "Open github.com/login/device and enter: XXXX-YYYY"
+   → Copy code button + Open in browser button
+
+3. App polls https://github.com/login/oauth/access_token every N seconds
+   → On success: receives OAuth token (gho_...)
+   → Saves token to SecureStorage, navigates to repos
+
+4. PAT path remains as fallback ("Use a token instead")
+```
+
+### Configuration
+
+```dart
+// lib/core/config/app_config.dart
+class AppConfig {
+  static const githubClientId = '';  // ← fill in your GitHub OAuth App client_id
+  static const supabaseUrl = '';     // ← Phase 2.5 (Supabase backend)
+  static const supabaseAnonKey = ''; // ← Phase 2.5
+  
+  static bool get hasGitHubOAuth => githubClientId.isNotEmpty;
+}
+```
+
+**To create a GitHub OAuth App:**
+1. github.com/settings/developers → OAuth Apps → New OAuth App
+2. Set Homepage URL to your web app URL
+3. Authorization callback URL: not used for device flow (set to http://localhost)
+4. Copy the Client ID into `AppConfig.githubClientId`
+5. **Do NOT enable a client secret** — device flow is secret-free
+
+### New files
+
+```
+lib/core/config/app_config.dart              — credential placeholders
+lib/features/auth/data/github_device_auth.dart — Device Flow logic + polling
+```
+
+### Modified files
+
+```
+lib/features/auth/presentation/providers/auth_provider.dart — OAuth path
+lib/features/auth/presentation/screens/auth_screen.dart     — new UI
+```
+
+---
+
+## 13. Next Steps (Phase 2.5 — Supabase Backend)
+
+```
+Auth:
+  ⬜ Supabase project setup + auth schema
+  ⬜ Replace SecureStorage with Supabase session management
+  ⬜ Email/Password signup + login
+  ⬜ GitLab OAuth
+
+Provider Management:
+  ⬜ Provider connection screen
+  ⬜ Connected providers list
+  ⬜ Multi-provider repo aggregation with provider badge on cards
+
+User Account:
+  ⬜ Subscription status badge on profile
+  ⬜ Connected providers overview
+```
