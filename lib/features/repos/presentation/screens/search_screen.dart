@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/global_search_provider.dart';
+import '../providers/recent_searches_provider.dart';
 import '../widgets/repo_card.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 
@@ -34,10 +35,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     });
   }
 
+  void _submit(String q) {
+    if (q.trim().isEmpty) return;
+    _controller.text = q;
+    setState(() => _query = q.trim());
+    ref.read(recentSearchesProvider.notifier).add(q.trim());
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final recent = ref.watch(recentSearchesProvider);
     final resultsAsync =
         _query.isEmpty ? null : ref.watch(globalSearchProvider(_query));
 
@@ -66,9 +75,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 : null,
           ),
           onChanged: _onChanged,
+          onSubmitted: _submit,
         ),
       ),
-      body: _buildBody(context, theme, cs, resultsAsync),
+      body: _buildBody(context, theme, cs, recent, resultsAsync),
     );
   }
 
@@ -76,26 +86,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     BuildContext context,
     ThemeData theme,
     ColorScheme cs,
+    List<String> recent,
     AsyncValue<List<RepoEntity>>? resultsAsync,
   ) {
-    // Empty state — no query yet
     if (resultsAsync == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.travel_explore_rounded,
-                size: 56, color: cs.onSurfaceVariant),
-            const SizedBox(height: 16),
-            Text('Search across all of GitHub',
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(color: cs.onSurfaceVariant)),
-            const SizedBox(height: 6),
-            Text('Find repos by name, topic, or description',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: cs.onSurfaceVariant)),
-          ],
-        ).animate().fadeIn(duration: 300.ms),
+      return _EmptyState(
+        recent: recent,
+        onSelect: _submit,
+        onRemove: (q) =>
+            ref.read(recentSearchesProvider.notifier).remove(q),
+        onClearAll: () =>
+            ref.read(recentSearchesProvider.notifier).clear(),
+        theme: theme,
+        cs: cs,
       );
     }
 
@@ -110,8 +113,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline_rounded,
-                size: 48, color: cs.error),
+            Icon(Icons.error_outline_rounded, size: 48, color: cs.error),
             const SizedBox(height: 12),
             Text('Search failed', style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
@@ -123,6 +125,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ).animate().fadeIn(duration: 300.ms),
       ),
       data: (repos) {
+        // Save on first data result
+        if (repos.isNotEmpty) {
+          Future.microtask(() =>
+              ref.read(recentSearchesProvider.notifier).add(_query));
+        }
+
         if (repos.isEmpty) {
           return Center(
             child: Column(
@@ -143,8 +151,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
-                padding:
-                    const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: Text(
                   '${repos.length}+ repositories for "$_query"',
                   style: theme.textTheme.labelMedium
@@ -156,8 +163,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               sliver: SliverList.separated(
                 itemCount: repos.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: 8),
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (ctx, i) => RepoCard(
                   repo: repos[i],
                   onTap: () => ctx.goNamed(
@@ -174,6 +180,91 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ],
         );
       },
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final List<String> recent;
+  final ValueChanged<String> onSelect;
+  final ValueChanged<String> onRemove;
+  final VoidCallback onClearAll;
+  final ThemeData theme;
+  final ColorScheme cs;
+
+  const _EmptyState({
+    required this.recent,
+    required this.onSelect,
+    required this.onRemove,
+    required this.onClearAll,
+    required this.theme,
+    required this.cs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (recent.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.travel_explore_rounded,
+                size: 56, color: cs.onSurfaceVariant),
+            const SizedBox(height: 16),
+            Text('Search across all of GitHub',
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(color: cs.onSurfaceVariant)),
+            const SizedBox(height: 6),
+            Text('Find repos by name, topic, or description',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: cs.onSurfaceVariant)),
+          ],
+        ).animate().fadeIn(duration: 300.ms),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+          child: Row(
+            children: [
+              Icon(Icons.history_rounded,
+                  size: 16, color: cs.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Text('Recent searches',
+                  style: theme.textTheme.labelMedium
+                      ?.copyWith(color: cs.onSurfaceVariant)),
+              const Spacer(),
+              TextButton(
+                onPressed: onClearAll,
+                style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact),
+                child: const Text('Clear all'),
+              ),
+            ],
+          ),
+        ),
+        ...recent.asMap().entries.map((e) {
+          final i = e.key;
+          final q = e.value;
+          return ListTile(
+            leading: const Icon(Icons.history_rounded, size: 18),
+            title: Text(q, style: theme.textTheme.bodyMedium),
+            trailing: IconButton(
+              icon: Icon(Icons.close_rounded,
+                  size: 16, color: cs.onSurfaceVariant),
+              onPressed: () => onRemove(q),
+              visualDensity: VisualDensity.compact,
+            ),
+            onTap: () => onSelect(q),
+          )
+              .animate(delay: (i * 30).ms)
+              .fadeIn(duration: 200.ms)
+              .slideX(begin: -0.03, curve: Curves.easeOut);
+        }),
+      ],
     );
   }
 }

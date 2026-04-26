@@ -1,5 +1,5 @@
 # RepoSphere — Product & Architecture Spec
-> Version 2.0 | Last updated: April 2026
+> Version 3.0 | Last updated: April 2026
 
 ---
 
@@ -126,10 +126,22 @@ Hover effects     → AnimatedContainer, 150-160ms, Curves.easeOut
   Nav buttons:      border → accent color, per-button glow shadow
   Theme toggle:     instant icon swap (system/light/dark)
 
+Copy micro-animation → AnimatedSwitcher: link icon → green checkmark (2s)
+
 Durations:
-  Micro:    150-160ms (hover transitions)
+  Micro:    150-160ms (hover transitions, copy feedback)
   Standard: 250-300ms (list items, section entrances)
   Slow:     350ms     (page-level content fade)
+```
+
+### 4.6 Splash Screen
+
+```
+Animated launch screen in app.dart:
+  Hub icon  → elastic scale (Curves.elasticOut, 600ms)
+  "RepoSphere" text → fadeIn + slideY (delay 200ms)
+  Tagline   → fadeIn (delay 400ms)
+No native splash; purely Flutter-rendered for consistency.
 ```
 
 ---
@@ -142,7 +154,7 @@ Durations:
 lib/
 ├── core/
 │   ├── router/           GoRouter + _RouterNotifier (auth redirect)
-│   │                     13 named routes
+│   │                     17 named routes
 │   ├── theme/            AppTheme — dark + light ThemeData, AppColors
 │   ├── providers/        themeModeProvider (StateProvider<ThemeMode>)
 │   ├── constants/        AppConstants (API base), kLanguageColors map
@@ -158,14 +170,20 @@ lib/
 │       │   ├── entities/ RepoEntity, UserEntity, CommitEntity,
 │       │   │             CommitDetailEntity, BranchEntity,
 │       │   │             PullRequestEntity, IssueEntity,
-│       │   │             RepoContentItem, FileContent
+│       │   │             IssueCommentEntity, RepoContentItem,
+│       │   │             FileContent, ActivityEventEntity,
+│       │   │             ContributorEntity, NotificationEntity,
+│       │   │             ReleaseEntity, GistEntity
 │       │   └── repos/    GitProvider (abstract interface)
 │       │
 │       ├── data/
 │       │   ├── models/   RepoModel, UserModel, CommitModel,
 │       │   │             CommitDetailModel, BranchModel,
-│       │   │             PullRequestModel, IssueModel
-│       │   ├── datasources/  GitHubRemoteDatasource (10 API methods)
+│       │   │             PullRequestModel, IssueModel,
+│       │   │             IssueCommentModel, ContributorModel,
+│       │   │             ActivityEventModel, NotificationModel,
+│       │   │             ReleaseModel, GistModel
+│       │   ├── datasources/  GitHubRemoteDatasource (24 API methods)
 │       │   └── repositories/ GitHubRepoRepositoryImpl
 │       │
 │       └── presentation/
@@ -174,7 +192,9 @@ lib/
 │           │             RepoCommitsScreen, CommitDetailScreen,
 │           │             RepoPrsScreen, RepoPrDetailScreen,
 │           │             RepoIssuesScreen, RepoIssueDetailScreen,
-│           │             RepoReadmeScreen, ProfileScreen
+│           │             RepoReadmeScreen, RepoReleasesScreen,
+│           │             ActivityScreen, NotificationsScreen,
+│           │             GistsScreen, SearchScreen, ProfileScreen
 │           │
 │           ├── providers/ repos_provider (filter, sort, search),
 │           │             commits_notifier (paginated),
@@ -184,16 +204,27 @@ lib/
 │           │             repo_prs_provider (paginated),
 │           │             repo_issues_provider (paginated),
 │           │             repo_readme_provider,
-│           │             repo_contents_provider
+│           │             repo_contents_provider,
+│           │             repo_languages_provider,
+│           │             repo_contributors_provider,
+│           │             repo_releases_provider,
+│           │             is_starred_provider,
+│           │             activity_provider,
+│           │             notifications_provider,
+│           │             issue_comments_provider,
+│           │             gists_provider,
+│           │             global_search_provider,
+│           │             recent_searches_provider
 │           │
 │           └── widgets/  RepoCard (hover-aware StatefulWidget),
-│                         CommitTile, LabelChip
+│                         CommitTile, LabelChip,
+│                         CommentThread + CommentCard
 │
 ├── shared/
 │   └── widgets/          ErrorView, ShimmerBox, ShimmerRepoCard,
 │                         ShimmerListTile
 │
-├── app.dart              RepoSphereApp (themeModeProvider wired)
+├── app.dart              RepoSphereApp + _SplashScreen (animated)
 └── main.dart
 ```
 
@@ -230,6 +261,10 @@ User & Repos:
   searchQueryProvider       StateProvider<String>
   repoSortProvider          StateProvider<RepoSort>
 
+Discovery:
+  globalSearchProvider      FutureProvider.family<List<RepoEntity>, String>
+  recentSearchesProvider    StateNotifierProvider<List<String>>
+
 Feature Providers (family):
   repoBranchesProvider      FutureProvider.family (owner, repo)
   repoCommitsProvider       FutureProvider.family (owner, repo)  [detail screen]
@@ -240,6 +275,16 @@ Feature Providers (family):
   repoReadmeProvider        FutureProvider.family (owner, repo)
   repoContentsProvider      FutureProvider.family (owner, repo, path)
   fileContentProvider       FutureProvider.family (owner, repo, path)
+  repoLanguagesProvider     FutureProvider.family (owner, repo)
+  repoContributorsProvider  FutureProvider.family (owner, repo)
+  repoReleasesProvider      FutureProvider.family (owner, repo)
+  isStarredProvider         FutureProvider.family (owner, repo)
+  issueCommentsProvider     FutureProvider.family (owner, repo, number)
+
+Global Feed:
+  activityProvider          FutureProvider<List<ActivityEventEntity>>
+  notificationsProvider     StateNotifierProvider<List<NotificationEntity>>
+  gistsProvider             FutureProvider<List<GistEntity>>
 ```
 
 ### 5.4 Pagination Pattern
@@ -253,12 +298,36 @@ Commits, PRs, and Issues all use the same `StateNotifier` pagination pattern:
 //     "load more" slot at end of list shows ShimmerListTile while loading
 ```
 
-### 5.5 Architecture Evolution by Phase
+### 5.5 Router — Named Routes (17 total)
+
+```
+/auth                         AuthScreen
+/repos                        ReposScreen            [shell root]
+  :id                         RepoDetailScreen
+  :id/browse/*path            RepoBrowserScreen
+  :id/commits                 RepoCommitsScreen
+  :id/commits/:sha            CommitDetailScreen
+  :id/prs                     RepoPrsScreen
+  :id/prs/:number             RepoPrDetailScreen
+  :id/issues                  RepoIssuesScreen
+  :id/issues/:number          RepoIssueDetailScreen
+  :id/readme                  RepoReadmeScreen
+  :id/releases                RepoReleasesScreen
+  :id/files/*path             FileViewerScreen
+/profile                      ProfileScreen
+/search                       SearchScreen
+/activity                     ActivityScreen
+/notifications                NotificationsScreen
+[/gists]                      GistsScreen            ⬜ route pending
+```
+
+### 5.6 Architecture Evolution by Phase
 
 ```
 Phase 1 (MVP — ✅ complete):
   Flutter App ──► GitHub REST API v3
                   Local SecureStorage (PAT token)
+                  SharedPreferences (theme, recent searches)
 
 Phase 2 (SaaS):
   Flutter App ──► Supabase Auth
@@ -283,11 +352,14 @@ Phase 3 (Scale):
 #### Core Infrastructure
 ```
 ✅ Clean architecture (domain / data / presentation)
-✅ GoRouter with auth-based redirect guard
+✅ GoRouter with auth-based redirect guard (17 named routes)
 ✅ GitHub PAT token auth (secure storage)
 ✅ Dark + Light + System theme with toggle in AppBar
+✅ Theme mode persisted via shared_preferences
+✅ Animated splash screen (hub icon elastic scale + staggered text)
 ✅ Error views with retry across all screens
 ✅ Responsive grid (1→2→3→4 columns based on width)
+✅ No CircularProgressIndicator anywhere — shimmer-only loading
 ```
 
 #### Repos List Screen
@@ -311,7 +383,7 @@ Phase 3 (Scale):
 ✅ Fork indicator
 ✅ Star count
 ✅ Last updated (timeago)
-✅ Copy link button
+✅ Copy link button with AnimatedSwitcher → green checkmark (2s)
 ✅ Open on GitHub button
 ✅ Hover lift effect (border + glow shadow)
 ✅ Spring filter chip animation on select
@@ -323,14 +395,19 @@ Phase 3 (Scale):
 ✅ Public / Private chip
 ✅ Description
 ✅ Stats row: Stars / Forks / Watchers / Open Issues
-✅ Quick nav buttons: PRs / Issues / README / Commits / Browse
+✅ Star / Unstar toggle button in AppBar (live state via isStarredProvider)
+✅ Copy link button with checkmark micro-animation in AppBar
+✅ Quick nav buttons: PRs / Issues / README / Commits / Browse / Releases
       → Each button has per-accent hover glow
+✅ Language bar: segmented colored bar + percentage legend
+✅ Contributors row: avatar strip with commit-count tooltip (top 10)
+✅ Clone section: HTTPS + SSH with per-row copy→checkmark
 ✅ Language + Fork + Branch info chips
 ✅ Topics
 ✅ Created / Last updated dates
 ✅ Recent commits section (3 commits with shimmer on load)
 ✅ "View all" → in-app commits screen
-✅ Copy link + Open on GitHub in AppBar
+✅ Open on GitHub in AppBar
 ✅ Browse Code button
 ```
 
@@ -406,13 +483,17 @@ Phase 3 (Scale):
 
 #### PR Detail Screen
 ```
-✅ Title + state badge (colored pill)
+✅ Title + state badge (colored pill: Open/Merged/Closed/Draft)
 ✅ Author avatar + opened timeago
 ✅ head → base branch info box
 ✅ Labels row
 ✅ Full PR body rendered in Markdown
 ✅ "No description" fallback
-✅ "View N comments on GitHub" footer button
+✅ Inline comments thread (CommentThread widget)
+      → Author avatar + login + timeago
+      → Markdown body per comment
+      → Open comment on GitHub link
+      → Shimmer skeleton while loading
 ✅ Open on GitHub in AppBar
 ✅ Staggered section animations
 ```
@@ -434,12 +515,15 @@ Phase 3 (Scale):
 
 #### Issue Detail Screen
 ```
-✅ Title + state badge (green/purple)
-✅ Author avatar + timeago
+✅ Title + state badge (green open / purple closed)
+✅ Author avatar + opened/closed timeago
 ✅ Labels row
 ✅ Full issue body rendered in Markdown
 ✅ "No description" fallback
-✅ "View N comments on GitHub" footer button
+✅ Inline comments thread (shared CommentThread widget)
+      → Avatar, login, timeago, open-on-GitHub link
+      → Markdown body per comment
+      → Shimmer skeleton while loading
 ✅ Open on GitHub in AppBar
 ✅ Staggered section animations
 ```
@@ -454,6 +538,81 @@ Phase 3 (Scale):
 ✅ Rich shimmer skeleton (title + text lines + code block)
 ✅ Empty state (no README found)
 ✅ Fade-in on content load
+```
+
+#### Releases Screen
+```
+✅ Paginated release list per repo
+✅ Tag chip (monospace)
+✅ Badge: Latest / Pre-release / Draft
+✅ Author avatar + login
+✅ Full release notes rendered in Markdown
+✅ Timeago
+✅ Open on GitHub button per release
+✅ Shimmer skeleton on load
+✅ Staggered slide animation
+✅ Empty state (no releases)
+```
+
+#### Activity Screen
+```
+✅ User's recent GitHub events feed
+✅ Per-event icon + accent color (PushEvent, PullRequestEvent,
+      IssuesEvent, WatchEvent, ForkEvent, CreateEvent, etc.)
+✅ Actor avatar + summary text
+✅ Repo name with icon
+✅ Timeago
+✅ Tap → open event on GitHub
+✅ Pull-to-refresh
+✅ Shimmer skeleton on load
+✅ Staggered animation
+✅ Empty state
+```
+
+#### Notifications Screen
+```
+✅ Unread GitHub notifications list
+✅ Unread blue dot indicator
+✅ Per-type icon (PullRequest, Issue, Commit, Release, etc.)
+✅ Reason label (mention, review_requested, subscribed, etc.)
+✅ Repo name
+✅ Timeago
+✅ Tap to open on GitHub → auto-marks as read
+✅ "Mark all read" AppBar action button
+✅ Shimmer skeleton on load
+✅ Staggered animation
+✅ Empty state (all caught up)
+```
+
+#### Gists Screen
+```
+✅ Authenticated user's gists list
+✅ Public / Secret badge
+✅ File chips: name + language (up to 5 per gist)
+✅ Updated timeago
+✅ Comment count
+✅ Tap → open gist on GitHub
+✅ Pull-to-refresh
+✅ Shimmer skeleton on load
+✅ Staggered animation
+✅ Empty state
+⬜ /gists route missing from GoRouter (pending)
+```
+
+#### Search Screen
+```
+✅ Global GitHub repository search (REST search API)
+✅ 500ms debounce on input
+✅ Recent searches history (persisted via shared_preferences, max 10)
+      → Shown as list when no query is active
+      → Per-item remove button
+      → "Clear all" action
+✅ Auto-saves query on successful results
+✅ Results count header
+✅ RepoCard list with staggered animation
+✅ Shimmer skeleton while loading
+✅ Empty state (no results for query)
+✅ Error state with message
 ```
 
 #### Profile Screen
@@ -499,11 +658,6 @@ Repo Management:
   ⬜ Custom collections (group repos by project/client)
   ⬜ Code diff viewer (compare branches/commits)
 
-Discovery:
-  ⬜ Global search (across all connected providers)
-  ⬜ Activity feed (all events across all repos)
-  ⬜ Notification center (PRs, issues, mentions)
-
 Multi-Provider:
   ⬜ GitLab repos + commits + MRs
   ⬜ Bitbucket repos + PRs
@@ -546,28 +700,44 @@ Tech:
 ## 7. GitHub API Coverage
 
 ```
-✅ GET /user                                    Current user (login, name, bio,
-                                                location, company, email, blog,
-                                                repos, followers, following,
-                                                created_at)
-✅ GET /user/repos                              All repos (owner + collaborator
-                                                + org member)
-✅ GET /user/starred                            Starred repos
-✅ GET /repos/{owner}/{repo}/branches           Branch list (for branch selector)
-✅ GET /repos/{owner}/{repo}/commits            Paginated commit history
-✅ GET /repos/{owner}/{repo}/commits/{sha}      Commit detail + files changed
-✅ GET /repos/{owner}/{repo}/pulls              Paginated PRs (open/closed/merged)
-✅ GET /repos/{owner}/{repo}/issues             Paginated issues (open/closed)
-✅ GET /repos/{owner}/{repo}/readme             README (base64 decoded)
-✅ GET /repos/{owner}/{repo}/contents/{path}    File browser + file content
+── User ──────────────────────────────────────────────────────────────
+✅ GET  /user                                    Current user profile
+✅ GET  /user/repos                              All repos
+✅ GET  /user/starred                            Starred repos
+✅ GET  /user/starred/{owner}/{repo}             Is repo starred? (204/404)
+✅ PUT  /user/starred/{owner}/{repo}             Star a repo
+✅ DELETE /user/starred/{owner}/{repo}           Unstar a repo
+✅ GET  /users/{username}/events                 Activity feed
 
-Planned:
-⬜ POST /repos/{owner}/{repo}/issues            Create issue
+── Repos ─────────────────────────────────────────────────────────────
+✅ GET  /repos/{owner}/{repo}/branches           Branch list
+✅ GET  /repos/{owner}/{repo}/commits            Paginated commits
+✅ GET  /repos/{owner}/{repo}/commits/{sha}      Commit detail + files
+✅ GET  /repos/{owner}/{repo}/pulls              Paginated PRs
+✅ GET  /repos/{owner}/{repo}/issues             Paginated issues
+✅ GET  /repos/{owner}/{repo}/issues/{n}/comments  Issue/PR comments
+✅ GET  /repos/{owner}/{repo}/readme             README (base64 decoded)
+✅ GET  /repos/{owner}/{repo}/contents/{path}    File browser + content
+✅ GET  /repos/{owner}/{repo}/languages          Language bytes map
+✅ GET  /repos/{owner}/{repo}/contributors       Contributor list
+✅ GET  /repos/{owner}/{repo}/releases           Releases list
+
+── Search ────────────────────────────────────────────────────────────
+✅ GET  /search/repositories                     Global repo search
+
+── Notifications ─────────────────────────────────────────────────────
+✅ GET  /notifications                           Unread notifications
+✅ PATCH /notifications/threads/{id}             Mark thread as read
+✅ PUT  /notifications                           Mark all as read
+
+── Gists ─────────────────────────────────────────────────────────────
+✅ GET  /gists                                   Authenticated user's gists
+
+── Planned ───────────────────────────────────────────────────────────
+⬜ POST /repos/{owner}/{repo}/issues             Create issue
 ⬜ POST /repos/{owner}/{repo}/issues/{n}/comments  Comment on issue
-⬜ POST /repos/{owner}/{repo}/pulls/{n}/reviews    Review PR
-⬜ GET  /repos/{owner}/{repo}/compare/{b}...{h}   Diff view
-⬜ GET  /notifications                          Notification feed
-⬜ GET  /search/repositories                   Global search
+⬜ POST /repos/{owner}/{repo}/pulls/{n}/reviews  Review PR
+⬜ GET  /repos/{owner}/{repo}/compare/{b}...{h}  Diff view
 ```
 
 ---
@@ -583,8 +753,9 @@ Frontend:
   Navigation:       GoRouter 14.x (named routes, auth redirect)
   HTTP:             http (→ dio in Phase 2 for interceptors + retry)
   Auth storage:     flutter_secure_storage (Keychain / EncryptedSharedPrefs)
-  Animations:       flutter_animate (stagger, fade, slide, scale)
-  Loading:          shimmer (3 custom shimmer widgets)
+  Persistence:      shared_preferences (theme mode, recent searches)
+  Animations:       flutter_animate (stagger, fade, slide, scale, elastic)
+  Loading:          shimmer (ShimmerBox, ShimmerRepoCard, ShimmerListTile)
   Markdown:         flutter_markdown_plus
   Code highlight:   flutter_highlight (atom-one dark/light)
   Open URLs:        url_launcher
@@ -618,7 +789,7 @@ CI/CD:
 
 3. Dark first
    Developers live in dark mode. Light is the alternative.
-   Toggle: System → Light → Dark → System (remembers per session).
+   Toggle: System → Light → Dark → System (persisted via SharedPreferences).
 
 4. Speed perception
    No blank states. Shimmer skeletons appear instantly.
@@ -634,7 +805,8 @@ CI/CD:
 
 7. In-app everything
    No links that kick users to GitHub for content we can show.
-   PRs, Issues, Commits, READMEs, Files — all in-app.
+   PRs, Issues, Commits, READMEs, Files, Releases — all in-app.
+   Comments rendered inline with Markdown.
 ```
 
 ---
@@ -660,15 +832,23 @@ Closed / SaaS only:
 
 ---
 
-## 11. Next Steps (Phase 2 Kickoff)
+## 11. Pending Items (Phase 1 Cleanup)
+
+```
+⬜ Add /gists route to GoRouter and wire GistsScreen
+⬜ Add Gists entry point in UI (profile screen or nav button)
+⬜ Keyboard shortcut: / → focus search bar
+⬜ dart analyze — keep zero issues as invariant
+```
+
+## 12. Next Steps (Phase 2 Kickoff)
 
 In order:
 
-1. `⬜` Add `shared_preferences` — persist theme preference across sessions
-2. `⬜` Supabase project setup + auth schema
-3. `⬜` GitHub OAuth flow (device flow or web redirect)
-4. `⬜` Replace PAT screen with OAuth "Connect GitHub" button
-5. `⬜` Token stored in Supabase (encrypted) instead of local storage
-6. `⬜` GitLab OAuth + API adapter
-7. `⬜` Provider management screen (connect / disconnect)
-8. `⬜` Multi-provider repo aggregation with provider badge on cards
+1. `⬜` Supabase project setup + auth schema
+2. `⬜` GitHub OAuth flow (device flow or web redirect)
+3. `⬜` Replace PAT screen with OAuth "Connect GitHub" button
+4. `⬜` Token stored in Supabase (encrypted) instead of local storage
+5. `⬜` GitLab OAuth + API adapter
+6. `⬜` Provider management screen (connect / disconnect)
+7. `⬜` Multi-provider repo aggregation with provider badge on cards

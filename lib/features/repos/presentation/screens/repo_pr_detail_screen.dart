@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/pull_request_entity.dart';
 import '../../domain/entities/repo_entity.dart';
+import '../providers/issue_comments_provider.dart';
+import '../widgets/comment_thread.dart';
 import '../widgets/label_chip.dart';
 
-class RepoPrDetailScreen extends StatelessWidget {
+class RepoPrDetailScreen extends ConsumerWidget {
   final RepoEntity repo;
   final PullRequestEntity pr;
 
   const RepoPrDetailScreen({super.key, required this.repo, required this.pr});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+
+    final commentsAsync = ref.watch(issueCommentsProvider(
+      (owner: repo.ownerLogin, repo: repo.name, number: pr.number),
+    ));
 
     final stateColor = switch (pr.state) {
       PrState.open => const Color(0xFF3FB950),
@@ -206,14 +213,8 @@ class RepoPrDetailScreen extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Footer
-          if (pr.commentsCount > 0)
-            OutlinedButton.icon(
-              onPressed: () => launchUrl(Uri.parse(pr.htmlUrl),
-                  mode: LaunchMode.externalApplication),
-              icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
-              label: Text('View ${pr.commentsCount} comment${pr.commentsCount == 1 ? '' : 's'} on GitHub'),
-            ),
+          // Comments section
+          CommentThread(commentsAsync: commentsAsync),
         ],
       ),
     );

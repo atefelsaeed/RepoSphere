@@ -6,6 +6,8 @@ import '../../domain/entities/commit_detail_entity.dart';
 import '../../domain/entities/repo_content_entity.dart';
 import '../models/activity_event_model.dart';
 import '../models/branch_model.dart';
+import '../models/gist_model.dart';
+import '../models/issue_comment_model.dart';
 import '../models/notification_model.dart';
 import '../models/release_model.dart';
 import '../models/commit_detail_model.dart';
@@ -335,6 +337,34 @@ class GitHubRemoteDatasource {
     final list = jsonDecode(response.body) as List<dynamic>;
     return list
         .map((e) => ReleaseModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<IssueCommentModel>> getIssueComments(
+      String owner, String repo, int number) async {
+    final response = await _client.get(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/issues/$number/comments?per_page=100'),
+      headers: _headers,
+    );
+    _checkResponse(response);
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list
+        .map((e) =>
+            IssueCommentModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<GistModel>> getGists({int perPage = 30}) async {
+    final response = await _client.get(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/gists?per_page=$perPage'),
+      headers: _headers,
+    );
+    _checkResponse(response);
+    final list = jsonDecode(response.body) as List<dynamic>;
+    return list
+        .map((e) => GistModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 

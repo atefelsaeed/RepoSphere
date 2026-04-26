@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/repo_entity.dart';
+import '../providers/issue_comments_provider.dart';
+import '../widgets/comment_thread.dart';
 import '../widgets/label_chip.dart';
 
-class RepoIssueDetailScreen extends StatelessWidget {
+class RepoIssueDetailScreen extends ConsumerWidget {
   final RepoEntity repo;
   final IssueEntity issue;
 
@@ -15,7 +18,10 @@ class RepoIssueDetailScreen extends StatelessWidget {
       {super.key, required this.repo, required this.issue});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final commentsAsync = ref.watch(issueCommentsProvider(
+      (owner: repo.ownerLogin, repo: repo.name, number: issue.number),
+    ));
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final isOpen = issue.state == IssueState.open;
@@ -168,14 +174,7 @@ class RepoIssueDetailScreen extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          if (issue.commentsCount > 0)
-            OutlinedButton.icon(
-              onPressed: () => launchUrl(Uri.parse(issue.htmlUrl),
-                  mode: LaunchMode.externalApplication),
-              icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
-              label: Text(
-                  'View ${issue.commentsCount} comment${issue.commentsCount == 1 ? '' : 's'} on GitHub'),
-            ),
+          CommentThread(commentsAsync: commentsAsync),
         ],
       ),
     );
