@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/providers/theme_provider.dart';
@@ -24,13 +25,24 @@ class RepoSphereApp extends ConsumerWidget {
       );
     }
 
-    return MaterialApp.router(
-      title: 'RepoSphere',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: themeMode,
-      routerConfig: ref.watch(routerProvider),
+    final router = ref.watch(routerProvider);
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (router.canPop()) router.pop();
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: MaterialApp.router(
+          title: 'RepoSphere',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeMode,
+          routerConfig: router,
+        ),
+      ),
     );
   }
 }

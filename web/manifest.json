@@ -1,13 +1,14 @@
 {
-    "name": "repo_sphere",
-    "short_name": "repo_sphere",
-    "start_url": ".",
+    "name": "RepoSphere",
+    "short_name": "RepoSphere",
+    "description": "Your GitHub and GitLab repositories in one unified dashboard.",
+    "start_url": "/",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#131318",
+    "theme_color": "#6750A4",
+    "orientation": "any",
     "prefer_related_applications": false,
+    "categories": ["developer", "productivity", "utilities"],
     "icons": [
         {
             "src": "icons/Icon-192.png",

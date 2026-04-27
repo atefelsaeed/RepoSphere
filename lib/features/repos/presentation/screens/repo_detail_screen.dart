@@ -15,6 +15,7 @@ import '../providers/repo_contributors_provider.dart';
 import '../providers/repo_languages_provider.dart';
 import '../providers/repos_provider.dart';
 import '../widgets/commit_tile.dart';
+import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 
 class RepoDetailScreen extends ConsumerStatefulWidget {
@@ -455,9 +456,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                   ),
                   error: (e, _) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Text('Failed to load commits: $e',
-                        style:
-                            TextStyle(color: theme.colorScheme.error)),
+                    child: ErrorView(error: e),
                   ),
                 ),
               ],

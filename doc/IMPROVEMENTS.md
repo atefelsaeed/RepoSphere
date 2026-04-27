@@ -305,10 +305,10 @@ jobs:
 | S2-3  | Repos pagination              | 2      | [x]    |
 | S2-4  | File browser branch selector  | 2      | [x]    |
 | S3-1  | App icon all platforms        | 3      | [ ]    |
-| S3-2  | Keyboard navigation           | 3      | [ ]    |
-| S3-3  | User-friendly errors          | 3      | [ ]    |
-| S3-4  | Web meta tags + PWA manifest  | 3      | [ ]    |
-| S4-1  | Unit + widget tests           | 4      | [ ]    |
-| S4-2  | GitHub Actions CI             | 4      | [ ]    |
-| S4-3  | Crash reporting (Sentry)      | 4      | [ ]    |
+| S3-2  | Keyboard navigation           | 3      | [x]    |
+| S3-3  | User-friendly errors          | 3      | [x]    |
+| S3-4  | Web meta tags + PWA manifest  | 3      | [x]    |
+| S4-1  | Unit + widget tests           | 4      | [x]    |
+| S4-2  | GitHub Actions CI             | 4      | [x]    |
+| S4-3  | Crash reporting (Sentry)      | 4      | [x]    |
 | S4-4  | i18n / Arabic RTL             | 4      | [ ]    |

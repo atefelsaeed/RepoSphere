@@ -13,9 +13,13 @@ class AppConfig {
   static const supabaseUrl = '';
   static const supabaseAnonKey = '';
 
+  // Sentry DSN — get from sentry.io → Settings → Projects → Client Keys
+  static const sentryDsn = String.fromEnvironment('SENTRY_DSN');
+
   static bool get hasGitHubOAuth => githubClientId.isNotEmpty;
   static bool get hasSupabase =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+  static bool get hasSentry => sentryDsn.isNotEmpty;
 }
 
 /// Keys used in SecureStorage — centralised to avoid typos.

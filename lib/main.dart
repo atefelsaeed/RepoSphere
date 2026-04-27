@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
@@ -8,10 +9,9 @@ import 'core/providers/theme_provider.dart';
 import 'core/utils/exceptions.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase if credentials are provided
   if (AppConfig.hasSupabase) {
     await Supabase.initialize(
       url: AppConfig.supabaseUrl,
@@ -27,15 +27,27 @@ void main() async {
     _ => ThemeMode.system,
   };
 
-  runApp(
-    ProviderScope(
-      observers: [_AuthErrorObserver()],
-      overrides: [
-        themeModeProvider.overrideWith((ref) => initialTheme),
-      ],
-      child: const RepoSphereApp(),
-    ),
+  final app = ProviderScope(
+    observers: [_AuthErrorObserver()],
+    overrides: [
+      themeModeProvider.overrideWith((ref) => initialTheme),
+    ],
+    child: const RepoSphereApp(),
   );
+
+  if (AppConfig.hasSentry) {
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = AppConfig.sentryDsn;
+        options.tracesSampleRate = 0.2;
+        options.environment =
+            const bool.fromEnvironment('dart.vm.product') ? 'production' : 'debug';
+      },
+      appRunner: () => runApp(app),
+    );
+  } else {
+    runApp(app);
+  }
 }
 
 /// Watches every provider for [GitHubAuthException] and auto-logs out.

@@ -53,13 +53,28 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
   }
 
   bool _handleKey(KeyEvent event) {
-    if (event is KeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.slash &&
-        !_searchFocus.hasFocus) {
-      _searchFocus.requestFocus();
-      return true;
+    if (event is! KeyDownEvent) return false;
+    if (_searchFocus.hasFocus) return false;
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.slash:
+        _searchFocus.requestFocus();
+        return true;
+      case LogicalKeyboardKey.keyR:
+        _refresh();
+        return true;
+      case LogicalKeyboardKey.question:
+        _showShortcutsDialog();
+        return true;
     }
     return false;
+  }
+
+  void _showShortcutsDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => const _ShortcutsDialog(),
+    );
   }
 
   Future<void> _refresh() async {
@@ -597,6 +612,69 @@ class _ShimmerGrid extends StatelessWidget {
           itemBuilder: (_, __) => const ShimmerRepoCard(),
         );
       },
+    );
+  }
+}
+
+class _ShortcutsDialog extends StatelessWidget {
+  const _ShortcutsDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    const shortcuts = [
+      ('/','Focus search bar'),
+      ('R', 'Refresh repositories'),
+      ('?', 'Show this dialog'),
+    ];
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.keyboard_rounded, size: 20, color: cs.primary),
+          const SizedBox(width: 10),
+          const Text('Keyboard Shortcuts'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: shortcuts.map((s) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: cs.outlineVariant),
+                  ),
+                  child: Text(
+                    s.$1,
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Text(s.$2, style: theme.textTheme.bodyMedium),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
     );
   }
 }
