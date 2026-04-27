@@ -43,12 +43,15 @@ class GitHubRemoteDatasource {
         jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  Future<List<RepoModel>> getRepos() async {
-    final response = await _client.get(
-      Uri.parse(
-          '${AppConstants.githubApiBase}/user/repos?per_page=${AppConstants.reposPerPage}&sort=updated&affiliation=owner,collaborator,organization_member'),
-      headers: _headers,
-    );
+  Future<List<RepoModel>> getRepos({int page = 1, int perPage = 30}) async {
+    final uri = Uri.parse('${AppConstants.githubApiBase}/user/repos')
+        .replace(queryParameters: {
+      'per_page': '$perPage',
+      'page': '$page',
+      'sort': 'updated',
+      'affiliation': 'owner,collaborator,organization_member',
+    });
+    final response = await _client.get(uri, headers: _headers);
     _checkResponse(response);
     final list = jsonDecode(response.body) as List<dynamic>;
     return list
@@ -198,12 +201,11 @@ class GitHubRemoteDatasource {
   }
 
   Future<List<RepoContentItem>> getContents(
-      String owner, String repo, String path) async {
-    final response = await _client.get(
-      Uri.parse(
-          '${AppConstants.githubApiBase}/repos/$owner/$repo/contents/$path'),
-      headers: _headers,
-    );
+      String owner, String repo, String path, {String? ref}) async {
+    final uri = Uri.parse(
+            '${AppConstants.githubApiBase}/repos/$owner/$repo/contents/$path')
+        .replace(queryParameters: ref != null ? {'ref': ref} : null);
+    final response = await _client.get(uri, headers: _headers);
     _checkResponse(response);
     final body = jsonDecode(response.body);
     final list = body as List<dynamic>;

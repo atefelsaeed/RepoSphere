@@ -174,14 +174,23 @@ class _CommitDetailBody extends StatelessWidget {
   }
 }
 
-class _FileTile extends StatelessWidget {
+class _FileTile extends StatefulWidget {
   final CommitFileChange file;
   const _FileTile({required this.file});
+
+  @override
+  State<_FileTile> createState() => _FileTileState();
+}
+
+class _FileTileState extends State<_FileTile> {
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final file = widget.file;
+    final hasDiff = file.patch != null && file.patch!.isNotEmpty;
 
     final statusColor = switch (file.status) {
       'added' => const Color(0xFF3FB950),
@@ -200,52 +209,140 @@ class _FileTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       decoration: BoxDecoration(
-        border: Border.all(color: cs.outlineVariant),
+        border: Border.all(
+          color: _expanded ? cs.outline : cs.outlineVariant,
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: statusColor.withAlpha(30),
-                borderRadius: BorderRadius.circular(4),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: hasDiff ? () => setState(() => _expanded = !_expanded) : null,
+            borderRadius: _expanded
+                ? const BorderRadius.vertical(top: Radius.circular(8))
+                : BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: statusColor.withAlpha(30),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(statusLabel,
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      file.filename,
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  if (file.additions > 0)
+                    Text('+${file.additions}',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                            color: const Color(0xFF3FB950),
+                            fontWeight: FontWeight.w600)),
+                  if (file.additions > 0 && file.deletions > 0)
+                    const SizedBox(width: 6),
+                  if (file.deletions > 0)
+                    Text('-${file.deletions}',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                            color: const Color(0xFFEF4444),
+                            fontWeight: FontWeight.w600)),
+                  if (hasDiff) ...[
+                    const SizedBox(width: 8),
+                    Icon(
+                      _expanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      size: 18,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ],
+                ],
               ),
-              child: Text(statusLabel,
+            ),
+          ),
+          if (_expanded && hasDiff)
+            _DiffView(patch: file.patch!),
+        ],
+      ),
+    );
+  }
+}
+
+class _DiffView extends StatelessWidget {
+  final String patch;
+  const _DiffView({required this.patch});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final lines = patch.split('\n');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF0D1117)
+            : const Color(0xFFF6F8FA),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(7)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: IntrinsicWidth(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: lines.map((line) {
+              final (bg, fg) = _lineColors(line, isDark, cs);
+              return Container(
+                color: bg,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
+                child: Text(
+                  line.isEmpty ? ' ' : line,
                   style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: statusColor)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                file.filename,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 12),
-            if (file.additions > 0)
-              Text('+${file.additions}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                      color: const Color(0xFF3FB950),
-                      fontWeight: FontWeight.w600)),
-            if (file.additions > 0 && file.deletions > 0)
-              const SizedBox(width: 6),
-            if (file.deletions > 0)
-              Text('-${file.deletions}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                      color: const Color(0xFFEF4444),
-                      fontWeight: FontWeight.w600)),
-          ],
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    height: 1.6,
+                    color: fg,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
+  }
+
+  (Color, Color) _lineColors(String line, bool isDark, ColorScheme cs) {
+    if (line.startsWith('+')) {
+      return isDark
+          ? (const Color(0xFF1A3A2A), const Color(0xFF3FB950))
+          : (const Color(0xFFE6FFEC), const Color(0xFF1A7F37));
+    }
+    if (line.startsWith('-')) {
+      return isDark
+          ? (const Color(0xFF3A1A1A), const Color(0xFFFF7B72))
+          : (const Color(0xFFFFEEF0), const Color(0xFFCF222E));
+    }
+    if (line.startsWith('@@')) {
+      return isDark
+          ? (const Color(0xFF0D2A3A), const Color(0xFF79C0FF))
+          : (const Color(0xFFDDF4FF), const Color(0xFF0550AE));
+    }
+    return (Colors.transparent, cs.onSurfaceVariant);
   }
 }
 

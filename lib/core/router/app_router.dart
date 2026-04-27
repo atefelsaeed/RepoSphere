@@ -109,8 +109,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: ':id/browse',
             name: 'repo-browser',
             builder: (_, state) {
-              final extra = state.extra as ({RepoEntity repo, String path});
-              return RepoBrowserScreen(repo: extra.repo, path: extra.path);
+              final extra = state.extra as ({RepoEntity repo, String path, String? branch});
+              return RepoBrowserScreen(repo: extra.repo, path: extra.path, initialBranch: extra.branch);
             },
           ),
           GoRoute(

@@ -300,10 +300,10 @@ jobs:
 | S1-1  | Settings + GitLab UI          | 1      | [x]    |
 | S1-2  | `_checkResponse` all codes    | 1      | [x]    |
 | S1-3  | Token expiry → auto logout    | 1      | [x]    |
-| S2-1  | Notifications badge           | 2      | [ ]    |
-| S2-2  | Commit diff view              | 2      | [ ]    |
-| S2-3  | Repos pagination              | 2      | [ ]    |
-| S2-4  | File browser branch selector  | 2      | [ ]    |
+| S2-1  | Notifications badge           | 2      | [x]    |
+| S2-2  | Commit diff view              | 2      | [x]    |
+| S2-3  | Repos pagination              | 2      | [x]    |
+| S2-4  | File browser branch selector  | 2      | [x]    |
 | S3-1  | App icon all platforms        | 3      | [ ]    |
 | S3-2  | Keyboard navigation           | 3      | [ ]    |
 | S3-3  | User-friendly errors          | 3      | [ ]    |

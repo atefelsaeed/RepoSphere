@@ -8,6 +8,7 @@ import '../../data/repositories/github_repo_repository_impl.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/git_provider.dart';
+import 'repos_notifier.dart';
 
 final _httpClientProvider = Provider<http.Client>((ref) {
   final client = http.Client();
@@ -34,11 +35,17 @@ final currentUserProvider = FutureProvider<UserEntity?>((ref) async {
   return provider.getUser();
 });
 
-final allReposProvider = FutureProvider<List<RepoEntity>>((ref) async {
-  final provider = ref.watch(gitProviderProvider);
-  final githubRepos = provider == null ? <RepoEntity>[] : await provider.getRepos();
-  final gitlabRepos = await ref.watch(gitlabReposProvider.future);
-  return [...githubRepos, ...gitlabRepos];
+final allReposProvider = Provider<AsyncValue<List<RepoEntity>>>((ref) {
+  final state = ref.watch(reposNotifierProvider);
+  final gitlabAsync = ref.watch(gitlabReposProvider);
+
+  if (state.isLoading) return const AsyncLoading();
+  if (state.error != null && state.repos.isEmpty) {
+    return AsyncError(state.error!, StackTrace.empty);
+  }
+  return gitlabAsync.whenData(
+    (gitlabRepos) => [...state.repos, ...gitlabRepos],
+  );
 });
 
 final starredReposProvider = FutureProvider<List<RepoEntity>>((ref) async {

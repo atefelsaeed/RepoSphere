@@ -42,7 +42,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ref.invalidate(gitlabDatasourceProvider);
       ref.invalidate(gitlabConnectedUserProvider);
       ref.invalidate(gitlabReposProvider);
-      ref.invalidate(allReposProvider);
       _gitlabTokenCtrl.clear();
     } catch (_) {
       setState(() => _gitlabError = 'Invalid token. Check scopes and try again.');
@@ -56,7 +55,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ref.invalidate(gitlabDatasourceProvider);
     ref.invalidate(gitlabConnectedUserProvider);
     ref.invalidate(gitlabReposProvider);
-    ref.invalidate(allReposProvider);
   }
 
   @override

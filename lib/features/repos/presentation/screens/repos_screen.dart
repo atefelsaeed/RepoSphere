@@ -7,7 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../../domain/repositories/git_provider.dart';
+import '../providers/notifications_provider.dart';
 import '../providers/pinned_repos_provider.dart';
+import '../providers/repos_notifier.dart';
 import '../providers/repos_provider.dart';
 import '../widgets/repo_card.dart';
 import '../../../../core/providers/theme_provider.dart';
@@ -24,19 +26,30 @@ class ReposScreen extends ConsumerStatefulWidget {
 class _ReposScreenState extends ConsumerState<ReposScreen> {
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     HardwareKeyboard.instance.addHandler(_handleKey);
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleKey);
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _searchController.dispose();
     _searchFocus.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 300) {
+      ref.read(reposNotifierProvider.notifier).loadMore();
+    }
   }
 
   bool _handleKey(KeyEvent event) {
@@ -50,7 +63,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
   }
 
   Future<void> _refresh() async {
-    ref.invalidate(allReposProvider);
+    ref.read(reposNotifierProvider.notifier).refresh();
     ref.invalidate(starredReposProvider);
     ref.invalidate(currentUserProvider);
   }
@@ -88,12 +101,22 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => context.goNamed('settings'),
           ),
-          // Notifications
-          IconButton(
-            tooltip: 'Notifications',
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => context.goNamed('notifications'),
-          ),
+          // Notifications with unread badge
+          Builder(builder: (context) {
+            final notifs =
+                ref.watch(notificationsProvider).valueOrNull ?? [];
+            final unread = notifs.where((n) => n.unread).length;
+            return IconButton(
+              tooltip: 'Notifications',
+              icon: Badge(
+                isLabelVisible: unread > 0,
+                label: Text(unread > 99 ? '99+' : '$unread',
+                    style: const TextStyle(fontSize: 10)),
+                child: const Icon(Icons.notifications_outlined),
+              ),
+              onPressed: () => context.goNamed('notifications'),
+            );
+          }),
           // Activity feed
           IconButton(
             tooltip: 'Activity',
@@ -196,6 +219,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: CustomScrollView(
+          controller: _scrollController,
           slivers: [
             // Search bar
             SliverToBoxAdapter(
@@ -350,7 +374,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                   );
                 }
                 return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
                   sliver: _RepoGrid(repos: repos),
                 );
               },
@@ -364,6 +388,35 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                   onRetry: _refresh,
                 ),
               ),
+            ),
+
+            // Pagination footer
+            SliverToBoxAdapter(
+              child: Builder(builder: (context) {
+                final state = ref.watch(reposNotifierProvider);
+                if (state.isLoadingMore) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (!state.hasMore && state.repos.isNotEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: Text(
+                        'All ${state.repos.length} GitHub repos loaded',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox(height: 24);
+              }),
             ),
           ],
         ),

@@ -92,7 +92,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
               onPressed: () => context.goNamed(
                 'repo-browser',
                 pathParameters: {'id': '${repo.id}'},
-                extra: (repo: repo, path: ''),
+                extra: (repo: repo, path: '', branch: null),
               ),
               icon: const Icon(Icons.folder_open_rounded, size: 16),
               label: const Text('Browse Code'),
@@ -265,7 +265,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                       color: cs.secondary,
                       onTap: () => context.goNamed('repo-browser',
                           pathParameters: {'id': '${repo.id}'},
-                          extra: (repo: repo, path: '')),
+                          extra: (repo: repo, path: '', branch: null)),
                     ),
                     _NavButton(
                       icon: Icons.new_releases_outlined,
