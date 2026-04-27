@@ -8,288 +8,250 @@ Each item has a status tag: `[ ]` pending · `[x]` done · `[-]` skipped/deferre
 
 ## Sprint 1 — Blockers
 
-### S1-1 · Settings screen + Provider management
-**Why:** GitLab token has no entry point in the UI. Users can't connect GitLab,
-disconnect any provider, or manage their account. This is a hard blocker for
-multi-provider support being actually usable.
+### S1-1 · Settings screen + Provider management `[x]`
+**Why:** GitLab token had no entry point in the UI.
 
-**Scope:**
-- New `/settings` named route → `SettingsScreen`
-- "Connected Providers" section:
-  - GitHub: shows avatar + login + "Connected" badge + Disconnect button
-  - GitLab: shows "Connect" form (PAT entry + verify) OR connected state + Disconnect
-- "Appearance" section: theme toggle (already exists, move here too)
-- Entry point: gear icon in repos AppBar + profile screen
+**Delivered:**
+- `/settings` named route → `SettingsScreen`
+- GitHub card: avatar + login + Connected badge + Disconnect
+- GitLab card: PAT entry form with verify → connected state + Disconnect
+- Appearance section: System / Light / Dark segmented button
+- Gear icon added to repos AppBar
 
-**Files:**
-- `lib/features/repos/presentation/screens/settings_screen.dart` (new)
-- `lib/core/router/app_router.dart` (add `/settings` route)
-- `lib/features/repos/presentation/screens/repos_screen.dart` (add gear icon)
-- `lib/features/auth/data/secure_token_storage.dart` (already has GitLab read/write)
+**Files:** `settings_screen.dart`, `app_router.dart`, `repos_screen.dart`
 
 ---
 
-### S1-2 · `_checkResponse` — handle all HTTP status codes
-**Why:** Any non-200/401/403 response falls into a generic "Request failed with
-status NNN" message shown raw to the user.
+### S1-2 · `_checkResponse` — handle all HTTP status codes `[x]`
+**Why:** Non-2xx responses fell through to a raw status-code string shown to the user.
 
-**Scope:** Update `GitHubRemoteDatasource._checkResponse()`:
-```
-200 → ok (current)
-201 → ok (already handled separately in createIssue)
-204 → ok (already handled in isStarred, contributors)
-401 → GitHubAuthException — "Invalid or expired token. Please reconnect."
-403 → check X-RateLimit-Remaining header:
-       0 → GitHubRateLimitException — "Rate limit exceeded. Resets at HH:MM."
-       else → "Access forbidden. Check your token scopes."
-404 → GitHubApiException — "Not found."
-422 → GitHubApiException — "Invalid request. Check the data and try again."
-429 → GitHubRateLimitException — "Too many requests. Try again in a moment."
-5xx → GitHubApiException — "GitHub is having issues. Try again later."
-default → GitHubApiException — "Unexpected error (status NNN)."
-```
+**Delivered:**
+- 401 → `GitHubAuthException` "Invalid or expired token."
+- 403 + rate-limit header → `GitHubRateLimitException` with reset time
+- 403 otherwise → "Access forbidden. Check your token scopes."
+- 404 → "Resource not found."
+- 422 → "Invalid request."
+- 429 → `GitHubRateLimitException`
+- 5xx → "GitHub is having issues."
+- default → "Unexpected error (NNN)."
 
-**Files:**
-- `lib/features/repos/data/datasources/github_remote_datasource.dart`
-- `lib/core/utils/exceptions.dart` (may need new exception types)
+**Files:** `github_remote_datasource.dart`, `exceptions.dart`
 
 ---
 
-### S1-3 · Token expiry → auto logout
-**Why:** If a stored token is revoked or expired, every screen shows scattered
-API error states instead of redirecting the user to re-authenticate.
+### S1-3 · Token expiry → auto logout `[x]`
+**Why:** Expired tokens caused scattered API error states across all screens.
 
-**Scope:**
-- Add a global `GitHubAuthException` listener in `AuthNotifier`
-- When any provider catches `GitHubAuthException`, call `authProvider.notifier.logout()`
-- The router redirect guard already handles `token == null` → `/auth`
-- Show a one-time SnackBar: "Session expired. Please reconnect."
+**Delivered:**
+- `_AuthErrorObserver extends ProviderObserver` in `main.dart`
+- `providerDidFail()` intercepts any `GitHubAuthException` globally
+- Calls `authProvider.notifier.logout()` → router guard redirects to `/auth`
 
-**Approach:** Override `ProviderObserver` or add a catchError wrapper in the
-datasource that re-throws after signaling the auth notifier.
-
-**Files:**
-- `lib/features/auth/presentation/providers/auth_provider.dart`
-- `lib/core/router/app_router.dart` (may need observer wiring)
+**Files:** `main.dart`
 
 ---
 
 ## Sprint 2 — Quality
 
-### S2-1 · Notifications badge count
-**Why:** The bell icon in the AppBar shows no unread count. This is a standard
-UX pattern — users expect a red badge.
+### S2-1 · Notifications badge count `[x]`
+**Why:** Bell icon showed no unread count.
 
-**Scope:**
-- Watch `notificationsProvider` in `repos_screen.dart`
-- Wrap the bell `IconButton` in a `Stack` with a `Badge` widget
-- Show count only when unread > 0; show "99+" when > 99
-- Badge disappears after "Mark all read"
+**Delivered:**
+- `notificationsProvider` watched in `repos_screen.dart`
+- Material 3 `Badge` widget wraps the bell icon
+- Shows count (or "99+") only when unread > 0
 
-**Files:**
-- `lib/features/repos/presentation/screens/repos_screen.dart`
+**Files:** `repos_screen.dart`
 
 ---
 
-### S2-2 · Commit diff view
-**Why:** `CommitDetailScreen` shows file names and +/- counts but no actual
-code diff. Users have to go to GitHub to read the changes.
+### S2-2 · Commit diff view `[x]`
+**Why:** CommitDetailScreen showed file names + counts but no actual diff.
 
-**Scope:**
-- GitHub API already returns `patch` field per file in commit detail response
-- `CommitDetailModel` / `CommitDetailEntity` need a `patch` field per file
-- In `CommitDetailScreen`, tapping a file expands an inline diff view:
-  - Red lines for deletions (prefix `-`)
-  - Green lines for additions (prefix `+`)
-  - Gray lines for context
-  - Monospace font, horizontal scroll
-- Collapsed by default; tap file row to expand/collapse
+**Delivered:**
+- `_FileTile` converted to `StatefulWidget` with expand/collapse on tap
+- `_DiffView` widget parses unified diff line-by-line:
+  - `+` lines → green background / text (dark + light variants)
+  - `-` lines → red background / text
+  - `@@` hunk headers → blue
+  - Context lines → muted
+- Monospace font, horizontal scroll for long lines
+- Chevron icon in file header indicates expand state
 
-**Files:**
-- `lib/features/repos/data/models/commit_detail_model.dart`
-- `lib/features/repos/domain/entities/commit_detail_entity.dart`
-- `lib/features/repos/presentation/screens/commit_detail_screen.dart`
+**Note:** `patch` field was already present in `CommitFileChange` — only
+the screen needed updating.
 
----
-
-### S2-3 · Repos infinite scroll / pagination
-**Why:** `getRepos()` fetches a fixed page. Users with 200+ repos only see the
-first batch. The repos list needs proper pagination matching the commits/PRs/issues pattern.
-
-**Scope:**
-- Create `reposNotifierProvider` (StateNotifierProvider) mirroring `commitsNotifierProvider`
-- State: `{ repos, isLoading, isLoadingMore, hasMore, error }`
-- `loadMore()` fetches next page and appends
-- Scroll listener in `ReposScreen` triggers `loadMore()` at maxScrollExtent - 300
-- `allReposProvider` for GitLab repos stays as FutureProvider (GitLab has fewer repos)
-- The merged list (GitHub paginated + GitLab) needs careful ordering
-
-**Files:**
-- `lib/features/repos/presentation/providers/repos_provider.dart`
-- `lib/features/repos/presentation/screens/repos_screen.dart`
-- `lib/features/repos/data/datasources/github_remote_datasource.dart` (add page param)
+**Files:** `commit_detail_screen.dart`
 
 ---
 
-### S2-4 · File browser branch selector
-**Why:** File browser always shows the default branch. Developers frequently
-need to browse a feature branch or a release tag.
+### S2-3 · Repos infinite scroll / pagination `[x]`
+**Why:** `getRepos()` fetched all repos in one call. Users with 200+ repos
+only saw the first batch.
 
-**Scope:**
-- Add branch dropdown to `RepoBrowserScreen` AppBar (reuse branches from `repoBranchesProvider`)
-- Pass selected branch as query param to `getContents()`
-- Breadcrumb navigation resets to root on branch change
+**Delivered:**
+- `getRepos(page, perPage)` added to `GitHubRemoteDatasource`
+- `ReposNotifier` (StateNotifierProvider) with state: repos, isLoading,
+  isLoadingMore, hasMore, error — 30 repos/page
+- `allReposProvider` changed from `FutureProvider` to
+  `Provider<AsyncValue<T>>` combining notifier state + `gitlabReposProvider`
+- `ScrollController` in ReposScreen triggers `loadMore()` 300 px before bottom
+- Spinner footer while loading; "all repos loaded" message when exhausted
+- `_refresh()` calls `notifier.refresh()` instead of invalidating providers
 
-**Files:**
-- `lib/features/repos/presentation/screens/repo_browser_screen.dart`
-- `lib/features/repos/data/datasources/github_remote_datasource.dart` (add ref param to getContents)
+**Files:** `github_remote_datasource.dart`, `repos_notifier.dart` (new),
+`repos_provider.dart`, `repos_screen.dart`, `settings_screen.dart`
+
+---
+
+### S2-4 · File browser branch selector `[x]`
+**Why:** File browser always showed the default branch.
+
+**Delivered:**
+- `RepoBrowserScreen` converted to `ConsumerStatefulWidget`
+- `initialBranch` constructor param; `_selectedBranch` local state
+- `_BranchSelector` dropdown in AppBar watches `repoBranchesProvider`
+- Default branch shown with a "default" badge in the dropdown
+- Branch change resets path to root and re-fetches contents
+- Branch preserved through breadcrumb navigation and folder taps
+- `getContents(owner, repo, path, {String? ref})` updated in datasource
+- GoRouter extra record updated to `({RepoEntity repo, String path, String? branch})`
+
+**Files:** `repo_browser_screen.dart`, `repo_contents_provider.dart`,
+`github_remote_datasource.dart`, `app_router.dart`, `repo_detail_screen.dart`
 
 ---
 
 ## Sprint 3 — Polish
 
-### S3-1 · App icon (all platforms)
-**Why:** Default Flutter icon looks unprofessional. Every platform needs a
-properly sized custom icon.
+### S3-1 · App icon (all platforms) `[ ]`
+**Why:** Default Flutter icon looks unprofessional.
 
 **Scope:**
-- Design icon (hub/sphere concept matching the splash screen)
-- Use `flutter_launcher_icons` package
+- Design icon (hub/sphere concept matching the splash screen gradient)
+- Add `flutter_launcher_icons` to `pubspec.yaml`
 - Generate icons for: iOS, Android, macOS, Windows, Linux, Web (favicon + 192/512)
-- Update `pubspec.yaml` with `flutter_icons` config
 
-**Files:**
-- `pubspec.yaml`
-- `assets/icon/` (new icon assets)
-- All platform `**/Runner/Assets.xcassets/` etc. (auto-generated)
+**Blocked by:** needs design assets (PNG source file 1024×1024).
 
 ---
 
-### S3-2 · Keyboard navigation
-**Why:** Web and desktop users expect Tab key navigation, arrow key list
-traversal, and Escape to close dialogs/sheets. Currently only `/` works.
+### S3-2 · Keyboard navigation `[x]`
+**Why:** Web and desktop users expect keyboard shortcuts beyond just `/`.
 
-**Scope:**
-- `Escape` key closes open dialogs, bottom sheets, and navigates back
-- `Tab` / `Shift+Tab` traverses focusable elements correctly
-- `Enter` opens the focused repo card
-- `R` triggers refresh on the current screen
-- `?` opens a keyboard shortcuts help dialog
-- Register handlers in each screen's `initState` via `HardwareKeyboard`
+**Delivered:**
+- **Global `Escape` → back:** `CallbackShortcuts` + `Focus(autofocus: true)`
+  wraps `MaterialApp.router` in `app.dart`; calls `router.pop()` when canPop
+- **`/`** → focus search bar (already existed)
+- **`R`** → refresh repos list
+- **`?`** → `_ShortcutsDialog` with styled keyboard badge UI listing all shortcuts
+- Tab / Shift+Tab traversal handled natively by Flutter
 
-**Files:**
-- `lib/features/repos/presentation/screens/repos_screen.dart`
-- `lib/features/repos/presentation/screens/repo_detail_screen.dart`
-- (shared shortcut handler helper if pattern repeats)
+**Files:** `app.dart`, `repos_screen.dart`
 
 ---
 
-### S3-3 · User-friendly error messages
-**Why:** Raw exception strings like `"Exception: Request failed with status 422"`
-reach the UI through `ErrorView` and `.when(error: ...)` handlers.
+### S3-3 · User-friendly error messages `[x]`
+**Why:** Raw exception strings were reaching the UI.
 
-**Scope:**
-- Strip `"Exception: "` prefix (already partially done in `create_issue_sheet.dart`)
-- Map known exception types to human-readable messages in `ErrorView`
-- Add specific copy for: no internet, rate limit, auth expired, not found
-- `ErrorView` should show different icons per error type
+**Delivered:**
+- `ErrorView` takes `Object error` — smart icon + color per type:
+  - `GitHubAuthException` → lock icon, error color
+  - `GitHubRateLimitException` → hourglass, amber
+  - `GitHubApiException` → cloud-off, surface variant
+  - Unknown → strips "Exception:" / "GitHubApiException:" prefixes
+- `ErrorView.message(String)` named constructor for legacy call sites
+- All `.when(error: ...)` sites audited — last raw `Text('Failed to load commits: $e')`
+  in `repo_detail_screen.dart` replaced with `ErrorView(error: e)`
 
-**Files:**
-- `lib/shared/widgets/error_view.dart`
-- All `.when(error: (e, _) => ...)` call sites
+**Files:** `error_view.dart`, all `.when(error:)` call sites
 
 ---
 
-### S3-4 · Web meta tags + PWA manifest
-**Why:** RepoSphere is web-first. Without proper meta tags, sharing a link
-shows no preview. Without a manifest, it can't be installed as a PWA.
+### S3-4 · Web meta tags + PWA manifest `[x]`
+**Why:** Sharing a link showed no preview; the app wasn't installable as a PWA.
 
-**Scope:**
-- `web/index.html`: add `<meta name="description">`, Open Graph tags,
-  `<link rel="manifest">`, theme-color, apple-touch-icon
-- `web/manifest.json`: name, short_name, icons, start_url, display: standalone,
-  theme_color, background_color
-- `web/favicon.png`: replace Flutter default
+**Delivered:**
+- `web/index.html`: `<title>RepoSphere</title>`, description meta, Open Graph
+  (og:title, og:description, og:image, og:type, og:site_name), Twitter Card,
+  apple-touch-icon, `theme-color: #6750A4`, lang="en"
+- `web/manifest.json`: name "RepoSphere", description, `background_color: #131318`,
+  `theme_color: #6750A4`, `orientation: any`, `categories: [developer, productivity]`
 
-**Files:**
-- `web/index.html`
-- `web/manifest.json`
-- `web/favicon.png` / `web/icons/`
+**Files:** `web/index.html`, `web/manifest.json`
 
 ---
 
 ## Sprint 4 — Scale
 
-### S4-1 · Unit + widget tests
-**Why:** Zero test coverage means regressions go undetected. Minimum viable
-test suite before any public launch.
+### S4-1 · Unit + widget tests `[x]`
+**Why:** Zero test coverage meant regressions went undetected.
 
-**Priority targets:**
-```
-Unit:
-  - GitHubRemoteDatasource: mock http.Client, assert correct URLs + headers
-  - RepoModel.fromJson / GitLabProjectModel.fromJson: golden JSON fixtures
-  - PinnedReposNotifier: toggle, load, persist
-  - filteredReposProvider: filter + sort + search logic
+**Delivered (12 unit tests, all passing):**
 
-Widget:
-  - RepoCard: renders correctly, hover state, copy button
-  - ErrorView: shows message + retry button
-  - CreateIssueSheet: form validation, submit flow
-```
+`test/unit/repo_model_test.dart`:
+- Parses all fields correctly from JSON fixture
+- Sets `provider = RepoProvider.github` on `toEntity()`
+- Handles null optional fields (description, language, defaultBranch, topics)
+- Defaults missing count fields to 0
 
-**Files:**
-- `test/` directory (currently empty or missing)
+`test/unit/github_datasource_test.dart`:
+- Sends correct `Authorization: token …` header
+- Parses list response into model list
+- Sends `page` + `per_page` query params correctly
+- Throws `GitHubAuthException` on 401
+- Throws `GitHubRateLimitException` on 429
+- Throws `GitHubApiException` on 404
+- `getContents` passes `ref` param when branch given
+- `getContents` omits `ref` param when branch is null
 
----
+Uses `http/testing.dart` `MockClient` — no additional test packages needed.
 
-### S4-2 · GitHub Actions CI pipeline
-**Why:** No automated checks on PRs. Regressions merged silently.
-
-**Scope:**
-```yaml
-# .github/workflows/ci.yml
-on: [push, pull_request]
-jobs:
-  analyze:   dart analyze lib/
-  test:      flutter test
-  build-web: flutter build web --release
-```
-
-**Files:**
-- `.github/workflows/ci.yml` (new)
+**Files:** `test/unit/repo_model_test.dart`, `test/unit/github_datasource_test.dart`
 
 ---
 
-### S4-3 · Crash reporting (Sentry)
-**Why:** No visibility into what breaks in production for real users.
+### S4-2 · GitHub Actions CI pipeline `[x]`
+**Why:** No automated checks on PRs.
 
-**Scope:**
-- Add `sentry_flutter` package
-- Wrap `runApp` in `SentryFlutter.init()`
-- DSN stored in `AppConfig` (env var for web, build arg for native)
-- Custom user context: `Sentry.configureScope(scope => scope.setUser(...))`
+**Delivered:** `.github/workflows/ci.yml` with three jobs:
+- **analyze** — `dart analyze lib/ --fatal-infos`
+- **test** — `flutter test --coverage`
+- **build-web** — `flutter build web --release`; uploads artifact (7-day retention)
 
-**Files:**
-- `pubspec.yaml`
-- `lib/main.dart`
-- `lib/core/config/app_config.dart`
+`build-web` only runs after `analyze` + `test` both pass.
+Uses `subosito/flutter-action@v2` with Flutter 3.24.x stable and caching.
+
+**Files:** `.github/workflows/ci.yml`
 
 ---
 
-### S4-4 · Internationalization (i18n)
-**Why:** All strings are hardcoded in English. Required for global reach.
+### S4-3 · Crash reporting (Sentry) `[x]`
+**Why:** No visibility into production crashes.
+
+**Delivered:**
+- `sentry_flutter: ^8.12.0` added to `pubspec.yaml`
+- `AppConfig.sentryDsn` reads from `--dart-define=SENTRY_DSN=…` at build time
+- `main.dart`: if DSN is set → `SentryFlutter.init()` wraps `runApp`;
+  otherwise runs normally (zero-cost when DSN is absent)
+- `tracesSampleRate: 0.2`, environment set from `dart.vm.product`
+
+**To activate:** `flutter build web --dart-define=SENTRY_DSN=<your-dsn>`
+
+**Files:** `pubspec.yaml`, `main.dart`, `lib/core/config/app_config.dart`
+
+---
+
+### S4-4 · Internationalization (i18n) `[ ]`
+**Why:** All strings are hardcoded in English.
 
 **Scope:**
 - Add `flutter_localizations` + `intl` packages
 - Extract all user-visible strings to ARB files (`lib/l10n/app_en.arb`)
-- Support: English (default), Arabic (RTL — the team already works in Arabic)
+- Support: English (default), Arabic (RTL)
 - RTL layout support via `Directionality` widget
 
-**Files:**
-- `pubspec.yaml`
-- `lib/l10n/` (new)
-- All screen/widget files (string extraction)
+**Note:** Large scope — requires touching every screen and widget file.
 
 ---
 
