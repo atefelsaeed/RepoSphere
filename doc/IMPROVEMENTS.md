@@ -255,6 +255,99 @@ Uses `subosito/flutter-action@v2` with Flutter 3.24.x stable and caching.
 
 ---
 
+## Sprint 5 — Multi-Account Support
+
+### S5-1 · Account model + storage `[ ]`
+**Why:** SecureStorage currently holds a single token per provider. Supporting
+multiple companies/identities requires a structured account list.
+
+**Scope:**
+- Introduce `Account` model: `{ id (uuid), provider (github|gitlab), label, token }`
+- `SecureTokenStorage` stores `List<Account>` serialised as JSON under a single key
+- Migration: on first launch after update, wrap the existing GitHub / GitLab
+  tokens into `Account` objects so existing users aren't logged out
+- Add `accountsProvider` (StateNotifierProvider) with `AccountsNotifier`:
+  - `add(provider, label, token)` — verifies token before saving
+  - `remove(id)` — deletes account and invalidates its repos
+  - `list` — all connected accounts
+
+**Files:**
+- `lib/features/auth/data/models/account_model.dart` (new)
+- `lib/features/auth/data/secure_token_storage.dart`
+- `lib/features/auth/presentation/providers/accounts_provider.dart` (new)
+
+---
+
+### S5-2 · Per-account datasources `[ ]`
+**Why:** `githubDatasourceProvider` / `gitlabDatasourceProvider` return a
+single datasource. With multiple accounts each needs its own authenticated client.
+
+**Scope:**
+- `githubDatasourcesProvider` → `List<({Account account, GitHubRemoteDatasource ds})>`
+- `gitlabDatasourcesProvider` → `List<({Account account, GitLabRemoteDatasource ds})>`
+- Both derived from `accountsProvider` — rebuild automatically when accounts change
+- `_AuthErrorObserver` maps auth failures back to the correct account and removes only that one
+
+**Files:**
+- `lib/features/repos/presentation/providers/repos_provider.dart`
+
+---
+
+### S5-3 · Fan-out repo fetching `[ ]`
+**Why:** `allReposProvider` and `ReposNotifier` are wired to a single datasource.
+Multiple accounts need fan-out: fetch from each, merge, deduplicate.
+
+**Scope:**
+- `ReposNotifier` accepts `List<datasource>` instead of a single one
+- Fetches page N from each account in parallel (`Future.wait`)
+- Merges results; `hasMore` is true as long as any account has more pages
+- `RepoEntity` gains `accountId` (String) and `accountLabel` (String) fields
+- Deduplication: same repo id from same provider+account is not duplicated on refresh
+
+**Files:**
+- `lib/features/repos/presentation/providers/repos_notifier.dart`
+- `lib/features/repos/domain/entities/repo_entity.dart`
+- `lib/features/repos/data/models/repo_model.dart`
+- `lib/features/repos/data/datasources/gitlab_remote_datasource.dart`
+
+---
+
+### S5-4 · Account badge in UI `[ ]`
+**Why:** With repos from multiple accounts in one list, users need to know
+which account each repo belongs to.
+
+**Scope:**
+- `RepoCard` shows a small avatar or coloured dot in the bottom-right corner
+  labelled with the account's `label` field on hover/tap
+- `RepoDetailScreen` AppBar subtitle shows `accountLabel` next to the provider icon
+- Filter chip "All" shows total; add per-account filter chips dynamically from `accountsProvider`
+- Pinned chip shows account label in a secondary line
+
+**Files:**
+- `lib/features/repos/presentation/widgets/repo_card.dart`
+- `lib/features/repos/presentation/screens/repo_detail_screen.dart`
+- `lib/features/repos/presentation/screens/repos_screen.dart`
+
+---
+
+### S5-5 · Accounts management UI `[ ]`
+**Why:** Settings screen currently handles one GitHub + one GitLab account.
+Multi-account needs a proper list with add/remove per account.
+
+**Scope:**
+- Settings → "Connected Accounts" section replaces the current two cards
+- Each connected account shows: provider icon, label (editable), login/username,
+  "Connected" badge, Remove button
+- "Add GitHub account" button → PAT entry form with label field + Verify + Connect
+- "Add GitLab account" button → same flow
+- No limit on number of accounts
+- Confirm dialog on remove (warns that all repos from that account will disappear)
+
+**Files:**
+- `lib/features/repos/presentation/screens/settings_screen.dart`
+
+---
+
 ## Status Summary
 
 | ID    | Item                          | Sprint | Status |
@@ -274,3 +367,8 @@ Uses `subosito/flutter-action@v2` with Flutter 3.24.x stable and caching.
 | S4-2  | GitHub Actions CI             | 4      | [x]    |
 | S4-3  | Crash reporting (Sentry)      | 4      | [x]    |
 | S4-4  | i18n / Arabic RTL             | 4      | [ ]    |
+| S5-1  | Account model + storage       | 5      | [ ]    |
+| S5-2  | Per-account datasources       | 5      | [ ]    |
+| S5-3  | Fan-out repo fetching         | 5      | [ ]    |
+| S5-4  | Account badge in UI           | 5      | [ ]    |
+| S5-5  | Accounts management UI        | 5      | [ ]    |
