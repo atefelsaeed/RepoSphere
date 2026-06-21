@@ -24,6 +24,10 @@ class AppConfig {
 
 /// Keys used in SecureStorage — centralised to avoid typos.
 class StorageKeys {
+  /// Multi-account connections (JSON list of [GitConnection]).
+  static const connections = 'git_connections';
+
+  // Legacy single-account keys — read only, for one-time migration.
   static const githubToken = 'github_pat';
   static const githubUserLogin = 'github_user_login';
   static const gitlabToken = 'gitlab_pat';

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/language_colors.dart';
+import '../../../../core/git/git_provider_type.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/is_starred_provider.dart';
 import '../providers/pinned_repos_provider.dart';
@@ -52,7 +53,10 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
     final repo = widget.repo;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final isGitLab = repo.provider == RepoProvider.gitlab;
+    // GitHub-only sections (commits/languages/contributors/star) are hidden
+    // for every non-GitHub provider, since those detail providers are wired to
+    // the GitHub API. (Per-provider detail wiring is future work.)
+    final isGitLab = repo.provider != GitProviderType.github;
     final isPinned = ref.watch(pinnedReposProvider).contains(repo.id);
 
     // GitHub-only providers — only watched for GitHub repos
@@ -145,7 +149,9 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
               mode: LaunchMode.externalApplication,
             ),
             icon: const Icon(Icons.open_in_new_rounded, size: 16),
-            label: Text(isGitLab ? 'Open on GitLab' : 'Open on GitHub'),
+            label: Text(repo.provider == GitProviderType.github
+                ? 'Open on GitHub'
+                : 'Open on ${repo.provider.label}'),
           ),
           const SizedBox(width: 12),
         ],

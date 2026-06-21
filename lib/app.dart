@@ -5,17 +5,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/presentation/providers/auth_provider.dart';
+import 'features/auth/presentation/providers/connections_provider.dart';
 
 class RepoSphereApp extends ConsumerWidget {
   const RepoSphereApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
+    final connectionsState = ref.watch(connectionsProvider);
     final themeMode = ref.watch(themeModeProvider);
 
-    if (authState.isLoading) {
+    if (connectionsState.isLoading) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,

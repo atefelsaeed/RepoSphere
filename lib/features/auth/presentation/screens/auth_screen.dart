@@ -3,11 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/git/git_provider_type.dart';
 import '../../../../core/utils/exceptions.dart';
+import '../../../repos/data/datasources/github_remote_datasource.dart';
 import '../../data/github_device_auth.dart';
+import '../../data/secure_token_storage.dart';
+import '../../domain/git_connection.dart';
 import '../providers/auth_provider.dart';
+import '../providers/connections_provider.dart';
 
 // Auth priority:
 //   1. AppConfig.hasSupabase    → Supabase GitHub OAuth (web redirect)
@@ -41,10 +47,22 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
+    final token = _tokenController.text.trim();
+    final client = http.Client();
     try {
-      await ref
-          .read(authProvider.notifier)
-          .verifyAndSave(_tokenController.text.trim());
+      final user =
+          (await GitHubRemoteDatasource(client: client, token: token).getUser())
+              .toEntity();
+      await ref.read(connectionsProvider.notifier).add(
+            GitConnection(
+              id: SecureTokenStorage.newConnectionId(),
+              type: GitProviderType.github,
+              accountLogin: user.login,
+              avatarUrl: user.avatarUrl,
+              token: token,
+            ),
+          );
+      // Router redirects to /repos once connections becomes non-empty.
     } on GitHubAuthException catch (e) {
       setState(() => _errorMessage = e.message);
     } on GitHubRateLimitException catch (e) {
@@ -53,6 +71,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       setState(() =>
           _errorMessage = 'Connection error. Check your internet and try again.');
     } finally {
+      client.close();
       if (mounted) setState(() => _isLoading = false);
     }
   }

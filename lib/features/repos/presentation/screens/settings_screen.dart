@@ -1,69 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/git/git_provider_type.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../auth/data/secure_token_storage.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/domain/git_connection.dart';
+import '../../../auth/presentation/providers/connections_provider.dart';
+import '../../data/datasources/azure_remote_datasource.dart';
+import '../../data/datasources/github_remote_datasource.dart';
 import '../../data/datasources/gitlab_remote_datasource.dart';
 import '../providers/repos_provider.dart';
 
-class SettingsScreen extends ConsumerStatefulWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  final _gitlabTokenCtrl = TextEditingController();
-  bool _gitlabObscure = true;
-  bool _verifying = false;
-  String? _gitlabError;
-
-  @override
-  void dispose() {
-    _gitlabTokenCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _connectGitLab() async {
-    final token = _gitlabTokenCtrl.text.trim();
-    if (token.isEmpty) return;
-    setState(() {
-      _verifying = true;
-      _gitlabError = null;
-    });
-    try {
-      final ds = GitLabRemoteDatasource(client: http.Client(), token: token);
-      await ds.verifyToken();
-      await SecureTokenStorage.writeGitLabToken(token);
-      ref.invalidate(gitlabDatasourceProvider);
-      ref.invalidate(gitlabConnectedUserProvider);
-      ref.invalidate(gitlabReposProvider);
-      _gitlabTokenCtrl.clear();
-    } catch (_) {
-      setState(() => _gitlabError = 'Invalid token. Check scopes and try again.');
-    } finally {
-      if (mounted) setState(() => _verifying = false);
-    }
-  }
-
-  Future<void> _disconnectGitLab() async {
-    await SecureTokenStorage.deleteGitLabToken();
-    ref.invalidate(gitlabDatasourceProvider);
-    ref.invalidate(gitlabConnectedUserProvider);
-    ref.invalidate(gitlabReposProvider);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final user = ref.watch(currentUserProvider).valueOrNull;
-    final gitlabUser = ref.watch(gitlabConnectedUserProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final themeMode = ref.watch(themeModeProvider);
+    final connections = ref.watch(connectionsProvider).valueOrNull ?? const [];
 
     return Scaffold(
       appBar: AppBar(
@@ -76,82 +32,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              // ── Connected Providers ──────────────────────────────────
-              _SectionHeader(label: 'Connected Providers', icon: Icons.link_rounded),
+              // ── Connected accounts ───────────────────────────────────
+              Row(
+                children: [
+                  Expanded(
+                    child: _SectionHeader(
+                        label: 'Connected Accounts',
+                        icon: Icons.link_rounded),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () => _showAddAccount(context, ref),
+                    icon: const Icon(Icons.add_rounded, size: 16),
+                    label: const Text('Add account'),
+                    style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
 
-              // GitHub card
-              _ProviderCard(
-                color: cs.primary,
-                icon: Icons.hub_rounded,
-                name: 'GitHub',
-                child: user != null
-                    ? _ConnectedRow(
-                        avatarUrl: user.avatarUrl,
-                        login: user.login,
-                        onDisconnect: () async {
-                          final ok = await _confirmDisconnect(
-                              context, 'GitHub',
-                              'This will log you out of RepoSphere.');
-                          if (ok) ref.read(authProvider.notifier).logout();
+              if (connections.isEmpty)
+                _EmptyConnections()
+              else
+                ...connections.map((c) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _ConnectionTile(
+                        connection: c,
+                        onRemove: () async {
+                          final ok = await _confirmRemove(context, c);
+                          if (ok) {
+                            await ref
+                                .read(connectionsProvider.notifier)
+                                .remove(c.id);
+                            ref.invalidate(allReposProvider);
+                          }
                         },
-                      )
-                    : _DisconnectedRow(label: 'Not connected'),
-              ),
-
-              const SizedBox(height: 12),
-
-              // GitLab card
-              _ProviderCard(
-                color: const Color(0xFFFC6D26),
-                icon: Icons.code_rounded,
-                name: 'GitLab',
-                child: gitlabUser.when(
-                  data: (username) => username != null
-                      ? _ConnectedRow(
-                          login: username,
-                          onDisconnect: () async {
-                            final ok = await _confirmDisconnect(
-                                context, 'GitLab',
-                                'Your GitLab repos will be removed from the list.');
-                            if (ok) _disconnectGitLab();
-                          },
-                        )
-                      : _GitLabConnectForm(
-                          controller: _gitlabTokenCtrl,
-                          obscure: _gitlabObscure,
-                          verifying: _verifying,
-                          error: _gitlabError,
-                          onToggleObscure: () =>
-                              setState(() => _gitlabObscure = !_gitlabObscure),
-                          onConnect: _connectGitLab,
-                        ),
-                  loading: () => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Center(
-                        child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2))),
-                  ),
-                  error: (_, __) => _GitLabConnectForm(
-                    controller: _gitlabTokenCtrl,
-                    obscure: _gitlabObscure,
-                    verifying: _verifying,
-                    error: _gitlabError,
-                    onToggleObscure: () =>
-                        setState(() => _gitlabObscure = !_gitlabObscure),
-                    onConnect: _connectGitLab,
-                  ),
-                ),
-              ),
+                      ),
+                    )),
 
               const SizedBox(height: 32),
 
               // ── Appearance ───────────────────────────────────────────
-              _SectionHeader(label: 'Appearance', icon: Icons.palette_outlined),
+              _SectionHeader(
+                  label: 'Appearance', icon: Icons.palette_outlined),
               const SizedBox(height: 12),
-
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: cs.outlineVariant),
@@ -159,8 +83,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   color: cs.surface,
                 ),
                 child: ListTile(
-                  leading: Icon(_themeModeIcon(themeMode),
-                      color: cs.primary),
+                  leading: Icon(_themeModeIcon(themeMode), color: cs.primary),
                   title: const Text('Theme'),
                   subtitle: Text(_themeModeLabel(themeMode),
                       style: TextStyle(color: cs.onSurfaceVariant)),
@@ -184,7 +107,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       prefs.setString('themeMode', next.name);
                     },
                     showSelectedIcon: false,
-                    style: ButtonStyle(
+                    style: const ButtonStyle(
                       visualDensity: VisualDensity.compact,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
@@ -195,9 +118,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 32),
 
               // ── About ────────────────────────────────────────────────
-              _SectionHeader(label: 'About', icon: Icons.info_outline_rounded),
+              _SectionHeader(
+                  label: 'About', icon: Icons.info_outline_rounded),
               const SizedBox(height: 12),
-
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -206,12 +129,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   color: cs.surface,
                 ),
                 child: Column(
-                  children: [
+                  children: const [
                     _AboutRow(label: 'App', value: 'RepoSphere'),
-                    const Divider(height: 20),
+                    Divider(height: 20),
                     _AboutRow(label: 'Version', value: '1.0.0-alpha'),
-                    const Divider(height: 20),
-                    _AboutRow(label: 'Built with', value: 'Flutter + Riverpod'),
+                    Divider(height: 20),
+                    _AboutRow(
+                        label: 'Providers',
+                        value: 'GitHub · GitLab · Azure DevOps'),
                   ],
                 ),
               ),
@@ -222,20 +147,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<bool> _confirmDisconnect(
-      BuildContext context, String provider, String subtitle) async {
+  Future<void> _showAddAccount(BuildContext context, WidgetRef ref) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: _AddAccountSheet(
+          onConnect: (conn) async {
+            await ref.read(connectionsProvider.notifier).add(conn);
+            ref.invalidate(allReposProvider);
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _confirmRemove(BuildContext context, GitConnection c) async {
     return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: Text('Disconnect $provider'),
-            content: Text(subtitle),
+            title: Text('Remove ${c.type.label}'),
+            content: Text(
+                'Disconnect ${c.displayName}? Its repos will be removed from the list.'),
             actions: [
               TextButton(
-                  onPressed: () => ctx.pop(false),
+                  onPressed: () => Navigator.pop(ctx, false),
                   child: const Text('Cancel')),
               FilledButton(
-                  onPressed: () => ctx.pop(true),
-                  child: const Text('Disconnect')),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Remove')),
             ],
           ),
         ) ??
@@ -255,7 +197,321 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       };
 }
 
-// ── Sub-widgets ──────────────────────────────────────────────────────────────
+// ─── Provider visuals ─────────────────────────────────────────────────────────
+
+({Color color, IconData icon}) _providerStyle(GitProviderType t) => switch (t) {
+      GitProviderType.github => (color: const Color(0xFF6E7681), icon: Icons.hub_rounded),
+      GitProviderType.gitlab => (color: const Color(0xFFFC6D26), icon: Icons.code_rounded),
+      GitProviderType.azureDevOps =>
+        (color: const Color(0xFF0078D4), icon: Icons.cloud_rounded),
+      GitProviderType.bitbucket =>
+        (color: const Color(0xFF2684FF), icon: Icons.merge_type_rounded),
+      GitProviderType.gitea => (color: const Color(0xFF609926), icon: Icons.coffee_rounded),
+    };
+
+// ─── Sub-widgets ──────────────────────────────────────────────────────────────
+
+class _ConnectionTile extends StatelessWidget {
+  final GitConnection connection;
+  final VoidCallback onRemove;
+  const _ConnectionTile({required this.connection, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final style = _providerStyle(connection.type);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: cs.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+        color: cs.surface,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: style.color.withAlpha(25),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(style.icon, size: 17, color: style.color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(connection.type.label,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text('@${connection.accountLogin}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant)),
+                if (connection.baseUrl != null &&
+                    connection.baseUrl!.isNotEmpty)
+                  Text(connection.baseUrl!,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: cs.onSurfaceVariant),
+                      overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Remove',
+            onPressed: onRemove,
+            icon: Icon(Icons.delete_outline_rounded, color: cs.error),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyConnections extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        border: Border.all(color: cs.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+        color: cs.surface,
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.cloud_off_rounded, color: cs.onSurfaceVariant),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text('No accounts connected. Tap "Add account" to connect.',
+                style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddAccountSheet extends StatefulWidget {
+  final Future<void> Function(GitConnection) onConnect;
+  const _AddAccountSheet({required this.onConnect});
+
+  @override
+  State<_AddAccountSheet> createState() => _AddAccountSheetState();
+}
+
+class _AddAccountSheetState extends State<_AddAccountSheet> {
+  GitProviderType _type = GitProviderType.github;
+  final _tokenCtrl = TextEditingController();
+  final _baseUrlCtrl = TextEditingController();
+  bool _obscure = true;
+  bool _busy = false;
+  String? _error;
+
+  static const _selectable = [
+    GitProviderType.github,
+    GitProviderType.gitlab,
+    GitProviderType.azureDevOps,
+  ];
+
+  @override
+  void dispose() {
+    _tokenCtrl.dispose();
+    _baseUrlCtrl.dispose();
+    super.dispose();
+  }
+
+  String get _baseUrlLabel => _type == GitProviderType.azureDevOps
+      ? 'Organisation URL (https://dev.azure.com/your-org)'
+      : 'Instance URL (https://gitlab.example.com)';
+
+  String get _tokenHint => switch (_type) {
+        GitProviderType.github => 'ghp_xxxxxxxx',
+        GitProviderType.gitlab => 'glpat-xxxxxxxx',
+        GitProviderType.azureDevOps => 'Azure DevOps PAT',
+        _ => 'Personal Access Token',
+      };
+
+  Future<void> _connect() async {
+    final token = _tokenCtrl.text.trim();
+    final baseUrl = _baseUrlCtrl.text.trim();
+    if (token.isEmpty) {
+      setState(() => _error = 'Enter a token.');
+      return;
+    }
+    if (_type == GitProviderType.azureDevOps && baseUrl.isEmpty) {
+      setState(() => _error = 'Azure DevOps needs an organisation URL.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final client = http.Client();
+    try {
+      final connection = await _verify(client, token, baseUrl);
+      await widget.onConnect(connection);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      setState(() => _error = _friendly(e));
+    } finally {
+      client.close();
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<GitConnection> _verify(
+      http.Client client, String token, String baseUrl) async {
+    final id = SecureTokenStorage.newConnectionId();
+    switch (_type) {
+      case GitProviderType.github:
+        final user =
+            (await GitHubRemoteDatasource(client: client, token: token)
+                    .getUser())
+                .toEntity();
+        return GitConnection(
+          id: id,
+          type: GitProviderType.github,
+          accountLogin: user.login,
+          avatarUrl: user.avatarUrl,
+          token: token,
+        );
+      case GitProviderType.gitlab:
+        final username = await GitLabRemoteDatasource(
+                client: client,
+                token: token,
+                baseUrl: baseUrl.isEmpty ? null : baseUrl)
+            .verifyToken();
+        return GitConnection(
+          id: id,
+          type: GitProviderType.gitlab,
+          accountLogin: username,
+          token: token,
+          baseUrl: baseUrl.isEmpty ? null : baseUrl,
+        );
+      case GitProviderType.azureDevOps:
+        final data = await AzureRemoteDatasource(
+                client: client, pat: token, orgUrl: baseUrl)
+            .getConnectionData();
+        final u = data['authenticatedUser'] as Map<String, dynamic>? ?? const {};
+        return GitConnection(
+          id: id,
+          type: GitProviderType.azureDevOps,
+          accountLogin: (u['providerDisplayName'] as String?) ?? 'azure',
+          token: token,
+          baseUrl: baseUrl,
+        );
+      default:
+        throw Exception('Unsupported provider');
+    }
+  }
+
+  String _friendly(Object e) {
+    final s = e.toString();
+    if (s.contains('Auth') || s.contains('Invalid') || s.contains('401')) {
+      return 'Invalid token. Check the value and scopes.';
+    }
+    return 'Could not connect. Check the token and URL.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final needsBaseUrl = _type.requiresBaseUrl;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Connect an account',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            children: _selectable.map((t) {
+              final style = _providerStyle(t);
+              final selected = t == _type;
+              return ChoiceChip(
+                avatar: Icon(style.icon,
+                    size: 16,
+                    color: selected ? Colors.white : style.color),
+                label: Text(t.label),
+                selected: selected,
+                selectedColor: style.color,
+                labelStyle: TextStyle(
+                    color: selected ? Colors.white : null,
+                    fontWeight: FontWeight.w600),
+                onSelected: (_) => setState(() {
+                  _type = t;
+                  _error = null;
+                }),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+          if (needsBaseUrl) ...[
+            TextField(
+              controller: _baseUrlCtrl,
+              decoration: InputDecoration(
+                labelText: _baseUrlLabel,
+                prefixIcon: const Icon(Icons.link_rounded),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          TextField(
+            controller: _tokenCtrl,
+            obscureText: _obscure,
+            decoration: InputDecoration(
+              labelText: 'Personal Access Token',
+              hintText: _tokenHint,
+              prefixIcon: const Icon(Icons.key_rounded),
+              suffixIcon: IconButton(
+                icon: Icon(_obscure
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+            onSubmitted: (_) => _connect(),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, size: 16, color: cs.error),
+                const SizedBox(width: 6),
+                Expanded(
+                    child: Text(_error!,
+                        style: TextStyle(color: cs.error, fontSize: 13))),
+              ],
+            ),
+          ],
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _busy ? null : _connect,
+            icon: _busy
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.link_rounded, size: 16),
+            label: Text(_busy ? 'Connecting…' : 'Connect'),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _SectionHeader extends StatelessWidget {
   final String label;
@@ -275,214 +531,6 @@ class _SectionHeader extends StatelessWidget {
                 color: cs.primary,
                 fontWeight: FontWeight.w600,
               ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProviderCard extends StatelessWidget {
-  final Color color;
-  final IconData icon;
-  final String name;
-  final Widget child;
-  const _ProviderCard(
-      {required this.color,
-      required this.icon,
-      required this.name,
-      required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: cs.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
-        color: cs.surface,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-            child: Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: color.withAlpha(25),
-                    borderRadius: BorderRadius.circular(6),
-                    border:
-                        Border.all(color: color.withAlpha(60), width: 0.5),
-                  ),
-                  child: Icon(icon, size: 15, color: color),
-                ),
-                const SizedBox(width: 10),
-                Text(name,
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Divider(height: 16),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            child: child,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ConnectedRow extends StatelessWidget {
-  final String? avatarUrl;
-  final String login;
-  final VoidCallback onDisconnect;
-  const _ConnectedRow(
-      {this.avatarUrl, required this.login, required this.onDisconnect});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        if (avatarUrl != null) ...[
-          CircleAvatar(
-              radius: 14, backgroundImage: NetworkImage(avatarUrl!)),
-          const SizedBox(width: 8),
-        ],
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('@$login',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600)),
-              Row(
-                children: [
-                  Icon(Icons.check_circle_rounded,
-                      size: 12, color: const Color(0xFF3FB950)),
-                  const SizedBox(width: 4),
-                  Text('Connected',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelSmall
-                          ?.copyWith(color: const Color(0xFF3FB950))),
-                ],
-              ),
-            ],
-          ),
-        ),
-        OutlinedButton(
-          onPressed: onDisconnect,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: cs.error,
-            side: BorderSide(color: cs.error.withAlpha(80)),
-            visualDensity: VisualDensity.compact,
-          ),
-          child: const Text('Disconnect'),
-        ),
-      ],
-    );
-  }
-}
-
-class _DisconnectedRow extends StatelessWidget {
-  final String label;
-  const _DisconnectedRow({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Icon(Icons.radio_button_unchecked_rounded,
-            size: 14, color: cs.onSurfaceVariant),
-        const SizedBox(width: 6),
-        Text(label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: cs.onSurfaceVariant)),
-      ],
-    );
-  }
-}
-
-class _GitLabConnectForm extends StatelessWidget {
-  final TextEditingController controller;
-  final bool obscure;
-  final bool verifying;
-  final String? error;
-  final VoidCallback onToggleObscure;
-  final VoidCallback onConnect;
-
-  const _GitLabConnectForm({
-    required this.controller,
-    required this.obscure,
-    required this.verifying,
-    required this.error,
-    required this.onToggleObscure,
-    required this.onConnect,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: controller,
-          obscureText: obscure,
-          decoration: InputDecoration(
-            hintText: 'glpat-xxxxxxxxxxxxxxxxxxxx',
-            labelText: 'Personal Access Token',
-            helperText: 'Required scopes: api, read_user',
-            suffixIcon: IconButton(
-              icon: Icon(
-                  obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-              onPressed: onToggleObscure,
-            ),
-          ),
-          onSubmitted: (_) => onConnect(),
-        ),
-        if (error != null) ...[
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.warning_amber_rounded,
-                  size: 14, color: cs.error),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(error!,
-                    style: TextStyle(
-                        fontSize: 12, color: cs.error)),
-              ),
-            ],
-          ),
-        ],
-        const SizedBox(height: 12),
-        FilledButton.icon(
-          onPressed: verifying ? null : onConnect,
-          icon: verifying
-              ? const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.link_rounded, size: 16),
-          label: Text(verifying ? 'Verifying…' : 'Connect GitLab'),
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFFC6D26),
-          ),
         ),
       ],
     );

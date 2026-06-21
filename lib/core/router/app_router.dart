@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/auth/domain/git_connection.dart';
+import '../../features/auth/presentation/providers/connections_provider.dart';
 import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../../features/repos/domain/entities/commit_entity.dart';
 import '../../features/repos/domain/entities/issue_entity.dart';
@@ -200,15 +201,15 @@ class _RouterNotifier extends ChangeNotifier {
   final Ref _ref;
 
   _RouterNotifier(this._ref) {
-    _ref.listen<AsyncValue<String?>>(
-        authProvider, (_, __) => notifyListeners());
+    _ref.listen<AsyncValue<List<GitConnection>>>(
+        connectionsProvider, (_, __) => notifyListeners());
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
-    final authState = _ref.read(authProvider);
-    if (authState.isLoading) return null;
+    final conns = _ref.read(connectionsProvider);
+    if (conns.isLoading) return null;
 
-    final isAuthenticated = authState.valueOrNull?.isNotEmpty == true;
+    final isAuthenticated = (conns.valueOrNull ?? const []).isNotEmpty;
     final isOnAuth = state.matchedLocation == '/auth';
 
     if (!isAuthenticated && !isOnAuth) return '/auth';

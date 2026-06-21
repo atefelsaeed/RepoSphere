@@ -1,4 +1,4 @@
-enum RepoProvider { github, gitlab }
+import '../../../../core/git/git_provider_type.dart';
 
 class RepoEntity {
   final int id;
@@ -19,7 +19,17 @@ class RepoEntity {
   final String ownerAvatarUrl;
   final List<String> topics;
   final String? defaultBranch;
-  final RepoProvider provider;
+  final GitProviderType provider;
+
+  /// Id of the [GitConnection] this repo was fetched through. Empty when not
+  /// yet attributed (legacy single-account data) — resolved to the primary
+  /// connection of [provider] at call sites.
+  final String connectionId;
+
+  /// Provider-native repo identifier when [id] (int) is insufficient — e.g.
+  /// Azure DevOps repositories are keyed by GUID. Empty for GitHub/GitLab,
+  /// which address repos by owner/name or numeric id.
+  final String providerId;
 
   const RepoEntity({
     required this.id,
@@ -40,6 +50,37 @@ class RepoEntity {
     required this.ownerAvatarUrl,
     required this.topics,
     this.defaultBranch,
-    this.provider = RepoProvider.github,
+    this.provider = GitProviderType.github,
+    this.connectionId = '',
+    this.providerId = '',
   });
+
+  RepoEntity copyWith({
+    GitProviderType? provider,
+    String? connectionId,
+    String? providerId,
+  }) =>
+      RepoEntity(
+        id: id,
+        name: name,
+        fullName: fullName,
+        description: description,
+        htmlUrl: htmlUrl,
+        language: language,
+        stargazersCount: stargazersCount,
+        forksCount: forksCount,
+        watchersCount: watchersCount,
+        openIssuesCount: openIssuesCount,
+        isPrivate: isPrivate,
+        isFork: isFork,
+        updatedAt: updatedAt,
+        createdAt: createdAt,
+        ownerLogin: ownerLogin,
+        ownerAvatarUrl: ownerAvatarUrl,
+        topics: topics,
+        defaultBranch: defaultBranch,
+        provider: provider ?? this.provider,
+        connectionId: connectionId ?? this.connectionId,
+        providerId: providerId ?? this.providerId,
+      );
 }

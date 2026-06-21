@@ -1,14 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:repo_sphere/app.dart';
-import 'package:repo_sphere/features/auth/presentation/providers/auth_provider.dart';
+import 'package:repo_sphere/features/auth/domain/git_connection.dart';
+import 'package:repo_sphere/features/auth/presentation/providers/connections_provider.dart';
 
-/// Fake auth notifier that resolves synchronously to a signed-out state,
+/// Fake connections notifier that resolves synchronously to "no accounts",
 /// so the app skips the secure-storage platform channel (unavailable in tests)
-/// and deterministically renders the router instead of the loading splash.
-class _FakeAuthNotifier extends AuthNotifier {
+/// and deterministically renders the auth route instead of the loading splash.
+class _FakeConnectionsNotifier extends ConnectionsNotifier {
   @override
-  Future<String?> build() async => null;
+  Future<List<GitConnection>> build() async => const [];
 }
 
 void main() {
@@ -16,7 +17,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          authProvider.overrideWith(_FakeAuthNotifier.new),
+          connectionsProvider.overrideWith(_FakeConnectionsNotifier.new),
         ],
         child: const RepoSphereApp(),
       ),

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../../../../core/git/git_provider_type.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_issues_provider.dart';
@@ -56,7 +57,7 @@ class _RepoIssuesScreenState extends ConsumerState<RepoIssuesScreen>
     final notifier = ref.read(repoIssuesProvider(_args).notifier);
 
     return Scaffold(
-      floatingActionButton: widget.repo.provider == RepoProvider.github
+      floatingActionButton: widget.repo.provider == GitProviderType.github
           ? FloatingActionButton.extended(
               onPressed: () => showModalBottomSheet(
                 context: context,

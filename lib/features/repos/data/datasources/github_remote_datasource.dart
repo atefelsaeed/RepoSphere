@@ -415,6 +415,41 @@ class GitHubRemoteDatasource {
         jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  Future<IssueCommentModel> addIssueComment(
+      String owner, String repo, int number, String body) async {
+    final response = await _client.post(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/issues/$number/comments'),
+      headers: _headers,
+      body: jsonEncode({'body': body}),
+    );
+    if (response.statusCode != 201) _checkResponse(response);
+    return IssueCommentModel.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<void> mergePullRequest(String owner, String repo, int number) async {
+    final response = await _client.put(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/pulls/$number/merge'),
+      headers: _headers,
+      body: jsonEncode({'merge_method': 'merge'}),
+    );
+    _checkResponse(response);
+  }
+
+  /// state: 'open' or 'closed'.
+  Future<void> setIssueState(
+      String owner, String repo, int number, String state) async {
+    final response = await _client.patch(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/issues/$number'),
+      headers: _headers,
+      body: jsonEncode({'state': state}),
+    );
+    _checkResponse(response);
+  }
+
   void _checkResponse(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) return;
     switch (response.statusCode) {
