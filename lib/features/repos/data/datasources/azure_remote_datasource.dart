@@ -157,4 +157,24 @@ class AzureRemoteDatasource {
         as Map<String, dynamic>;
     return json['value'] as List<dynamic>? ?? const [];
   }
+
+  // ─── Inbox ────────────────────────────────────────────────────────────────────
+  /// Active PRs in [project] filtered by `reviewerId` and/or `creatorId`.
+  Future<List<dynamic>> getProjectPullRequests(String project,
+      {String? reviewerId, String? creatorId, int top = 50}) async {
+    final q = StringBuffer('searchCriteria.status=active&\$top=$top');
+    if (reviewerId != null) q.write('&searchCriteria.reviewerId=$reviewerId');
+    if (creatorId != null) q.write('&searchCriteria.creatorId=$creatorId');
+    final json = await _get(
+            '$orgUrl/${Uri.encodeComponent(project)}/_apis/git/pullrequests?$q')
+        as Map<String, dynamic>;
+    return json['value'] as List<dynamic>? ?? const [];
+  }
+
+  /// Organisation-wide WIQL query (no project scope).
+  Future<List<dynamic>> queryWorkItemsOrg(String wiql) async {
+    final json = await _post('$orgUrl/_apis/wit/wiql', {'query': wiql})
+        as Map<String, dynamic>;
+    return json['workItems'] as List<dynamic>? ?? const [];
+  }
 }

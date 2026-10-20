@@ -24,6 +24,36 @@ enum InboxReason {
 
 enum InboxItemKind { pullRequest, issue }
 
+/// One-tap actions on an inbox PR/MR, gated by [ProviderCapabilities].
+enum PrAction { approve, requestChanges, merge, rerunCi }
+
+/// Outcome of loading one account's inbox: either items or the error that
+/// stopped every query for that account.
+class AccountInbox {
+  final List<InboxItem> items;
+  final Object? error;
+  const AccountInbox(this.items, [this.error]);
+}
+
+/// Runs all [queries] for one account. Individual failures are tolerated as
+/// long as at least one query succeeds; if *all* fail, the first error is
+/// rethrown so the UI can tell the user instead of showing a false "all clear".
+Future<List<InboxItem>> collectInbox(
+    Iterable<Future<List<InboxItem>> Function()> queries) async {
+  final outcomes = await Future.wait(queries.map((q) async {
+    try {
+      return (items: await q(), error: null as Object?);
+    } on Exception catch (e) {
+      return (items: const <InboxItem>[], error: e as Object?);
+    }
+  }));
+  final failures = outcomes.where((o) => o.error != null).toList();
+  if (failures.isNotEmpty && failures.length == outcomes.length) {
+    throw failures.first.error!;
+  }
+  return InboxItem.mergeAndSort(outcomes.expand((o) => o.items));
+}
+
 /// A single "needs your attention" entry, normalised across providers.
 class InboxItem {
   final String connectionId;
@@ -53,6 +83,36 @@ class InboxItem {
     required this.reasons,
     this.authorLogin,
   });
+
+  Map<String, dynamic> toJson() => {
+        'connectionId': connectionId,
+        'provider': provider.slug,
+        'accountLogin': accountLogin,
+        'kind': kind.name,
+        'repoFullName': repoFullName,
+        'number': number,
+        'title': title,
+        'htmlUrl': htmlUrl,
+        'updatedAt': updatedAt.toIso8601String(),
+        'authorLogin': authorLogin,
+        'reasons': reasons.map((r) => r.name).toList(),
+      };
+
+  static InboxItem fromJson(Map<String, dynamic> j) => InboxItem(
+        connectionId: j['connectionId'] as String,
+        provider: GitProviderType.fromSlug(j['provider'] as String),
+        accountLogin: j['accountLogin'] as String,
+        kind: InboxItemKind.values.byName(j['kind'] as String),
+        repoFullName: j['repoFullName'] as String,
+        number: j['number'] as int,
+        title: j['title'] as String,
+        htmlUrl: j['htmlUrl'] as String,
+        updatedAt: DateTime.parse(j['updatedAt'] as String),
+        authorLogin: j['authorLogin'] as String?,
+        reasons: (j['reasons'] as List)
+            .map((r) => InboxReason.values.byName(r as String))
+            .toList(),
+      );
 
   InboxReason get primaryReason => reasons.first;
 

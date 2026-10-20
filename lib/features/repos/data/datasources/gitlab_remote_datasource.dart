@@ -169,6 +169,17 @@ class GitLabRemoteDatasource {
   Future<List<dynamic>> getReleases(int projectId) async =>
       await _get('/projects/$projectId/releases?per_page=10') as List<dynamic>;
 
+  /// Generic JSON call for inbox quick actions. [path] starts with `/`.
+  Future<dynamic> send(String method, String path,
+      {Map<String, dynamic>? body}) async {
+    final req = http.Request(method, Uri.parse('$base$path'))
+      ..headers.addAll(_headers);
+    if (body != null) req.body = jsonEncode(body);
+    final r = await http.Response.fromStream(await client.send(req));
+    _check(r);
+    return r.body.isEmpty ? null : jsonDecode(r.body);
+  }
+
   // ─── Inbox (account-wide) ───────────────────────────────────────────────────
   /// Account-wide MR/issue lists, e.g. `merge_requests?scope=assigned_to_me`.
   Future<List<dynamic>> getAccountList(String path) async =>

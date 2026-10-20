@@ -64,6 +64,17 @@ class GitHubRemoteDatasource {
     return (body['data'] as Map<String, dynamic>?) ?? const {};
   }
 
+  /// Generic JSON call for inbox quick actions. [path] starts with `/`.
+  Future<dynamic> send(String method, String path,
+      {Map<String, dynamic>? body}) async {
+    final req = http.Request(method, Uri.parse('${AppConstants.githubApiBase}$path'))
+      ..headers.addAll({..._headers, 'Content-Type': 'application/json'});
+    if (body != null) req.body = jsonEncode(body);
+    final response = await http.Response.fromStream(await _client.send(req));
+    _checkResponse(response);
+    return response.body.isEmpty ? null : jsonDecode(response.body);
+  }
+
   Future<UserModel> getUser() async {
     final response = await _client.get(
       Uri.parse('${AppConstants.githubApiBase}/user'),

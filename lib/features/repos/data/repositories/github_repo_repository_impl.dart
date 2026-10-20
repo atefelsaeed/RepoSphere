@@ -6,6 +6,7 @@ import '../../domain/entities/commit_detail_entity.dart';
 import '../../domain/entities/commit_entity.dart';
 import '../../domain/entities/contributor_entity.dart';
 import '../../domain/entities/gist_entity.dart';
+import '../../../../core/utils/exceptions.dart';
 import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/issue_comment_entity.dart';
 import '../../domain/entities/issue_entity.dart';
@@ -48,6 +49,9 @@ class GitHubRepoRepositoryImpl implements GitProvider {
         editIssueState: true,
         createIssues: true,
         inbox: true,
+        approvePullRequests: true,
+        requestChanges: true,
+        rerunCi: true,
       );
 
   RepoEntity _stamp(RepoEntity r) =>
@@ -249,31 +253,21 @@ query {
     );
   }
 
-  Future<List<InboxItem>> _safe(Future<List<InboxItem>> Function() f) async {
-    try {
-      return await f();
-    } on Exception {
-      // One failing query must not blank the whole inbox.
-      return const [];
-    }
-  }
-
   @override
-  Future<List<InboxItem>> getInboxItems() async {
-    Future<List<InboxItem>> search(String q, InboxReason r) => _safe(() async =>
-        (await _ds.searchIssuesRaw('$q archived:false'))
+  Future<List<InboxItem>> getInboxItems() {
+    Future<List<InboxItem>> Function() search(String q, InboxReason r) =>
+        () async => (await _ds.searchIssuesRaw('$q archived:false'))
             .map((j) => _searchItem(j, r))
-            .toList());
+            .toList();
 
-    final results = await Future.wait([
+    return collectInbox([
       search('is:pr is:open review-requested:@me',
           InboxReason.reviewRequested),
       search('is:issue is:open assignee:@me', InboxReason.assigned),
       search('is:pr is:open assignee:@me', InboxReason.assigned),
       search('is:open mentions:@me -author:@me', InboxReason.mentioned),
-      _safe(_myPrsNeedingWork),
+      _myPrsNeedingWork,
     ]);
-    return InboxItem.mergeAndSort(results.expand((e) => e));
   }
 
   Future<List<InboxItem>> _myPrsNeedingWork() async {
@@ -310,5 +304,48 @@ query {
       ));
     }
     return out;
+  }
+
+  @override
+  Future<void> performPrAction(InboxItem item, PrAction action,
+      {String? comment}) async {
+    final base = '/repos/${item.repoFullName}/pulls/${item.number}';
+    switch (action) {
+      case PrAction.approve:
+        await _ds.send('POST', '$base/reviews', body: {
+          'event': 'APPROVE',
+          if (comment != null && comment.isNotEmpty) 'body': comment,
+        });
+      case PrAction.requestChanges:
+        if (comment == null || comment.trim().isEmpty) {
+          throw const GitHubApiException(
+              'A comment is required to request changes.');
+        }
+        await _ds.send('POST', '$base/reviews',
+            body: {'event': 'REQUEST_CHANGES', 'body': comment});
+      case PrAction.merge:
+        await _ds.send('PUT', '$base/merge', body: {'merge_method': 'merge'});
+      case PrAction.rerunCi:
+        final pr = await _ds.send('GET', base) as Map<String, dynamic>;
+        final sha = (pr['head'] as Map?)?['sha'] as String?;
+        if (sha == null) {
+          throw const GitHubApiException('Could not find the PR head commit.');
+        }
+        final runs = await _ds.send('GET',
+                '/repos/${item.repoFullName}/actions/runs?head_sha=$sha&per_page=50')
+            as Map<String, dynamic>;
+        final failed = (runs['workflow_runs'] as List? ?? const [])
+            .cast<Map<String, dynamic>>()
+            .where((r) => const ['failure', 'timed_out', 'cancelled']
+                .contains(r['conclusion']))
+            .toList();
+        if (failed.isEmpty) {
+          throw const GitHubApiException('No failed workflow runs to re-run.');
+        }
+        for (final r in failed) {
+          await _ds.send('POST',
+              '/repos/${item.repoFullName}/actions/runs/${r['id']}/rerun-failed-jobs');
+        }
+    }
   }
 }

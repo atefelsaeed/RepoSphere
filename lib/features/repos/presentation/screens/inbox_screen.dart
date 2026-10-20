@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/git/git_provider_type.dart';
 import '../../../auth/presentation/providers/connections_provider.dart';
 import '../../domain/entities/inbox_item_entity.dart';
+import '../../domain/repositories/git_provider.dart';
+import '../../data/git_provider_factory.dart';
 import '../providers/inbox_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 
@@ -18,8 +21,24 @@ class InboxScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final inbox = ref.watch(filteredInboxProvider);
+    final visible = ref.watch(visibleInboxProvider).valueOrNull;
     final connections = ref.watch(connectionsProvider).valueOrNull ?? const [];
     final filter = ref.watch(inboxConnectionFilterProvider);
+    final reasonFilter = ref.watch(inboxReasonFilterProvider);
+
+    Future<void> refresh() async {
+      final done = Completer<void>();
+      final sub = ref.listenManual(inboxProvider, (_, next) {
+        final v = next.valueOrNull;
+        if ((v != null && !v.fromCache || next.hasError) && !done.isCompleted) {
+          done.complete();
+        }
+      });
+      ref.invalidate(inboxProvider);
+      // The first emission may be the cached snapshot; wait for the live one.
+      await done.future.timeout(const Duration(seconds: 45), onTimeout: () {});
+      sub.close();
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -58,12 +77,34 @@ class InboxScreen extends ConsumerWidget {
                 ],
               ),
             ),
+          if (visible != null && visible.items.isNotEmpty)
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  _reasonChip(ref, 'Everything', null, reasonFilter,
+                      visible.items.length),
+                  for (final r in InboxReason.values)
+                    if (visible.items.any((i) => i.reasons.contains(r)))
+                      _reasonChip(
+                          ref,
+                          r.label,
+                          r,
+                          reasonFilter,
+                          visible.items
+                              .where((i) => i.reasons.contains(r))
+                              .length),
+                ],
+              ),
+            ),
+          if (inbox.valueOrNull case final r?
+              when r.errors.isNotEmpty || r.fromCache)
+            _StatusBanner(result: r, onRetry: refresh),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async {
-                ref.invalidate(inboxProvider);
-                await ref.read(inboxProvider.future);
-              },
+              onRefresh: refresh,
               child: inbox.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => ListView(children: [
@@ -72,14 +113,17 @@ class InboxScreen extends ConsumerWidget {
                     onRetry: () => ref.invalidate(inboxProvider),
                   ),
                 ]),
-                data: (items) => items.isEmpty
-                    ? const _EmptyInbox()
+                data: (r) => r.items.isEmpty
+                    ? (r.errors.isNotEmpty
+                        ? ListView()
+                        : const _EmptyInbox())
                     : ListView.separated(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: items.length,
+                        itemCount: r.items.length,
                         separatorBuilder: (_, __) =>
                             const Divider(height: 1, indent: 16),
-                        itemBuilder: (_, i) => _InboxTile(item: items[i]),
+                        itemBuilder: (_, i) => _DismissibleTile(
+                            key: ValueKey(r.items[i].key), item: r.items[i]),
                       ),
               ),
             ),
@@ -88,6 +132,19 @@ class InboxScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Widget _reasonChip(WidgetRef ref, String label, InboxReason? reason,
+          InboxReason? selected, int count) =>
+      Padding(
+        padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
+        child: FilterChip(
+          label: Text('$label · $count'),
+          selected: selected == reason,
+          visualDensity: VisualDensity.compact,
+          onSelected: (_) =>
+              ref.read(inboxReasonFilterProvider.notifier).state = reason,
+        ),
+      );
 
   Widget _chip(WidgetRef ref, String label, String? id, String? selected) =>
       Padding(
@@ -127,7 +184,7 @@ class _EmptyInbox extends StatelessWidget {
   }
 }
 
-class _InboxTile extends StatelessWidget {
+class _InboxTile extends ConsumerWidget {
   final InboxItem item;
   const _InboxTile({required this.item});
 
@@ -142,7 +199,7 @@ class _InboxTile extends StatelessWidget {
       };
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final isPr = item.kind == InboxItemKind.pullRequest;
     final sep = isPr && item.provider == GitProviderType.gitlab ? '!' : '#';
@@ -185,10 +242,269 @@ class _InboxTile extends StatelessWidget {
           ],
         ),
       ),
-      onTap: () {
-        final uri = Uri.tryParse(item.htmlUrl);
-        if (uri != null) launchUrl(uri, mode: LaunchMode.externalApplication);
+      onTap: () => showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        isScrollControlled: true,
+        builder: (_) => _ActionSheet(item: item),
+      ),
+    );
+  }
+}
+
+class _StatusBanner extends StatelessWidget {
+  final InboxResult result;
+  final Future<void> Function() onRetry;
+  const _StatusBanner({required this.result, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final hasErrors = result.errors.isNotEmpty;
+    final fg = hasErrors ? cs.onErrorContainer : cs.onSurfaceVariant;
+    return Container(
+      width: double.infinity,
+      color: hasErrors ? cs.errorContainer : cs.surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Icon(hasErrors ? Icons.cloud_off_rounded : Icons.history_rounded,
+              size: 18, color: fg),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              hasErrors
+                  ? "Couldn't load: ${result.errors.keys.join(', ')}. "
+                      'Results from other accounts may be incomplete.'
+                  : 'Showing saved results — refreshing…',
+              style: TextStyle(fontSize: 12, color: fg),
+            ),
+          ),
+          if (hasErrors)
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+}
+
+/// Swipe right = done, swipe left = snooze.
+class _DismissibleTile extends ConsumerWidget {
+  final InboxItem item;
+  const _DismissibleTile({super.key, required this.item});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final notifier = ref.read(inboxDismissalsProvider.notifier);
+    Widget bg(IconData icon, String text, Alignment a, Color c) => Container(
+          color: c,
+          alignment: a,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: cs.onPrimary),
+              const SizedBox(width: 8),
+              Text(text, style: TextStyle(color: cs.onPrimary)),
+            ],
+          ),
+        );
+    return Dismissible(
+      key: ValueKey('d-${item.key}'),
+      background:
+          bg(Icons.check_rounded, 'Done', Alignment.centerLeft, cs.primary),
+      secondaryBackground:
+          bg(Icons.snooze_rounded, 'Snooze', Alignment.centerRight, cs.tertiary),
+      confirmDismiss: (dir) async {
+        if (dir == DismissDirection.startToEnd) return true;
+        final d = await showModalBottomSheet<Duration>(
+          context: context,
+          showDragHandle: true,
+          builder: (_) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final (label, dur) in const [
+                  ('Later today (4 hours)', Duration(hours: 4)),
+                  ('Tomorrow', Duration(days: 1)),
+                  ('Next week', Duration(days: 7)),
+                ])
+                  ListTile(
+                    leading: const Icon(Icons.snooze_rounded),
+                    title: Text(label),
+                    onTap: () => Navigator.pop(context, dur),
+                  ),
+              ],
+            ),
+          ),
+        );
+        if (d != null) notifier.snooze(item, d);
+        return false; // the list rebuilds without the item via state
       },
+      onDismissed: (_) {
+        notifier.markDone(item);
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(
+            content: const Text('Marked done'),
+            action: SnackBarAction(
+                label: 'Undo', onPressed: () => notifier.restore(item)),
+          ));
+      },
+      child: _InboxTile(item: item),
+    );
+  }
+}
+
+class _ActionSheet extends ConsumerWidget {
+  final InboxItem item;
+  const _ActionSheet({required this.item});
+
+  Future<void> _run(BuildContext context, WidgetRef ref, PrAction action,
+      {String? comment}) async {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context);
+    try {
+      await runInboxAction(ref, item, action, comment: comment);
+      messenger.showSnackBar(SnackBar(
+          content: Text(switch (action) {
+        PrAction.approve => 'Approved',
+        PrAction.requestChanges => 'Changes requested',
+        PrAction.merge => 'Merged',
+        PrAction.rerunCi => 'CI re-run started',
+      })));
+    } on Object catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+    }
+  }
+
+  Future<bool> _confirm(BuildContext context, String title, String body) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(title),
+          content: Text(body),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Confirm')),
+          ],
+        ),
+      ) ??
+      false;
+
+  Future<String?> _askComment(BuildContext context) async {
+    final c = TextEditingController();
+    final r = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Request changes'),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          maxLines: 4,
+          decoration: const InputDecoration(hintText: 'What needs to change?'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, c.text.trim()),
+              child: const Text('Send')),
+        ],
+      ),
+    );
+    c.dispose();
+    return (r == null || r.isEmpty) ? null : r;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final caps = ref
+            .read(providerForConnectionProvider(item.connectionId))
+            ?.capabilities ??
+        const ProviderCapabilities();
+    final isPr = item.kind == InboxItemKind.pullRequest;
+    final failedCi = item.reasons.contains(InboxReason.ciFailed);
+    final ref0 = '${item.repoFullName} #${item.number}';
+
+    Widget action(IconData icon, String label, VoidCallback onTap,
+            {Color? color}) =>
+        ListTile(
+          leading: Icon(icon, color: color),
+          title: Text(label),
+          onTap: onTap,
+        );
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(
+                      '${item.repoFullName} · ${item.provider.label} · ${item.accountLogin}',
+                      style:
+                          TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            if (isPr && failedCi && caps.rerunCi)
+              action(Icons.replay_rounded, 'Re-run failed CI',
+                  () => _run(context, ref, PrAction.rerunCi)),
+            if (isPr && caps.approvePullRequests)
+              action(Icons.check_circle_outline_rounded, 'Approve', () async {
+                if (await _confirm(context, 'Approve?',
+                    'Approve $ref0 as ${item.accountLogin}?')) {
+                  if (context.mounted) {
+                    await _run(context, ref, PrAction.approve);
+                  }
+                }
+              }),
+            if (isPr && caps.requestChanges)
+              action(Icons.rate_review_outlined, 'Request changes', () async {
+                final c = await _askComment(context);
+                if (c != null && context.mounted) {
+                  await _run(context, ref, PrAction.requestChanges, comment: c);
+                }
+              }),
+            if (isPr && caps.mergePullRequests)
+              action(Icons.merge_rounded, 'Merge', () async {
+                if (await _confirm(context, 'Merge?',
+                    "Merge $ref0? This can't be undone from here.")) {
+                  if (context.mounted) {
+                    await _run(context, ref, PrAction.merge);
+                  }
+                }
+              }, color: cs.error),
+            action(Icons.open_in_new_rounded, 'Open in browser', () {
+              Navigator.pop(context);
+              final uri = Uri.tryParse(item.htmlUrl);
+              if (uri != null) {
+                launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            }),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
     );
   }
 }

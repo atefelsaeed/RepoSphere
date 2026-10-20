@@ -37,6 +37,7 @@ class AzureRepoRepositoryImpl implements GitProvider {
         pullRequests: true,
         workItems: true,
         fileTree: true,
+        inbox: true,
       );
 
   static String _stripRef(String? ref) =>
@@ -399,7 +400,122 @@ class AzureRepoRepositoryImpl implements GitProvider {
   @override
   Future<List<GistEntity>> getGists({int perPage = 30}) async => const [];
 
-  // Azure DevOps inbox is not implemented yet; contributes nothing.
+  // ─── Inbox ──────────────────────────────────────────────────────────────────
+  static const _closedStates = "'Closed','Done','Removed','Resolved'";
+
+  Future<List<String>> _projects() async {
+    final repos = await _ds.getRepositories();
+    return repos
+        .map((r) => ((r as Map)['project'] as Map?)?['name'] as String?)
+        .whereType<String>()
+        .toSet()
+        .take(10)
+        .toList();
+  }
+
+  InboxItem _prItem(Map<String, dynamic> m, List<InboxReason> reasons) {
+    final repo = m['repository'] as Map<String, dynamic>? ?? const {};
+    final project =
+        (repo['project'] as Map?)?['name'] as String? ?? '';
+    final name = repo['name'] as String? ?? '';
+    final id = m['pullRequestId'] as int? ?? 0;
+    return InboxItem(
+      connectionId: connection.id,
+      provider: GitProviderType.azureDevOps,
+      accountLogin: connection.accountLogin,
+      kind: InboxItemKind.pullRequest,
+      repoFullName: '$project/$name',
+      number: id,
+      title: m['title'] as String? ?? '',
+      htmlUrl:
+          '${connection.baseUrl ?? ''}/${Uri.encodeComponent(project)}/_git/${Uri.encodeComponent(name)}/pullrequest/$id',
+      // Azure's PR list has no "last updated"; creation date is the best proxy.
+      updatedAt: _date(m['creationDate']),
+      authorLogin: (m['createdBy'] as Map?)?['displayName'] as String?,
+      reasons: reasons,
+    );
+  }
+
   @override
-  Future<List<InboxItem>> getInboxItems() async => const [];
+  Future<List<InboxItem>> getInboxItems() async {
+    final me = (await _ds.getConnectionData())['authenticatedUser']
+        as Map<String, dynamic>? ?? const {};
+    final myId = me['id'] as String?;
+    if (myId == null) return const [];
+    final projects = await _projects();
+
+    Future<List<InboxItem>> reviewing() async {
+      final out = <InboxItem>[];
+      for (final p in projects) {
+        final prs = await _ds.getProjectPullRequests(p, reviewerId: myId);
+        for (final m in prs.cast<Map<String, dynamic>>()) {
+          final mine = (m['reviewers'] as List? ?? const [])
+              .cast<Map<String, dynamic>>()
+              .where((r) => r['id'] == myId);
+          // vote 0 = I haven't reviewed yet.
+          if (mine.isNotEmpty && (mine.first['vote'] ?? 0) == 0) {
+            out.add(_prItem(m, const [InboxReason.reviewRequested]));
+          }
+        }
+      }
+      return out;
+    }
+
+    Future<List<InboxItem>> authored() async {
+      final out = <InboxItem>[];
+      for (final p in projects) {
+        final prs = await _ds.getProjectPullRequests(p, creatorId: myId);
+        for (final m in prs.cast<Map<String, dynamic>>()) {
+          final reasons = <InboxReason>[];
+          final votes = (m['reviewers'] as List? ?? const [])
+              .map((r) => (r as Map)['vote'] as int? ?? 0);
+          // -10 rejected, -5 waiting for author.
+          if (votes.any((v) => v <= -5)) {
+            reasons.add(InboxReason.changesRequested);
+          }
+          if (m['mergeStatus'] == 'conflicts') reasons.add(InboxReason.conflicts);
+          if (reasons.isNotEmpty) out.add(_prItem(m, reasons));
+        }
+      }
+      return out;
+    }
+
+    Future<List<InboxItem>> workItems() async {
+      final refs = await _ds.queryWorkItemsOrg(
+          "SELECT [System.Id] FROM WorkItems WHERE [System.AssignedTo] = @Me AND [System.State] NOT IN ($_closedStates) ORDER BY [System.ChangedDate] DESC");
+      final ids = refs
+          .map((r) => (r as Map<String, dynamic>)['id'] as int?)
+          .whereType<int>()
+          .take(50)
+          .toList();
+      final items = await _ds.getWorkItems(ids);
+      return items.map((e) {
+        final m = e as Map<String, dynamic>;
+        final f = m['fields'] as Map<String, dynamic>? ?? const {};
+        final project = f['System.TeamProject'] as String? ?? '';
+        final id = m['id'] as int? ?? 0;
+        return InboxItem(
+          connectionId: connection.id,
+          provider: GitProviderType.azureDevOps,
+          accountLogin: connection.accountLogin,
+          kind: InboxItemKind.issue,
+          repoFullName: project,
+          number: id,
+          title: f['System.Title'] as String? ?? '',
+          htmlUrl:
+              '${connection.baseUrl ?? ''}/${Uri.encodeComponent(project)}/_workitems/edit/$id',
+          updatedAt: _date(f['System.ChangedDate']),
+          reasons: const [InboxReason.assigned],
+        );
+      }).toList();
+    }
+
+    return collectInbox([reviewing, authored, workItems]);
+  }
+
+  @override
+  Future<void> performPrAction(InboxItem item, PrAction action,
+          {String? comment}) =>
+      throw const UnsupportedProviderOperation(
+          GitProviderType.azureDevOps, 'pull request actions');
 }

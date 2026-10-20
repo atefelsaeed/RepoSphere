@@ -7,6 +7,7 @@ import '../../domain/entities/commit_detail_entity.dart';
 import '../../domain/entities/commit_entity.dart';
 import '../../domain/entities/contributor_entity.dart';
 import '../../domain/entities/gist_entity.dart';
+import '../../../../core/utils/exceptions.dart';
 import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/issue_comment_entity.dart';
 import '../../domain/entities/issue_entity.dart';
@@ -44,6 +45,9 @@ class GitLabRepoRepositoryImpl implements GitProvider {
         languages: true,
         search: true,
         inbox: true,
+        approvePullRequests: true,
+        mergePullRequests: true,
+        rerunCi: true,
       );
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -479,16 +483,11 @@ class GitLabRepoRepositoryImpl implements GitProvider {
     InboxItemKind kind,
     InboxReason Function(Map<String, dynamic>) reason,
   ) async {
-    try {
-      final list = await _ds.getAccountList(path);
-      return list
-          .map((e) => _item(e, kind, [reason(e as Map<String, dynamic>)]))
-          .whereType<InboxItem>()
-          .toList();
-    } on Exception {
-      // One failing query must not blank the whole inbox.
-      return const [];
-    }
+    final list = await _ds.getAccountList(path);
+    return list
+        .map((e) => _item(e, kind, [reason(e as Map<String, dynamic>)]))
+        .whereType<InboxItem>()
+        .toList();
   }
 
   /// Reason for one of my own open MRs, from GitLab's merge-status summary.
@@ -507,49 +506,70 @@ class GitLabRepoRepositoryImpl implements GitProvider {
   }
 
   Future<List<InboxItem>> _mentions() async {
-    try {
-      final todos = await _ds.getTodos();
-      final out = <InboxItem>[];
-      for (final t in todos.cast<Map<String, dynamic>>()) {
-        final action = t['action_name'];
-        if (action != 'mentioned' && action != 'directly_addressed') continue;
-        final isMr = t['target_type'] == 'MergeRequest';
-        final target = t['target'] as Map<String, dynamic>? ?? const {};
-        final item = _item(
-          {
-            ...target,
-            'updated_at': t['updated_at'] ?? target['updated_at'],
-            'web_url': t['target_url'] ?? target['web_url'],
-          },
-          isMr ? InboxItemKind.pullRequest : InboxItemKind.issue,
-          const [InboxReason.mentioned],
-        );
-        if (item != null) out.add(item);
-      }
-      return out;
-    } on Exception {
-      return const [];
+    final todos = await _ds.getTodos();
+    final out = <InboxItem>[];
+    for (final t in todos.cast<Map<String, dynamic>>()) {
+      final action = t['action_name'];
+      if (action != 'mentioned' && action != 'directly_addressed') continue;
+      final isMr = t['target_type'] == 'MergeRequest';
+      final target = t['target'] as Map<String, dynamic>? ?? const {};
+      final item = _item(
+        {
+          ...target,
+          'updated_at': t['updated_at'] ?? target['updated_at'],
+          'web_url': t['target_url'] ?? target['web_url'],
+        },
+        isMr ? InboxItemKind.pullRequest : InboxItemKind.issue,
+        const [InboxReason.mentioned],
+      );
+      if (item != null) out.add(item);
     }
+    return out;
   }
 
   @override
-  Future<List<InboxItem>> getInboxItems() async {
+  Future<List<InboxItem>> getInboxItems() {
     final me = Uri.encodeQueryComponent(connection.accountLogin);
     const mr = InboxItemKind.pullRequest;
-    final results = await Future.wait([
-      _list('/merge_requests?scope=all&state=opened&reviewer_username=$me&per_page=50',
-          mr, (_) => InboxReason.reviewRequested),
-      _list('/merge_requests?scope=assigned_to_me&state=opened&per_page=50',
+    return collectInbox([
+      () => _list(
+          '/merge_requests?scope=all&state=opened&reviewer_username=$me&per_page=50',
+          mr,
+          (_) => InboxReason.reviewRequested),
+      () => _list('/merge_requests?scope=assigned_to_me&state=opened&per_page=50',
           mr, (_) => InboxReason.assigned),
-      _list('/issues?scope=assigned_to_me&state=opened&per_page=50',
+      () => _list('/issues?scope=assigned_to_me&state=opened&per_page=50',
           InboxItemKind.issue, (_) => InboxReason.assigned),
-      _list('/merge_requests?scope=created_by_me&state=opened&per_page=50', mr,
-              (m) => _myMrReason(m) ?? InboxReason.mentioned)
-          .then((l) => l
-              .where((i) => i.reasons.first != InboxReason.mentioned)
-              .toList()),
-      _mentions(),
+      () async => (await _list(
+              '/merge_requests?scope=created_by_me&state=opened&per_page=50',
+              mr,
+              (m) => _myMrReason(m) ?? InboxReason.mentioned))
+          .where((i) => i.reasons.first != InboxReason.mentioned)
+          .toList(),
+      _mentions,
     ]);
-    return InboxItem.mergeAndSort(results.expand((e) => e));
+  }
+
+  @override
+  Future<void> performPrAction(InboxItem item, PrAction action,
+      {String? comment}) async {
+    final project = Uri.encodeComponent(item.repoFullName);
+    final base = '/projects/$project/merge_requests/${item.number}';
+    switch (action) {
+      case PrAction.approve:
+        await _ds.send('POST', '$base/approve');
+      case PrAction.merge:
+        await _ds.send('PUT', '$base/merge');
+      case PrAction.rerunCi:
+        final mr = await _ds.send('GET', base) as Map<String, dynamic>;
+        final pipelineId = (mr['head_pipeline'] as Map?)?['id'];
+        if (pipelineId == null) {
+          throw const GitHubApiException('This MR has no pipeline to retry.');
+        }
+        await _ds.send('POST', '/projects/$project/pipelines/$pipelineId/retry');
+      case PrAction.requestChanges:
+        throw const UnsupportedProviderOperation(
+            GitProviderType.gitlab, 'request changes');
+    }
   }
 }
