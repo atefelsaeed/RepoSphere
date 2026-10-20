@@ -1,73 +1,104 @@
 # RepoSphere
 
-A unified **multi-provider** Git workspace built with Flutter — follow all your work across **GitHub, GitLab, and Azure DevOps** (Bitbucket & self-hosted Gitea planned) from a single polished interface: repos, commits, PRs/MRs, issues/work-items, releases, activity, notifications, and gists.
+**One inbox for everything that needs you across GitHub, GitLab and Azure DevOps.**
 
-## Providers
+Most Git tools answer *"where are my repos?"*. RepoSphere answers *"what do I need to do today?"* — failing CI, requested changes, review requests, assignments and mentions from **every account and provider**, in a single prioritised list you can act on without opening a browser.
 
-| Provider | Status |
-|---|---|
-| **GitHub** | ✅ Full read **+ write** (comment, merge PR, close issue, star, create issue) |
-| **GitLab** | ✅ Full read (projects, commits + diff, MRs, issues, notes, releases, tree, files, todos, events) |
-| **Azure DevOps** | ✅ Read (repos across the org, commits, PRs, **Work Items via WIQL**, files) |
-| **Bitbucket / Gitea (self-hosted)** | 🔜 Planned — the unified adapter layer is built to accept them |
+It is built for people who work across many accounts — freelancers and agencies with a personal login, an org per client, and a self-hosted GitLab for the client who insists.
 
-Multiple accounts per provider are supported — connect several GitHub orgs + a GitLab account + an Azure DevOps organisation at once.
+> **Status: alpha.** Built with Flutter. Web, iOS and Android build today; the macOS, Linux and Windows runners exist but are untested. Expect rough edges — see [CHANGELOG.md](CHANGELOG.md).
 
-## Features
+## What it does
 
-- **Repos** — filter, sort, search, star/unstar with live toggle
-- **File browser** — navigate directories with breadcrumb trail
-- **File viewer** — syntax highlighting for 20+ languages
-- **Commits** — paginated list with branch selector; full diff detail
-- **Pull Requests** — open/closed/merged tabs; inline comment thread
-- **Issues** — open/closed tabs; inline comment thread
-- **Releases** — full release notes rendered in Markdown
-- **Activity** — personal GitHub events feed
-- **Notifications** — unread feed with mark-read support
-- **Gists** — public/secret gists with file + language chips
-- **Global Search** — search all of GitHub with recent history
-- **Profile** — avatar, stats, bio
+- **Unified Inbox** — everything urgent, most urgent first: CI failed → changes requested → merge conflicts → review requested → assigned → mentioned. The same PR found by several queries shows up once, with every reason.
+- **Act in place** — approve, request changes, merge, or re-run failed CI from the item itself.
+- **Clear it out** — swipe to mark done (it comes back only if there's new activity) or snooze until later today, tomorrow or next week.
+- **Workspaces per client** — group whole accounts *and/or* specific orgs or groups under a client name and colour. One GitHub login can serve several clients; filter the Inbox to one client at a time.
+- **Multi-account, multi-provider** — connect any number of GitHub, GitLab (including **self-hosted**) and Azure DevOps accounts at once.
+- **Urgent alerts on mobile** — optional background check that notifies you about *newly* urgent items only. No server involved.
+- **Fast and tolerant** — opens instantly from the last snapshot. If one account fails (expired token, offline) you get a banner naming it, not a false "all clear".
+- **Also a repo browser** — repos, file tree with syntax highlighting, commits and diffs, PRs/MRs, issues/work items, releases, activity.
 
-## Tech Stack
+### What each provider supports
 
-| Layer | Choice |
-|---|---|
-| Framework | Flutter 3.x (web-first, multi-platform) |
-| State | Riverpod 2.x |
-| Navigation | GoRouter 14.x |
-| HTTP | `http` package |
-| Auth storage | `flutter_secure_storage` |
-| Persistence | `shared_preferences` |
-| Animations | `flutter_animate` + `shimmer` |
-| Markdown | `flutter_markdown_plus` |
-| Syntax | `flutter_highlight` |
+| | GitHub | GitLab | Azure DevOps |
+|---|:-:|:-:|:-:|
+| Inbox (review requests, assignments, mentions) | ✅ | ✅ | ✅ (PRs and work items; no mentions) |
+| CI failed / changes requested / conflicts on **your** PRs | ✅ | ✅ | changes requested + conflicts (no CI status) |
+| Approve | ✅ | ✅ | — |
+| Request changes | ✅ | — | — |
+| Merge | ✅ | ✅ | — |
+| Re-run failed CI | ✅ | ✅ | — |
+| Repo browser | ✅ | ✅ | ✅ |
 
-## Getting Started
+GitLab has no request-changes call in its REST API, and Azure DevOps actions are not implemented yet. Bitbucket and Gitea/Forgejo are planned.
 
-1. Clone the repo
-2. `flutter pub get`
-3. Run on web: `flutter run -d chrome`
-4. Connect an account with a Personal Access Token:
-   - **GitHub** — scopes `repo` + `read:user` + `notifications` + `gist`
-   - **GitLab** — scopes `api` + `read_user` (set a base URL for self-hosted)
-   - **Azure DevOps** — a PAT plus your organisation URL (e.g. `https://dev.azure.com/your-org`)
+## Privacy
+
+- Your tokens are stored **on your device** in the platform secure store (iOS Keychain, Android Keystore-backed storage). There is no RepoSphere backend.
+- The app talks **directly** to GitHub, GitLab and Azure DevOps (or your self-hosted GitLab). Nothing is proxied.
+- Crash reporting through Sentry is **off** unless you build with your own `SENTRY_DSN`.
+- Workspaces, snoozes and the Inbox snapshot are stored locally and are not synced between devices.
+
+## Getting started
+
+Requires a recent stable [Flutter](https://docs.flutter.dev/get-started/install) (developed on 3.41).
+
+```bash
+git clone https://github.com/atefelsaeed/RepoSphere.git
+cd RepoSphere
+flutter pub get
+flutter run -d chrome        # or an iOS simulator / Android emulator
+```
+
+On first launch connect a GitHub account with a Personal Access Token. Add GitLab and Azure DevOps accounts afterwards from **Settings → Add account**.
+
+### Tokens
+
+| Provider | Create a token with | Notes |
+|---|---|---|
+| **GitHub** | classic PAT, scopes `repo`, `read:user`, `notifications`, `gist` | `repo` also covers approving, merging and re-running CI |
+| **GitLab** | PAT, scopes `api`, `read_user` | For self-hosted, enter your instance URL, e.g. `https://gitlab.example.com` |
+| **Azure DevOps** | PAT with Code (read) and Work Items (read) | Enter your organisation URL, e.g. `https://dev.azure.com/your-org` |
+
+Use the least-privileged token that works for you, and revoke it when you stop using the app.
+
+### Mobile alerts
+
+Turn on **Settings → Urgent inbox alerts** (mobile only). It asks for notification permission, then checks in the background about every 30 minutes and notifies you only about items that *newly* became urgent.
+
+- Android runs the check roughly on schedule.
+- iOS decides when background work runs and may run it far less often, sometimes not for hours. **Check now** in Settings runs it immediately so you can verify your setup.
+- On iOS, saved tokens are moved to a keychain class readable while the phone is locked the first time you open the app after updating. Until then, background checks can fail on a locked phone.
 
 ## Architecture
 
-Clean architecture — `domain / data / presentation` — documented in [doc/PRODUCT_SPEC.md](doc/PRODUCT_SPEC.md).
-
-Every provider sits behind one capability-based interface:
+Clean architecture — `domain / data / presentation` — with one capability-based interface in front of every provider. Screens talk to `GitProvider`, never to a specific API.
 
 ```
-GitConnection ──► GitProviderFactory ──► GitProvider (capability-based)
-                                          ├── GitHubRepoRepositoryImpl
-                                          ├── GitLabRepoRepositoryImpl
-                                          └── AzureRepoRepositoryImpl
+GitConnection ──► buildGitProvider ──► GitProvider
+                                        ├── GitHubRepoRepositoryImpl
+                                        ├── GitLabRepoRepositoryImpl
+                                        └── AzureRepoRepositoryImpl
 ```
 
-Screens talk to `GitProvider`, never to a specific API. `ProviderCapabilities` lets the UI hide features a provider doesn't offer (e.g. Gists/Notifications for Azure, which exposes Work Items instead of Issues). Connections are stored as a multi-account list in `flutter_secure_storage`, with one-time migration from the old single-token keys.
+- `ProviderCapabilities` lets the UI hide what a provider can't do.
+- The Inbox is `GitProvider.getInboxItems()` per account, merged and prioritised by `InboxItem.mergeAndSort`. The same loader feeds the UI and the background check.
+- Quick actions are `GitProvider.performPrAction`.
 
-## Status
+More detail in [doc/PRODUCT_SPEC.md](doc/PRODUCT_SPEC.md) and the backlog in [doc/IMPROVEMENTS.md](doc/IMPROVEMENTS.md).
 
-- **Unified data layer — ✅ complete & unit-tested.** GitHub (read + write), GitLab (read), and Azure DevOps (read) all work behind one interface, with a multi-account connection registry. Covered by unit tests (MockClient) — `flutter analyze` clean, all tests green, web build passing.
-- **UI wiring — ⏳ in progress.** Surfacing multi-account connect in Settings, the unified cross-provider repo list, routing every detail screen through the active connection, and a "My Work" aggregation screen. See [doc/IMPROVEMENTS.md](doc/IMPROVEMENTS.md).
+### Tech stack
+
+Flutter · Riverpod 2 · GoRouter · `http` · `flutter_secure_storage` · `shared_preferences` · Workmanager + local notifications.
+
+## Contributing
+
+Issues and pull requests are welcome — start with [CONTRIBUTING.md](CONTRIBUTING.md). Adding another provider (Bitbucket, Gitea) is a good first big contribution.
+
+## Known limitations
+
+- Alpha: expect bugs, and test against throwaway data before trusting actions like Merge.
+- The Inbox has been exercised against mocked API responses and demo data; reports from real-world accounts are very welcome.
+- Azure DevOps uses the PR creation date as its activity time, because its list API has no "last updated".
+- No home-screen widget yet; no sync between devices.
