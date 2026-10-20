@@ -183,10 +183,10 @@ final visibleInboxProvider = Provider<AsyncValue<InboxResult>>((ref) {
       ));
 });
 
-/// [visibleInboxProvider] narrowed by the account and reason filters.
-final filteredInboxProvider = Provider<AsyncValue<InboxResult>>((ref) {
+/// [visibleInboxProvider] narrowed by the account and workspace filters.
+/// Used for the reason chips' counts so they match what the list can show.
+final scopedInboxProvider = Provider<AsyncValue<InboxResult>>((ref) {
   final conn = ref.watch(inboxConnectionFilterProvider);
-  final reason = ref.watch(inboxReasonFilterProvider);
   final wsFilter = ref.watch(inboxWorkspaceFilterProvider);
   final workspaces = ref.watch(workspacesProvider);
   bool inWorkspace(InboxItem i) {
@@ -198,10 +198,20 @@ final filteredInboxProvider = Provider<AsyncValue<InboxResult>>((ref) {
   return ref.watch(visibleInboxProvider).whenData((r) => InboxResult(
         items: r.items
             .where((i) =>
-                (conn == null || i.connectionId == conn) &&
-                inWorkspace(i) &&
-                (reason == null || i.reasons.contains(reason)))
+                (conn == null || i.connectionId == conn) && inWorkspace(i))
             .toList(),
+        errors: r.errors,
+        fromCache: r.fromCache,
+      ));
+});
+
+/// [scopedInboxProvider] narrowed by the reason filter.
+final filteredInboxProvider = Provider<AsyncValue<InboxResult>>((ref) {
+  final reason = ref.watch(inboxReasonFilterProvider);
+  return ref.watch(scopedInboxProvider).whenData((r) => InboxResult(
+        items: reason == null
+            ? r.items
+            : r.items.where((i) => i.reasons.contains(reason)).toList(),
         errors: r.errors,
         fromCache: r.fromCache,
       ));

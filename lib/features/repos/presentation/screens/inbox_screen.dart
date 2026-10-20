@@ -24,6 +24,7 @@ class InboxScreen extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final inbox = ref.watch(filteredInboxProvider);
     final visible = ref.watch(visibleInboxProvider).valueOrNull;
+    final scoped = ref.watch(scopedInboxProvider).valueOrNull;
     final connections = ref.watch(connectionsProvider).valueOrNull ?? const [];
     final filter = ref.watch(inboxConnectionFilterProvider);
     final reasonFilter = ref.watch(inboxReasonFilterProvider);
@@ -104,7 +105,7 @@ class InboxScreen extends ConsumerWidget {
                 ],
               ),
             ),
-          if (visible != null && visible.items.isNotEmpty)
+          if (scoped != null && scoped.items.isNotEmpty)
             SizedBox(
               height: 44,
               child: ListView(
@@ -112,15 +113,15 @@ class InboxScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 children: [
                   _reasonChip(ref, 'Everything', null, reasonFilter,
-                      visible.items.length),
+                      scoped.items.length),
                   for (final r in InboxReason.values)
-                    if (visible.items.any((i) => i.reasons.contains(r)))
+                    if (scoped.items.any((i) => i.reasons.contains(r)))
                       _reasonChip(
                           ref,
                           r.label,
                           r,
                           reasonFilter,
-                          visible.items
+                          scoped.items
                               .where((i) => i.reasons.contains(r))
                               .length),
                 ],
