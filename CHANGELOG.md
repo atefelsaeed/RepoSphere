@@ -6,6 +6,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 ## [Unreleased]
 
 ### Added
+- MIT `LICENSE`.
 - **Unified Inbox** as the home screen: failing CI, requested changes, merge conflicts, review requests, assignments and mentions from every connected GitHub, GitLab (including self-hosted) and Azure DevOps account, merged and prioritised.
 - **Quick actions** on inbox PRs/MRs: approve, request changes, merge, re-run failed CI (per provider capability; confirmation for approve and merge).
 - **Done and snooze**: swipe to mark done (returns on new activity) or snooze for 4 hours, a day or a week.

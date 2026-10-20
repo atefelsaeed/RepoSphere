@@ -92,6 +92,10 @@ More detail in [doc/PRODUCT_SPEC.md](doc/PRODUCT_SPEC.md) and the backlog in [do
 
 Flutter · Riverpod 2 · GoRouter · `http` · `flutter_secure_storage` · `shared_preferences` · Workmanager + local notifications.
 
+## License
+
+[MIT](LICENSE) © 2026 Atef Elsaeed.
+
 ## Contributing
 
 Issues and pull requests are welcome — start with [CONTRIBUTING.md](CONTRIBUTING.md). Adding another provider (Bitbucket, Gitea) is a good first big contribution.
