@@ -1,7 +1,8 @@
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/git_provider_factory.dart';
+import '../../data/inbox_dismissal_store.dart';
+import '../../data/inbox_loader.dart';
 import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/workspace_entity.dart';
 import 'workspaces_provider.dart';
@@ -23,57 +24,35 @@ class InboxResult {
   });
 }
 
-const _cacheKey = 'inbox_cache_v1';
-
 /// Everything that needs the user's attention across all connected accounts,
 /// most urgent first. Emits the cached snapshot immediately (if any), then the
 /// fresh result. A failing account is reported in [InboxResult.errors] instead
 /// of failing the whole inbox.
 final inboxProvider = StreamProvider<InboxResult>((ref) async* {
-  final providers = ref
-      .watch(activeProvidersProvider)
-      .where((p) => p.capabilities.inbox)
-      .toList();
+  final providers = ref.watch(activeProvidersProvider);
   final liveIds = providers.map((p) => p.connection.id).toSet();
 
   SharedPreferences? prefs;
   try {
     prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_cacheKey);
-    if (raw != null) {
-      final cached = (jsonDecode(raw) as List)
-          .map((e) => InboxItem.fromJson(e as Map<String, dynamic>))
-          .where((i) => liveIds.contains(i.connectionId))
-          .toList();
-      if (cached.isNotEmpty) {
-        yield InboxResult(items: cached, fromCache: true);
-      }
-    }
+    final cached =
+        InboxCache.read(prefs).where((i) => liveIds.contains(i.connectionId)).toList();
+    if (cached.isNotEmpty) yield InboxResult(items: cached, fromCache: true);
   } on Object {
-    // Corrupt or unavailable cache is never fatal.
+    // Unavailable cache is never fatal.
   }
 
-  final errors = <String, Object>{};
-  final results = await Future.wait(providers.map((p) async {
-    try {
-      return await p.getInboxItems();
-    } on Exception catch (e) {
-      errors[p.connection.displayName] = e;
-      return const <InboxItem>[];
-    }
-  }));
-  final items = InboxItem.mergeAndSort(results.expand((e) => e));
+  final load = await loadInbox(providers);
 
   // Keep the old snapshot if everything failed, so offline still shows data.
-  if (errors.length < providers.length || providers.isEmpty) {
+  if (!load.allFailed) {
     try {
-      await prefs?.setString(
-          _cacheKey, jsonEncode(items.map((i) => i.toJson()).toList()));
+      if (prefs != null) await InboxCache.write(prefs, load.items);
     } on Object {
       // ignore
     }
   }
-  yield InboxResult(items: items, errors: errors);
+  yield InboxResult(items: load.items, errors: load.errors);
 });
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
@@ -84,56 +63,23 @@ final inboxConnectionFilterProvider = StateProvider<String?>((ref) => null);
 final inboxReasonFilterProvider = StateProvider<InboxReason?>((ref) => null);
 
 // ─── Done / snoozed ───────────────────────────────────────────────────────────
-class InboxDismissal {
-  final DateTime? snoozedUntil;
-  final DateTime? doneAt;
-  const InboxDismissal({this.snoozedUntil, this.doneAt});
-
-  Map<String, dynamic> toJson() => {
-        if (snoozedUntil != null) 'u': snoozedUntil!.toIso8601String(),
-        if (doneAt != null) 'd': doneAt!.toIso8601String(),
-      };
-
-  static InboxDismissal fromJson(Map<String, dynamic> j) => InboxDismissal(
-        snoozedUntil:
-            j['u'] == null ? null : DateTime.parse(j['u'] as String),
-        doneAt: j['d'] == null ? null : DateTime.parse(j['d'] as String),
-      );
-}
-
-/// Tracks items the user marked done or snoozed. A "done" item comes back
-/// only if it has new activity after it was dismissed.
 class InboxDismissals extends StateNotifier<Map<String, InboxDismissal>> {
-  static const _key = 'inbox_dismissals_v1';
-
   InboxDismissals() : super(const {}) {
     _load();
   }
 
   Future<void> _load() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_key);
-      if (raw == null) return;
-      final now = DateTime.now();
-      final map = (jsonDecode(raw) as Map<String, dynamic>).map(
-          (k, v) => MapEntry(k, InboxDismissal.fromJson(v as Map<String, dynamic>)));
-      // Drop expired snoozes with no "done" marker.
-      map.removeWhere((_, d) =>
-          d.doneAt == null &&
-          d.snoozedUntil != null &&
-          d.snoozedUntil!.isBefore(now));
-      state = map;
+      state = InboxDismissalStore.read(await SharedPreferences.getInstance());
     } on Object {
-      // ignore corrupt state
+      // ignore
     }
   }
 
   Future<void> _save() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-          _key, jsonEncode(state.map((k, v) => MapEntry(k, v.toJson()))));
+      await InboxDismissalStore.write(
+          await SharedPreferences.getInstance(), state);
     } on Object {
       // ignore
     }
@@ -157,13 +103,8 @@ class InboxDismissals extends StateNotifier<Map<String, InboxDismissal>> {
     _save();
   }
 
-  bool isHidden(InboxItem item, DateTime now) {
-    final d = state[item.key];
-    if (d == null) return false;
-    if (d.snoozedUntil != null && now.isBefore(d.snoozedUntil!)) return true;
-    if (d.doneAt != null && !item.updatedAt.isAfter(d.doneAt!)) return true;
-    return false;
-  }
+  bool isHidden(InboxItem item, DateTime now) =>
+      InboxDismissalStore.isHidden(state, item, now);
 }
 
 final inboxDismissalsProvider =

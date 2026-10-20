@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../notifications/background_inbox_check.dart';
+import '../../../notifications/notification_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -116,6 +118,16 @@ class SettingsScreen extends ConsumerWidget {
               ),
 
               const SizedBox(height: 32),
+
+              // ── Notifications (mobile only) ──────────────────────────
+              if (NotificationService.supported) ...[
+                _SectionHeader(
+                    label: 'Notifications',
+                    icon: Icons.notifications_active_outlined),
+                const SizedBox(height: 12),
+                const _InboxAlertsCard(),
+                const SizedBox(height: 32),
+              ],
 
               // ── About ────────────────────────────────────────────────
               _SectionHeader(
@@ -559,6 +571,99 @@ class _AboutRow extends StatelessWidget {
                 .bodySmall
                 ?.copyWith(fontWeight: FontWeight.w600)),
       ],
+    );
+  }
+}
+
+
+/// Toggle + "check now" for background inbox alerts.
+class _InboxAlertsCard extends StatefulWidget {
+  const _InboxAlertsCard();
+
+  @override
+  State<_InboxAlertsCard> createState() => _InboxAlertsCardState();
+}
+
+class _InboxAlertsCardState extends State<_InboxAlertsCard> {
+  bool _enabled = false;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    inboxAlertsEnabled().then((v) {
+      if (mounted) setState(() => _enabled = v);
+    });
+  }
+
+  void _toast(String msg) => ScaffoldMessenger.of(context)
+    ..clearSnackBars()
+    ..showSnackBar(SnackBar(content: Text(msg)));
+
+  Future<void> _toggle(bool on) async {
+    setState(() => _busy = true);
+    try {
+      final ok = await setInboxAlerts(on);
+      if (!mounted) return;
+      if (on && !ok) {
+        _toast('Notification permission was denied. Enable it in system settings.');
+      } else {
+        setState(() => _enabled = on);
+      }
+    } on Object catch (e) {
+      if (mounted) _toast('Could not change alerts: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _checkNow() async {
+    setState(() => _busy = true);
+    try {
+      final n = await runInboxCheck(force: true);
+      if (mounted) {
+        _toast(n == 0 ? 'Checked — nothing new.' : 'Checked — $n new item(s).');
+      }
+    } on Object catch (e) {
+      if (mounted) _toast('Check failed: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: cs.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+        color: cs.surface,
+      ),
+      child: Column(
+        children: [
+          SwitchListTile(
+            value: _enabled,
+            onChanged: _busy ? null : _toggle,
+            title: const Text('Urgent inbox alerts'),
+            subtitle: Text(
+              'Failing CI, requested changes, conflicts and review requests. '
+              'Checked in the background about every 30 minutes; iOS may '
+              'run it less often.',
+              style: TextStyle(color: cs.onSurfaceVariant),
+            ),
+          ),
+          if (_enabled) ...[
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.refresh_rounded),
+              title: const Text('Check now'),
+              enabled: !_busy,
+              onTap: _checkNow,
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

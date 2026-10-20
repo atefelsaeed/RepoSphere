@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/providers/theme_provider.dart';
+import 'features/notifications/background_inbox_check.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,12 @@ Future<void> main() async {
       url: AppConfig.supabaseUrl,
       anonKey: AppConfig.supabaseAnonKey,
     );
+  }
+
+  try {
+    await initBackgroundWork();
+  } on Object {
+    // Background alerts are optional; never block app start.
   }
 
   final prefs = await SharedPreferences.getInstance();

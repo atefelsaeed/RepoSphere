@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Release builds need this to reach any Git host (debug/profile add it separately). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Inbox alerts (Android 13+ runtime permission). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="repo_sphere"
         android:name="${applicationName}"
