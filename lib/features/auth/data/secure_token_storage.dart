@@ -1,19 +1,37 @@
+import 'dart:io' show Platform;
 import 'dart:math';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/git/git_provider_type.dart';
 import '../domain/git_connection.dart';
+import 'keychain_migration.dart';
 
 class SecureTokenStorage {
+  // `first_unlock` lets the background inbox check read tokens while the phone
+  // is locked (iOS runs background tasks mostly then). Existing items keep
+  // their old accessibility until [migrateKeychain] rewrites them.
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );
+
+  static const _migration =
+      KeychainMigration(_PluginStore(_storage), StorageKeys.connections);
+
+  /// Moves saved connections to `first_unlock` accessibility, safely (see
+  /// [KeychainMigration]). iOS only; call from the foreground at startup.
+  static Future<void> migrateKeychain() async {
+    if (kIsWeb || !Platform.isIOS) return;
+    await _migration.run();
+  }
 
   // ─── Multi-account connections ────────────────────────────────────────────
 
   /// Reads all connections, migrating legacy single-account tokens on first run.
   static Future<List<GitConnection>> readConnections() async {
-    final raw = await _storage.read(key: StorageKeys.connections);
+    // Falls back to the migration's backup copy if the main key is missing.
+    final raw = await _migration.readWithBackup();
     if (raw != null && raw.isNotEmpty) return GitConnection.decodeList(raw);
 
     final migrated = await _migrateLegacyTokens();
@@ -86,4 +104,18 @@ class SecureTokenStorage {
       _storage.write(key: StorageKeys.gitlabToken, value: token);
   static Future<void> deleteGitLabToken() =>
       _storage.delete(key: StorageKeys.gitlabToken);
+}
+
+
+class _PluginStore implements SecretStore {
+  final FlutterSecureStorage _s;
+  const _PluginStore(this._s);
+
+  @override
+  Future<String?> read(String key) => _s.read(key: key);
+  @override
+  Future<void> write(String key, String value) =>
+      _s.write(key: key, value: value);
+  @override
+  Future<void> delete(String key) => _s.delete(key: key);
 }

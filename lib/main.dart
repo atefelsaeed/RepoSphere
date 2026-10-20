@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/providers/theme_provider.dart';
+import 'features/auth/data/secure_token_storage.dart';
 import 'features/notifications/background_inbox_check.dart';
 
 Future<void> main() async {
@@ -19,6 +20,8 @@ Future<void> main() async {
   }
 
   try {
+    // Before anything reads tokens; never throws, retried next launch on failure.
+    await SecureTokenStorage.migrateKeychain();
     await initBackgroundWork();
   } on Object {
     // Background alerts are optional; never block app start.
