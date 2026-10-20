@@ -33,6 +33,37 @@ class GitHubRemoteDatasource {
         'Accept': 'application/vnd.github.v3+json',
       };
 
+  /// Raw `/search/issues` items (issues and PRs) for a search [query].
+  Future<List<Map<String, dynamic>>> searchIssuesRaw(String query,
+      {int perPage = 50}) async {
+    final uri = Uri.parse('${AppConstants.githubApiBase}/search/issues')
+        .replace(queryParameters: {
+      'q': query,
+      'per_page': '$perPage',
+      'sort': 'updated',
+    });
+    final response = await _client.get(uri, headers: _headers);
+    _checkResponse(response);
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return (body['items'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
+  }
+
+  /// Runs a GraphQL [query] and returns its `data` object.
+  Future<Map<String, dynamic>> graphql(String query) async {
+    final response = await _client.post(
+      Uri.parse('${AppConstants.githubApiBase}/graphql'),
+      headers: {..._headers, 'Content-Type': 'application/json'},
+      body: jsonEncode({'query': query}),
+    );
+    _checkResponse(response);
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    if (body['errors'] != null && body['data'] == null) {
+      throw const GitHubApiException('GitHub GraphQL query failed.');
+    }
+    return (body['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
   Future<UserModel> getUser() async {
     final response = await _client.get(
       Uri.parse('${AppConstants.githubApiBase}/user'),

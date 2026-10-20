@@ -7,6 +7,7 @@ import '../../domain/entities/commit_detail_entity.dart';
 import '../../domain/entities/commit_entity.dart';
 import '../../domain/entities/contributor_entity.dart';
 import '../../domain/entities/gist_entity.dart';
+import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/issue_comment_entity.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/notification_entity.dart';
@@ -42,6 +43,7 @@ class GitLabRepoRepositoryImpl implements GitProvider {
         contributors: true,
         languages: true,
         search: true,
+        inbox: true,
       );
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -442,4 +444,112 @@ class GitLabRepoRepositoryImpl implements GitProvider {
   @override
   Future<List<GistEntity>> getGists({int perPage = 30}) async =>
       throw const UnsupportedProviderOperation(GitProviderType.gitlab, 'gists');
+
+  // ─── Inbox ──────────────────────────────────────────────────────────────────
+  /// `group/proj!12` / `group/proj#7` → `group/proj`.
+  static String _repoFromRef(String? ref) =>
+      (ref ?? '').split(RegExp(r'[!#]')).first;
+
+  InboxItem? _item(
+    dynamic raw,
+    InboxItemKind kind,
+    List<InboxReason> reasons,
+  ) {
+    final m = raw as Map<String, dynamic>;
+    final iid = m['iid'];
+    if (iid is! int) return null;
+    return InboxItem(
+      connectionId: connection.id,
+      provider: GitProviderType.gitlab,
+      accountLogin: connection.accountLogin,
+      kind: kind,
+      repoFullName:
+          _repoFromRef((m['references'] as Map?)?['full'] as String?),
+      number: iid,
+      title: m['title'] as String? ?? '',
+      htmlUrl: m['web_url'] as String? ?? '',
+      updatedAt: _date(m['updated_at']),
+      authorLogin: (m['author'] as Map?)?['username'] as String?,
+      reasons: reasons,
+    );
+  }
+
+  Future<List<InboxItem>> _list(
+    String path,
+    InboxItemKind kind,
+    InboxReason Function(Map<String, dynamic>) reason,
+  ) async {
+    try {
+      final list = await _ds.getAccountList(path);
+      return list
+          .map((e) => _item(e, kind, [reason(e as Map<String, dynamic>)]))
+          .whereType<InboxItem>()
+          .toList();
+    } on Exception {
+      // One failing query must not blank the whole inbox.
+      return const [];
+    }
+  }
+
+  /// Reason for one of my own open MRs, from GitLab's merge-status summary.
+  static InboxReason? _myMrReason(Map<String, dynamic> m) {
+    switch (m['detailed_merge_status']) {
+      case 'ci_must_pass':
+        return InboxReason.ciFailed;
+      case 'conflict':
+      case 'need_rebase':
+        return InboxReason.conflicts;
+      case 'requested_changes':
+        return InboxReason.changesRequested;
+      default:
+        return null;
+    }
+  }
+
+  Future<List<InboxItem>> _mentions() async {
+    try {
+      final todos = await _ds.getTodos();
+      final out = <InboxItem>[];
+      for (final t in todos.cast<Map<String, dynamic>>()) {
+        final action = t['action_name'];
+        if (action != 'mentioned' && action != 'directly_addressed') continue;
+        final isMr = t['target_type'] == 'MergeRequest';
+        final target = t['target'] as Map<String, dynamic>? ?? const {};
+        final item = _item(
+          {
+            ...target,
+            'updated_at': t['updated_at'] ?? target['updated_at'],
+            'web_url': t['target_url'] ?? target['web_url'],
+          },
+          isMr ? InboxItemKind.pullRequest : InboxItemKind.issue,
+          const [InboxReason.mentioned],
+        );
+        if (item != null) out.add(item);
+      }
+      return out;
+    } on Exception {
+      return const [];
+    }
+  }
+
+  @override
+  Future<List<InboxItem>> getInboxItems() async {
+    final me = Uri.encodeQueryComponent(connection.accountLogin);
+    const mr = InboxItemKind.pullRequest;
+    final results = await Future.wait([
+      _list('/merge_requests?scope=all&state=opened&reviewer_username=$me&per_page=50',
+          mr, (_) => InboxReason.reviewRequested),
+      _list('/merge_requests?scope=assigned_to_me&state=opened&per_page=50',
+          mr, (_) => InboxReason.assigned),
+      _list('/issues?scope=assigned_to_me&state=opened&per_page=50',
+          InboxItemKind.issue, (_) => InboxReason.assigned),
+      _list('/merge_requests?scope=created_by_me&state=opened&per_page=50', mr,
+              (m) => _myMrReason(m) ?? InboxReason.mentioned)
+          .then((l) => l
+              .where((i) => i.reasons.first != InboxReason.mentioned)
+              .toList()),
+      _mentions(),
+    ]);
+    return InboxItem.mergeAndSort(results.expand((e) => e));
+  }
 }

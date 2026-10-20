@@ -6,6 +6,7 @@ import '../../domain/entities/commit_detail_entity.dart';
 import '../../domain/entities/commit_entity.dart';
 import '../../domain/entities/contributor_entity.dart';
 import '../../domain/entities/gist_entity.dart';
+import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/issue_comment_entity.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/notification_entity.dart';
@@ -397,4 +398,8 @@ class AzureRepoRepositoryImpl implements GitProvider {
 
   @override
   Future<List<GistEntity>> getGists({int perPage = 30}) async => const [];
+
+  // Azure DevOps inbox is not implemented yet; contributes nothing.
+  @override
+  Future<List<InboxItem>> getInboxItems() async => const [];
 }

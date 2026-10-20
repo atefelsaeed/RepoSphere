@@ -6,6 +6,7 @@ import '../../domain/entities/commit_detail_entity.dart';
 import '../../domain/entities/commit_entity.dart';
 import '../../domain/entities/contributor_entity.dart';
 import '../../domain/entities/gist_entity.dart';
+import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/issue_comment_entity.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/notification_entity.dart';
@@ -46,6 +47,7 @@ class GitHubRepoRepositoryImpl implements GitProvider {
         mergePullRequests: true,
         editIssueState: true,
         createIssues: true,
+        inbox: true,
       );
 
   RepoEntity _stamp(RepoEntity r) =>
@@ -210,5 +212,103 @@ class GitHubRepoRepositoryImpl implements GitProvider {
   Future<List<GistEntity>> getGists({int perPage = 30}) async {
     final models = await _ds.getGists(perPage: perPage);
     return models.map((m) => m.toEntity()).toList();
+  }
+
+  // ─── Inbox ──────────────────────────────────────────────────────────────────
+  static const _myPrsQuery = r"""
+query {
+  search(query: "is:pr is:open archived:false author:@me", type: ISSUE, first: 50) {
+    nodes {
+      ... on PullRequest {
+        number title url updatedAt
+        repository { nameWithOwner }
+        mergeable
+        reviewDecision
+        commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
+      }
+    }
+  }
+}""";
+
+  InboxItem _searchItem(Map<String, dynamic> j, InboxReason reason) {
+    final isPr = j['pull_request'] != null;
+    final repoUrl = j['repository_url'] as String? ?? '';
+    final repoFull = repoUrl.split('/repos/').last;
+    return InboxItem(
+      connectionId: connection.id,
+      provider: GitProviderType.github,
+      accountLogin: connection.accountLogin,
+      kind: isPr ? InboxItemKind.pullRequest : InboxItemKind.issue,
+      repoFullName: repoFull,
+      number: j['number'] as int,
+      title: j['title'] as String? ?? '',
+      htmlUrl: j['html_url'] as String? ?? '',
+      updatedAt: DateTime.parse(j['updated_at'] as String),
+      authorLogin: (j['user'] as Map?)?['login'] as String?,
+      reasons: [reason],
+    );
+  }
+
+  Future<List<InboxItem>> _safe(Future<List<InboxItem>> Function() f) async {
+    try {
+      return await f();
+    } on Exception {
+      // One failing query must not blank the whole inbox.
+      return const [];
+    }
+  }
+
+  @override
+  Future<List<InboxItem>> getInboxItems() async {
+    Future<List<InboxItem>> search(String q, InboxReason r) => _safe(() async =>
+        (await _ds.searchIssuesRaw('$q archived:false'))
+            .map((j) => _searchItem(j, r))
+            .toList());
+
+    final results = await Future.wait([
+      search('is:pr is:open review-requested:@me',
+          InboxReason.reviewRequested),
+      search('is:issue is:open assignee:@me', InboxReason.assigned),
+      search('is:pr is:open assignee:@me', InboxReason.assigned),
+      search('is:open mentions:@me -author:@me', InboxReason.mentioned),
+      _safe(_myPrsNeedingWork),
+    ]);
+    return InboxItem.mergeAndSort(results.expand((e) => e));
+  }
+
+  Future<List<InboxItem>> _myPrsNeedingWork() async {
+    final data = await _ds.graphql(_myPrsQuery);
+    final nodes = ((data['search'] as Map?)?['nodes'] as List?) ?? const [];
+    final out = <InboxItem>[];
+    for (final n in nodes.whereType<Map<String, dynamic>>()) {
+      if (n['number'] == null) continue;
+      final reasons = <InboxReason>[];
+      final commits = (n['commits'] as Map?)?['nodes'] as List?;
+      final ci = commits == null || commits.isEmpty
+          ? null
+          : (((commits.first as Map)['commit'] as Map?)?['statusCheckRollup']
+              as Map?)?['state'];
+      if (ci == 'FAILURE' || ci == 'ERROR') reasons.add(InboxReason.ciFailed);
+      if (n['reviewDecision'] == 'CHANGES_REQUESTED') {
+        reasons.add(InboxReason.changesRequested);
+      }
+      if (n['mergeable'] == 'CONFLICTING') reasons.add(InboxReason.conflicts);
+      if (reasons.isEmpty) continue;
+      out.add(InboxItem(
+        connectionId: connection.id,
+        provider: GitProviderType.github,
+        accountLogin: connection.accountLogin,
+        kind: InboxItemKind.pullRequest,
+        repoFullName:
+            (n['repository'] as Map?)?['nameWithOwner'] as String? ?? '',
+        number: n['number'] as int,
+        title: n['title'] as String? ?? '',
+        htmlUrl: n['url'] as String? ?? '',
+        updatedAt: DateTime.parse(n['updatedAt'] as String),
+        authorLogin: connection.accountLogin,
+        reasons: reasons,
+      ));
+    }
+    return out;
   }
 }

@@ -24,13 +24,14 @@ import '../../features/repos/presentation/screens/notifications_screen.dart';
 import '../../features/repos/presentation/screens/repo_readme_screen.dart';
 import '../../features/repos/presentation/screens/repo_releases_screen.dart';
 import '../../features/repos/presentation/screens/gists_screen.dart';
+import '../../features/repos/presentation/screens/inbox_screen.dart';
 import '../../features/repos/presentation/screens/repos_screen.dart';
 import '../../features/repos/presentation/screens/settings_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
   return GoRouter(
-    initialLocation: '/repos',
+    initialLocation: '/inbox',
     refreshListenable: notifier,
     redirect: notifier.redirect,
     errorBuilder: (context, state) => Scaffold(
@@ -51,7 +52,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                     color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: () => context.goNamed('repos'),
+              onPressed: () => context.goNamed('inbox'),
               icon: const Icon(Icons.home_rounded, size: 16),
               label: const Text('Go home'),
             ),
@@ -94,6 +95,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         name: 'settings',
         builder: (_, __) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/inbox',
+        name: 'inbox',
+        builder: (_, __) => const InboxScreen(),
       ),
       GoRoute(
         path: '/repos',
@@ -213,7 +219,7 @@ class _RouterNotifier extends ChangeNotifier {
     final isOnAuth = state.matchedLocation == '/auth';
 
     if (!isAuthenticated && !isOnAuth) return '/auth';
-    if (isAuthenticated && isOnAuth) return '/repos';
+    if (isAuthenticated && isOnAuth) return '/inbox';
     return null;
   }
 }

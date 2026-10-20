@@ -169,6 +169,11 @@ class GitLabRemoteDatasource {
   Future<List<dynamic>> getReleases(int projectId) async =>
       await _get('/projects/$projectId/releases?per_page=10') as List<dynamic>;
 
+  // ─── Inbox (account-wide) ───────────────────────────────────────────────────
+  /// Account-wide MR/issue lists, e.g. `merge_requests?scope=assigned_to_me`.
+  Future<List<dynamic>> getAccountList(String path) async =>
+      await _get(path) as List<dynamic>;
+
   // ─── Account feeds ──────────────────────────────────────────────────────────
   Future<List<dynamic>> getTodos() async =>
       await _get('/todos?per_page=50') as List<dynamic>;

@@ -107,6 +107,12 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
           ],
         ),
         actions: [
+          // Inbox (home)
+          IconButton(
+            tooltip: 'Inbox',
+            icon: const Icon(Icons.inbox_outlined),
+            onPressed: () => context.goNamed('inbox'),
+          ),
           // Settings
           IconButton(
             tooltip: 'Settings',

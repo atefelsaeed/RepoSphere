@@ -6,6 +6,7 @@ import '../entities/commit_detail_entity.dart';
 import '../entities/commit_entity.dart';
 import '../entities/contributor_entity.dart';
 import '../entities/gist_entity.dart';
+import '../entities/inbox_item_entity.dart';
 import '../entities/issue_comment_entity.dart';
 import '../entities/issue_entity.dart';
 import '../entities/notification_entity.dart';
@@ -50,6 +51,9 @@ class ProviderCapabilities {
   final bool editIssueState;
   final bool createIssues;
 
+  /// Can answer "what needs my attention?" via [GitProvider.getInboxItems].
+  final bool inbox;
+
   const ProviderCapabilities({
     this.pullRequests = false,
     this.issues = false,
@@ -67,6 +71,7 @@ class ProviderCapabilities {
     this.mergePullRequests = false,
     this.editIssueState = false,
     this.createIssues = false,
+    this.inbox = false,
   });
 
   /// Whether an issue-like tab should be shown (issues OR work items).
@@ -133,4 +138,8 @@ abstract class GitProvider {
   Future<void> markAllNotificationsRead();
   Future<List<ActivityEventEntity>> getActivity({int perPage = 30});
   Future<List<GistEntity>> getGists({int perPage = 30});
+
+  /// Open PRs/issues across all repos of this account that need the user's
+  /// attention (review requests, failing CI, assignments, mentions).
+  Future<List<InboxItem>> getInboxItems();
 }
