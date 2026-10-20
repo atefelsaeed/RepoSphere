@@ -7,9 +7,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/git/git_provider_type.dart';
 import '../../../auth/presentation/providers/connections_provider.dart';
 import '../../domain/entities/inbox_item_entity.dart';
+import '../../domain/entities/workspace_entity.dart';
 import '../../domain/repositories/git_provider.dart';
 import '../../data/git_provider_factory.dart';
 import '../providers/inbox_provider.dart';
+import '../providers/workspaces_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 
 /// Home screen: a prioritised "what needs me today" list across every
@@ -25,6 +27,8 @@ class InboxScreen extends ConsumerWidget {
     final connections = ref.watch(connectionsProvider).valueOrNull ?? const [];
     final filter = ref.watch(inboxConnectionFilterProvider);
     final reasonFilter = ref.watch(inboxReasonFilterProvider);
+    final workspaces = ref.watch(workspacesProvider);
+    final wsFilter = ref.watch(inboxWorkspaceFilterProvider);
 
     Future<void> refresh() async {
       final done = Completer<void>();
@@ -51,6 +55,11 @@ class InboxScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
+            tooltip: 'Workspaces',
+            icon: const Icon(Icons.business_center_outlined),
+            onPressed: () => context.pushNamed('workspaces'),
+          ),
+          IconButton(
             tooltip: 'Repositories',
             icon: const Icon(Icons.folder_copy_outlined),
             onPressed: () => context.goNamed('repos'),
@@ -64,7 +73,25 @@ class InboxScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          if (connections.length > 1)
+          if (workspaces.isNotEmpty)
+            SizedBox(
+              height: 48,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  _wsChip(ref, 'All', null, wsFilter, null),
+                  for (final w in workspaces)
+                    _wsChip(ref, w.name, w.id, wsFilter, Color(w.color)),
+                  if (visible != null &&
+                      visible.items.any((i) =>
+                          Workspace.resolve(workspaces, i) == null))
+                    _wsChip(ref, 'Unassigned', kUnassignedWorkspace, wsFilter,
+                        null),
+                ],
+              ),
+            )
+          else if (connections.length > 1)
             SizedBox(
               height: 48,
               child: ListView(
@@ -132,6 +159,19 @@ class InboxScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Widget _wsChip(WidgetRef ref, String label, String? id, String? selected,
+          Color? dot) =>
+      Padding(
+        padding: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
+        child: ChoiceChip(
+          avatar: dot == null ? null : CircleAvatar(backgroundColor: dot, radius: 6),
+          label: Text(label),
+          selected: selected == id,
+          onSelected: (_) =>
+              ref.read(inboxWorkspaceFilterProvider.notifier).state = id,
+        ),
+      );
 
   Widget _reasonChip(WidgetRef ref, String label, InboxReason? reason,
           InboxReason? selected, int count) =>
@@ -202,6 +242,7 @@ class _InboxTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final isPr = item.kind == InboxItemKind.pullRequest;
+    final ws = ref.watch(workspaceForItemProvider(item));
     final sep = isPr && item.provider == GitProviderType.gitlab ? '!' : '#';
     return ListTile(
       leading: Icon(
@@ -225,6 +266,17 @@ class _InboxTile extends ConsumerWidget {
               spacing: 6,
               runSpacing: 4,
               children: [
+                if (ws != null)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Color(ws.color)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(ws.name,
+                        style: TextStyle(fontSize: 11, color: Color(ws.color))),
+                  ),
                 for (final r in item.reasons)
                   Container(
                     padding:

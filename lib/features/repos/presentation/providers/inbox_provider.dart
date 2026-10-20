@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/git_provider_factory.dart';
 import '../../domain/entities/inbox_item_entity.dart';
+import '../../domain/entities/workspace_entity.dart';
+import 'workspaces_provider.dart';
 
 /// Snapshot of the inbox across all accounts.
 class InboxResult {
@@ -185,10 +187,19 @@ final visibleInboxProvider = Provider<AsyncValue<InboxResult>>((ref) {
 final filteredInboxProvider = Provider<AsyncValue<InboxResult>>((ref) {
   final conn = ref.watch(inboxConnectionFilterProvider);
   final reason = ref.watch(inboxReasonFilterProvider);
+  final wsFilter = ref.watch(inboxWorkspaceFilterProvider);
+  final workspaces = ref.watch(workspacesProvider);
+  bool inWorkspace(InboxItem i) {
+    if (wsFilter == null) return true;
+    final w = Workspace.resolve(workspaces, i);
+    return wsFilter == kUnassignedWorkspace ? w == null : w?.id == wsFilter;
+  }
+
   return ref.watch(visibleInboxProvider).whenData((r) => InboxResult(
         items: r.items
             .where((i) =>
                 (conn == null || i.connectionId == conn) &&
+                inWorkspace(i) &&
                 (reason == null || i.reasons.contains(reason)))
             .toList(),
         errors: r.errors,
