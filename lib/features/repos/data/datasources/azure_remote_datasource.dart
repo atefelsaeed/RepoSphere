@@ -63,6 +63,19 @@ class AzureRemoteDatasource {
     return jsonDecode(r.body);
   }
 
+  /// Generic JSON call for inbox actions and detail. [url] is absolute; the
+  /// api-version is appended unless [apiVersion] overrides it (preview APIs).
+  Future<dynamic> send(String method, String url,
+      {Map<String, dynamic>? body, String? apiVersion}) async {
+    final full = '$url${_sep(url)}api-version=${apiVersion ?? _apiVersion}';
+    final req = http.Request(method, Uri.parse(full))
+      ..headers.addAll(_headers);
+    if (body != null) req.body = jsonEncode(body);
+    final r = await http.Response.fromStream(await client.send(req));
+    _check(r);
+    return r.body.isEmpty ? null : jsonDecode(r.body);
+  }
+
   // ─── Account ────────────────────────────────────────────────────────────────
   Future<Map<String, dynamic>> getConnectionData() async => await _get(
           '$orgUrl/_apis/connectionData?connectOptions=none&lastChangeId=-1&lastChangeId64=-1')

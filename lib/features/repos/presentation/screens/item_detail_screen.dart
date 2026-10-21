@@ -276,14 +276,17 @@ class _FileDiff extends StatelessWidget {
               style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
               overflow: TextOverflow.ellipsis),
         ),
-        subtitle: Directionality(
-          textDirection: TextDirection.ltr,
-          child: Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: Text('+${file.additions}  −${file.deletions}',
-                style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-          ),
-        ),
+        // Some providers (Azure DevOps) list changed files without line counts.
+        subtitle: file.patch == null && file.additions == 0 && file.deletions == 0
+            ? null
+            : Directionality(
+                textDirection: TextDirection.ltr,
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text('+${file.additions}  −${file.deletions}',
+                      style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+                ),
+              ),
         childrenPadding: EdgeInsets.zero,
         children: [
           if (file.patch == null)
