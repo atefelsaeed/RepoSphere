@@ -1,12 +1,21 @@
 name: Release
 
 # Builds every platform and attaches the artifacts to a GitHub release.
-# Trigger: push a tag like v0.2.0   (or run manually to just build artifacts).
+# Trigger either way:
+#  - push a tag like v0.3.0, or
+#  - Actions -> Release -> Run workflow, enter the tag (e.g. v0.3.0). The tag is
+#    created on the selected branch's latest commit. Leave it empty to only
+#    build the artifacts without publishing.
 
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to create, e.g. v0.3.0 (empty = build only)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -85,7 +94,7 @@ jobs:
         with: { name: android, path: RepoSphere-android.apk }
 
   publish:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
     needs: [web, macos, windows, linux, android]
     runs-on: ubuntu-latest
     steps:
@@ -93,14 +102,18 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { path: dist, merge-multiple: true }
       - name: Release notes from CHANGELOG
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          v="${GITHUB_REF_NAME#v}"
+          v="${TAG#v}"
           awk -v v="$v" 'index($0, "## [" v "]") == 1 {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md
           if [ ! -s notes.md ]; then echo "See CHANGELOG.md." > notes.md; fi
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           flags=""
-          case "$GITHUB_REF_NAME" in v0.*|*-*) flags="--prerelease" ;; esac
-          gh release create "$GITHUB_REF_NAME" dist/* --title "RepoSphere $GITHUB_REF_NAME" --notes-file notes.md $flags
+          case "$TAG" in v0.*|*-*) flags="--prerelease" ;; esac
+          # --target creates the tag on this commit when it doesn't exist yet.
+          gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "RepoSphere $TAG" --notes-file notes.md $flags
