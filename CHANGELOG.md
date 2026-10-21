@@ -5,6 +5,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-10-21
+
+**First published release.** RepoSphere answers "what needs me today?" across all your Git accounts: one prioritised Inbox for GitHub, GitLab (including self-hosted) and Azure DevOps with failing CI, requested changes, conflicts, review requests, assignments and mentions; approve / request changes / merge / re-run CI from the item; client workspaces; urgent alerts on mobile; Arabic and English. Builds for web, macOS, Windows, Linux and Android. Version 0.2.0 was prepared but never tagged, so its changes are included here (see CHANGELOG.md).
+
 ### Added
 - **Arabic and English**, with full right-to-left layout, for the Inbox, item detail, quick actions, workspaces, login/connect form, Settings and the background alert notifications. Pick the language in Settings (default: your device language). The older repository-browser screens are still English only.
 - **In-app detail** for Inbox items (GitHub and GitLab): description, changed files with a coloured unified diff, and the discussion, with the quick actions one tap away. Azure DevOps items still open in the browser.
@@ -19,7 +23,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 ### Fixed
 - GitLab: a merge request whose pipeline was still running or not started was reported as "CI failed". The head pipeline is now checked.
 
-## [0.2.0] — 2026-10-21
+## [0.2.0] — 2026-10-21 (never tagged; shipped in 0.3.0)
 
 First release of the unified Inbox: RepoSphere now answers "what needs me today?" across all your Git accounts.
 
