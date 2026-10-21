@@ -8,9 +8,12 @@ import 'package:repo_sphere/features/repos/domain/entities/item_detail_entity.da
 import 'package:repo_sphere/features/repos/domain/repositories/git_provider.dart';
 import 'package:repo_sphere/features/repos/presentation/screens/item_detail_screen.dart';
 
+import 'package:repo_sphere/l10n/app_localizations.dart';
+
 import '../support/fake_provider.dart';
 
-Future<FakeProvider> _pump(WidgetTester t, {ItemDetail? detail, Object? error}) async {
+Future<FakeProvider> _pump(WidgetTester t,
+    {ItemDetail? detail, Object? error}) async {
   final p = FakeProvider(
     ghConn,
     capabilities: const ProviderCapabilities(
@@ -20,8 +23,15 @@ Future<FakeProvider> _pump(WidgetTester t, {ItemDetail? detail, Object? error}) 
   final i = item(ghConn, 42, 'Fix checkout', [InboxReason.ciFailed],
       repo: 'acme/shop');
   await t.pumpWidget(ProviderScope(
-    overrides: [activeProvidersProvider.overrideWithValue([p])],
-    child: MaterialApp(home: ItemDetailScreen(item: i)),
+    overrides: [
+      activeProvidersProvider.overrideWithValue([p])
+    ],
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('en'),
+      home: ItemDetailScreen(item: i),
+    ),
   ));
   await t.pumpAndSettle();
   return p;

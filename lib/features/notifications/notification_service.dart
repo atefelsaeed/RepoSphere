@@ -45,24 +45,24 @@ class NotificationService {
         false;
   }
 
-  static Future<void> showInboxAlert(String title, String body) async {
+  static Future<void> showInboxAlert(String title, String body,
+      {required String channelName, required String channelDescription}) async {
     if (!supported) return;
     await init();
     await _plugin.show(
       id: 1, // one slot: a newer alert replaces the previous summary
       title: title,
       body: body,
-      notificationDetails: const NotificationDetails(
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           'inbox_alerts',
-          'Inbox alerts',
-          channelDescription:
-              'Failing CI, review requests and other urgent items',
+          channelName,
+          channelDescription: channelDescription,
           importance: Importance.high,
           priority: Priority.high,
-          styleInformation: BigTextStyleInformation(''),
+          styleInformation: const BigTextStyleInformation(''),
         ),
-        iOS: DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(),
       ),
     );
   }

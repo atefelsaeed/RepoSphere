@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/git/git_provider_type.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/item_detail_entity.dart';
+import '../../../../l10n/l10n.dart';
 import '../providers/item_detail_provider.dart';
 import '../widgets/inbox_action_sheet.dart';
 
@@ -26,6 +26,7 @@ class ItemDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     final detail = ref.watch(itemDetailProvider(item));
     final isPr = item.kind == InboxItemKind.pullRequest;
 
@@ -34,7 +35,7 @@ class ItemDetailScreen extends ConsumerWidget {
         title: Text(_ref, style: const TextStyle(fontSize: 15)),
         actions: [
           IconButton(
-            tooltip: 'Open in browser',
+            tooltip: l.actionOpenInBrowser,
             icon: const Icon(Icons.open_in_new_rounded),
             onPressed: () => launchUrl(Uri.parse(item.htmlUrl),
                 mode: LaunchMode.externalApplication),
@@ -47,7 +48,7 @@ class ItemDetailScreen extends ConsumerWidget {
           child: FilledButton.icon(
             onPressed: () => showInboxActionSheet(context, item),
             icon: Icon(isPr ? Icons.bolt_rounded : Icons.more_horiz_rounded),
-            label: Text(isPr ? 'Actions' : 'More'),
+            label: Text(isPr ? l.detailActions : l.detailMore),
           ),
         ),
       ),
@@ -79,7 +80,14 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l = context.l10n;
     final sc = _stateColor(detail.state);
+    final stateLabel = switch (detail.state) {
+      'merged' => l.stateMerged,
+      'closed' => l.stateClosed,
+      'draft' => l.stateDraft,
+      _ => l.stateOpen,
+    };
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -93,11 +101,11 @@ class _Body extends StatelessWidget {
           runSpacing: 6,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            _Pill(label: detail.state, color: sc),
+            _Pill(label: stateLabel, color: sc),
             for (final r in item.reasons)
-              _Pill(label: r.label, color: cs.primary, soft: true),
+              _Pill(label: r.localized(l), color: cs.primary, soft: true),
             Text(
-              '${detail.authorLogin} · ${timeago.format(detail.createdAt)}',
+              '${detail.authorLogin} · ${ago(context, detail.createdAt)}',
               style: theme.textTheme.labelSmall
                   ?.copyWith(color: cs.onSurfaceVariant),
             ),
@@ -105,8 +113,16 @@ class _Body extends StatelessWidget {
         ),
         if (detail.headBranch != null && detail.baseBranch != null) ...[
           const SizedBox(height: 10),
-          Text('${detail.headBranch}  →  ${detail.baseBranch}',
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+          // Branch names are code: keep them left-to-right in RTL languages.
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Text('${detail.headBranch}  →  ${detail.baseBranch}',
+                  style:
+                      const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+            ),
+          ),
         ],
         const SizedBox(height: 16),
         if (detail.body.trim().isNotEmpty)
@@ -121,19 +137,20 @@ class _Body extends StatelessWidget {
             },
           )
         else
-          Text('No description.', style: TextStyle(color: cs.onSurfaceVariant)),
+          Text(l.detailNoDescription,
+              style: TextStyle(color: cs.onSurfaceVariant)),
         if (detail.files.isNotEmpty) ...[
           const SizedBox(height: 24),
-          _SectionTitle('Files changed · ${detail.files.length}',
+          _SectionTitle(l.detailFilesChanged(detail.files.length),
               trailing: '+${detail.additions}  −${detail.deletions}'),
           const SizedBox(height: 8),
           for (final f in detail.files) _FileDiff(file: f),
         ],
         const SizedBox(height: 24),
-        _SectionTitle('Discussion · ${detail.comments.length}'),
+        _SectionTitle(l.detailDiscussion(detail.comments.length)),
         const SizedBox(height: 8),
         if (detail.comments.isEmpty)
-          Text('No comments yet.', style: TextStyle(color: cs.onSurfaceVariant))
+          Text(l.detailNoComments, style: TextStyle(color: cs.onSurfaceVariant))
         else
           for (final c in detail.comments) _Comment(comment: c),
         const SizedBox(height: 24),
@@ -160,11 +177,14 @@ class _SectionTitle extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.bold)),
         ),
         if (trailing != null)
-          Text(trailing!,
-              style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  color: cs.onSurfaceVariant)),
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Text(trailing!,
+                style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    color: cs.onSurfaceVariant)),
+          ),
       ],
     );
   }
@@ -207,7 +227,7 @@ class _Comment extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${comment.authorLogin} · ${timeago.format(comment.createdAt)}',
+            '${comment.authorLogin} · ${ago(context, comment.createdAt)}',
             style: Theme.of(context)
                 .textTheme
                 .labelSmall
@@ -250,18 +270,26 @@ class _FileDiff extends StatelessWidget {
         shape: const Border(),
         collapsedShape: const Border(),
         leading: Icon(_icon, size: 18),
-        title: Text(file.path,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            overflow: TextOverflow.ellipsis),
-        subtitle: Text('+${file.additions}  −${file.deletions}',
-            style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+        title: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Text(file.path,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              overflow: TextOverflow.ellipsis),
+        ),
+        subtitle: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text('+${file.additions}  −${file.deletions}',
+                style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+          ),
+        ),
         childrenPadding: EdgeInsets.zero,
         children: [
           if (file.patch == null)
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Text(
-                  'No diff available (binary or too large). Open it in the browser.',
+              child: Text(context.l10n.detailNoDiff,
                   style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
             )
           else
@@ -294,35 +322,40 @@ class _DiffView extends StatelessWidget {
           DiffLineKind.context => null,
         };
 
-    // Lines are at least as wide as the card so the colour bands span it.
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: constraints.maxWidth),
-          child: IntrinsicWidth(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final line in shown)
-                  Container(
-                    color: bg(classifyDiffLine(line)),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
-                    child: Text(
-                      line.isEmpty ? ' ' : line,
-                      style: const TextStyle(
-                          fontFamily: 'monospace', fontSize: 12),
+    // Code stays left-to-right in RTL languages. Lines are at least as wide as
+    // the card so the colour bands span it.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            child: IntrinsicWidth(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final line in shown)
+                    Container(
+                      color: bg(classifyDiffLine(line)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 1),
+                      child: Text(
+                        line.isEmpty ? ' ' : line,
+                        style: const TextStyle(
+                            fontFamily: 'monospace', fontSize: 12),
+                      ),
                     ),
-                  ),
-                if (lines.length > shown.length)
-                  Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Text(
-                        '… ${lines.length - shown.length} more lines. Open in the browser for the full diff.',
-                        style: const TextStyle(fontSize: 12)),
-                  ),
-              ],
+                  if (lines.length > shown.length)
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                          context.l10n
+                              .detailMoreLines(lines.length - shown.length),
+                          style: const TextStyle(fontSize: 12)),
+                    ),
+                ],
+              ),
             ),
           ),
         ),

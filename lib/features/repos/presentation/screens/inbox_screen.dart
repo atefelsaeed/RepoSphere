@@ -2,13 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import '../../../../core/git/git_provider_type.dart';
 import '../../../auth/presentation/providers/connections_provider.dart';
 import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/workspace_entity.dart';
 import '../../data/git_provider_factory.dart';
 import '../../data/inbox_loader.dart';
+import '../../../../l10n/l10n.dart';
 import '../providers/inbox_provider.dart';
 import '../widgets/inbox_action_sheet.dart';
 import '../providers/workspaces_provider.dart';
@@ -22,6 +22,7 @@ class InboxScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final l = context.l10n;
     final inbox = ref.watch(filteredInboxProvider);
     final visible = ref.watch(visibleInboxProvider).valueOrNull;
     final scoped = ref.watch(scopedInboxProvider).valueOrNull;
@@ -51,22 +52,23 @@ class InboxScreen extends ConsumerWidget {
           children: [
             Icon(Icons.hub_rounded, color: cs.primary, size: 22),
             const SizedBox(width: 8),
-            const Text('Inbox', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(l.inboxTitle,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
           IconButton(
-            tooltip: 'Workspaces',
+            tooltip: l.tooltipWorkspaces,
             icon: const Icon(Icons.business_center_outlined),
             onPressed: () => context.pushNamed('workspaces'),
           ),
           IconButton(
-            tooltip: 'Repositories',
+            tooltip: l.tooltipRepositories,
             icon: const Icon(Icons.folder_copy_outlined),
             onPressed: () => context.goNamed('repos'),
           ),
           IconButton(
-            tooltip: 'Settings',
+            tooltip: l.tooltipSettings,
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => context.goNamed('settings'),
           ),
@@ -81,14 +83,14 @@ class InboxScreen extends ConsumerWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 children: [
-                  _wsChip(ref, 'All', null, wsFilter, null),
+                  _wsChip(ref, l.filterAll, null, wsFilter, null),
                   for (final w in workspaces)
                     _wsChip(ref, w.name, w.id, wsFilter, Color(w.color)),
                   if (visible != null &&
-                      visible.items.any((i) =>
-                          Workspace.resolve(workspaces, i) == null))
-                    _wsChip(ref, 'Unassigned', kUnassignedWorkspace, wsFilter,
-                        null),
+                      visible.items
+                          .any((i) => Workspace.resolve(workspaces, i) == null))
+                    _wsChip(ref, l.filterUnassigned, kUnassignedWorkspace,
+                        wsFilter, null),
                 ],
               ),
             )
@@ -99,7 +101,7 @@ class InboxScreen extends ConsumerWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 children: [
-                  _chip(ref, 'All', null, filter),
+                  _chip(ref, l.filterAll, null, filter),
                   for (final c in connections)
                     _chip(ref, c.displayName, c.id, filter),
                 ],
@@ -112,18 +114,23 @@ class InboxScreen extends ConsumerWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 children: [
-                  _reasonChip(ref, 'Everything', null, reasonFilter,
-                      scoped.items.length),
+                  _reasonChip(
+                      ref,
+                      l.filterWithCount(
+                          l.filterEverything, scoped.items.length),
+                      null,
+                      reasonFilter),
                   for (final r in InboxReason.values)
                     if (scoped.items.any((i) => i.reasons.contains(r)))
                       _reasonChip(
                           ref,
-                          r.label,
+                          l.filterWithCount(
+                              r.localized(l),
+                              scoped.items
+                                  .where((i) => i.reasons.contains(r))
+                                  .length),
                           r,
-                          reasonFilter,
-                          scoped.items
-                              .where((i) => i.reasons.contains(r))
-                              .length),
+                          reasonFilter),
                 ],
               ),
             ),
@@ -142,9 +149,7 @@ class InboxScreen extends ConsumerWidget {
                   ),
                 ]),
                 data: (r) => r.items.isEmpty
-                    ? (r.errors.isNotEmpty
-                        ? ListView()
-                        : const _EmptyInbox())
+                    ? (r.errors.isNotEmpty ? ListView() : const _EmptyInbox())
                     : ListView.separated(
                         physics: const AlwaysScrollableScrollPhysics(),
                         itemCount: r.items.length,
@@ -164,9 +169,11 @@ class InboxScreen extends ConsumerWidget {
   Widget _wsChip(WidgetRef ref, String label, String? id, String? selected,
           Color? dot) =>
       Padding(
-        padding: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
+        padding: const EdgeInsetsDirectional.only(end: 8, top: 6, bottom: 6),
         child: ChoiceChip(
-          avatar: dot == null ? null : CircleAvatar(backgroundColor: dot, radius: 6),
+          avatar: dot == null
+              ? null
+              : CircleAvatar(backgroundColor: dot, radius: 6),
           showCheckmark: false,
           label: Text(label),
           selected: selected == id,
@@ -176,11 +183,11 @@ class InboxScreen extends ConsumerWidget {
       );
 
   Widget _reasonChip(WidgetRef ref, String label, InboxReason? reason,
-          InboxReason? selected, int count) =>
+          InboxReason? selected) =>
       Padding(
-        padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
+        padding: const EdgeInsetsDirectional.only(end: 8, top: 4, bottom: 4),
         child: FilterChip(
-          label: Text('$label · $count'),
+          label: Text(label),
           selected: selected == reason,
           visualDensity: VisualDensity.compact,
           onSelected: (_) =>
@@ -190,7 +197,7 @@ class InboxScreen extends ConsumerWidget {
 
   Widget _chip(WidgetRef ref, String label, String? id, String? selected) =>
       Padding(
-        padding: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
+        padding: const EdgeInsetsDirectional.only(end: 8, top: 6, bottom: 6),
         child: ChoiceChip(
           label: Text(label),
           selected: selected == id,
@@ -206,6 +213,7 @@ class _EmptyInbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l = context.l10n;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
@@ -213,13 +221,13 @@ class _EmptyInbox extends StatelessWidget {
         Icon(Icons.check_circle_outline_rounded, size: 64, color: cs.primary),
         const SizedBox(height: 16),
         Center(
-          child: Text('You\'re all caught up',
+          child: Text(l.emptyTitle,
               style: Theme.of(context).textTheme.titleMedium),
         ),
         const SizedBox(height: 8),
         Center(
-          child: Text('Nothing needs your attention right now.',
-              style: TextStyle(color: cs.onSurfaceVariant)),
+          child:
+              Text(l.emptyBody, style: TextStyle(color: cs.onSurfaceVariant)),
         ),
       ],
     );
@@ -243,6 +251,7 @@ class _InboxTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final l = context.l10n;
     final isPr = item.kind == InboxItemKind.pullRequest;
     final ws = ref.watch(workspaceForItemProvider(item));
     final sep = isPr && item.provider == GitProviderType.gitlab ? '!' : '#';
@@ -260,7 +269,7 @@ class _InboxTile extends ConsumerWidget {
             Text(
               '${item.repoFullName}$sep${item.number}'
               ' · ${item.provider.label} · ${item.accountLogin}'
-              ' · ${timeago.format(item.updatedAt)}',
+              ' · ${ago(context, item.updatedAt)}',
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 6),
@@ -287,9 +296,8 @@ class _InboxTile extends ConsumerWidget {
                       color: _color(cs, r).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(r.label,
-                        style:
-                            TextStyle(fontSize: 11, color: _color(cs, r))),
+                    child: Text(r.localized(l),
+                        style: TextStyle(fontSize: 11, color: _color(cs, r))),
                   ),
               ],
             ),
@@ -317,17 +325,20 @@ class _StatusBanner extends StatelessWidget {
   const _StatusBanner({required this.result, required this.onRetry});
 
   /// One line per problem, e.g. "GitHub · atef: GitHub is rate limiting…".
-  List<String> _lines() => [
+  List<String> _lines(AppLocalizations l) => [
         for (final e in result.errors.entries)
-          "Couldn't load ${e.key}: ${inboxErrorText(e.value)}",
+          l.bannerCouldntLoad(
+              e.key, inboxErrorText(e.value, fallback: l.errNetwork)),
         for (final e in result.partial.entries)
-          'Some results from ${e.key} may be missing: ${inboxErrorText(e.value)}',
+          l.bannerPartial(
+              e.key, inboxErrorText(e.value, fallback: l.errNetwork)),
       ];
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final lines = _lines();
+    final l = context.l10n;
+    final lines = _lines(l);
     final problem = lines.isNotEmpty;
     final fg = problem ? cs.onErrorContainer : cs.onSurfaceVariant;
     return Container(
@@ -341,14 +352,11 @@ class _StatusBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              problem
-                  ? lines.join('\n')
-                  : 'Showing saved results — refreshing…',
+              problem ? lines.join('\n') : l.bannerSavedRefreshing,
               style: TextStyle(fontSize: 12, color: fg),
             ),
           ),
-          if (problem)
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
+          if (problem) TextButton(onPressed: onRetry, child: Text(l.retry)),
         ],
       ),
     );
@@ -363,8 +371,10 @@ class _DismissibleTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final l = context.l10n;
     final notifier = ref.read(inboxDismissalsProvider.notifier);
-    Widget bg(IconData icon, String text, Alignment a, Color c) => Container(
+    Widget bg(IconData icon, String text, AlignmentGeometry a, Color c) =>
+        Container(
           color: c,
           alignment: a,
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -379,10 +389,10 @@ class _DismissibleTile extends ConsumerWidget {
         );
     return Dismissible(
       key: ValueKey('d-${item.key}'),
-      background:
-          bg(Icons.check_rounded, 'Done', Alignment.centerLeft, cs.primary),
-      secondaryBackground:
-          bg(Icons.snooze_rounded, 'Snooze', Alignment.centerRight, cs.tertiary),
+      background: bg(Icons.check_rounded, l.swipeDone,
+          AlignmentDirectional.centerStart, cs.primary),
+      secondaryBackground: bg(Icons.snooze_rounded, l.swipeSnooze,
+          AlignmentDirectional.centerEnd, cs.tertiary),
       confirmDismiss: (dir) async {
         if (dir == DismissDirection.startToEnd) return true;
         final d = await showModalBottomSheet<Duration>(
@@ -392,10 +402,10 @@ class _DismissibleTile extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (final (label, dur) in const [
-                  ('Later today (4 hours)', Duration(hours: 4)),
-                  ('Tomorrow', Duration(days: 1)),
-                  ('Next week', Duration(days: 7)),
+                for (final (label, dur) in [
+                  (l.snoozeLater, const Duration(hours: 4)),
+                  (l.snoozeTomorrow, const Duration(days: 1)),
+                  (l.snoozeNextWeek, const Duration(days: 7)),
                 ])
                   ListTile(
                     leading: const Icon(Icons.snooze_rounded),
@@ -414,9 +424,9 @@ class _DismissibleTile extends ConsumerWidget {
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
           ..showSnackBar(SnackBar(
-            content: const Text('Marked done'),
+            content: Text(l.markedDone),
             action: SnackBarAction(
-                label: 'Undo', onPressed: () => notifier.restore(item)),
+                label: l.undo, onPressed: () => notifier.restore(item)),
           ));
       },
       child: _InboxTile(item: item),

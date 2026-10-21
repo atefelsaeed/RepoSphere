@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../data/git_provider_factory.dart';
 import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/repositories/git_provider.dart';
+import '../../../../l10n/l10n.dart';
 import '../providers/inbox_provider.dart';
 
 /// Opens the quick-action sheet (re-run CI, approve, request changes, merge,
@@ -23,22 +24,24 @@ class InboxActionSheet extends ConsumerWidget {
   Future<void> _run(BuildContext context, WidgetRef ref, PrAction action,
       {String? comment}) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     Navigator.pop(context);
     try {
       await runInboxAction(ref, item, action, comment: comment);
       messenger.showSnackBar(SnackBar(
           content: Text(switch (action) {
-        PrAction.approve => 'Approved',
-        PrAction.requestChanges => 'Changes requested',
-        PrAction.merge => 'Merged',
-        PrAction.rerunCi => 'CI re-run started',
+        PrAction.approve => l.doneApproved,
+        PrAction.requestChanges => l.doneChangesRequested,
+        PrAction.merge => l.doneMerged,
+        PrAction.rerunCi => l.doneCiRerun,
       })));
     } on Object catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(l.failedWith('$e'))));
     }
   }
 
-  Future<bool> _confirm(BuildContext context, String title, String body) async =>
+  Future<bool> _confirm(
+          BuildContext context, String title, String body) async =>
       await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -47,10 +50,10 @@ class InboxActionSheet extends ConsumerWidget {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel')),
+                child: Text(ctx.l10n.cancel)),
             FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Confirm')),
+                child: Text(ctx.l10n.confirm)),
           ],
         ),
       ) ??
@@ -61,19 +64,20 @@ class InboxActionSheet extends ConsumerWidget {
     final r = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Request changes'),
+        title: Text(ctx.l10n.actionRequestChanges),
         content: TextField(
           controller: c,
           autofocus: true,
           maxLines: 4,
-          decoration: const InputDecoration(hintText: 'What needs to change?'),
+          decoration: InputDecoration(hintText: ctx.l10n.requestChangesHint),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(ctx.l10n.cancel)),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, c.text.trim()),
-              child: const Text('Send')),
+              child: Text(ctx.l10n.send)),
         ],
       ),
     );
@@ -84,6 +88,7 @@ class InboxActionSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final l = context.l10n;
     final caps = ref
             .read(providerForConnectionProvider(item.connectionId))
             ?.capabilities ??
@@ -126,34 +131,35 @@ class InboxActionSheet extends ConsumerWidget {
             ),
             const Divider(height: 1),
             if (isPr && failedCi && caps.rerunCi)
-              action(Icons.replay_rounded, 'Re-run failed CI',
+              action(Icons.replay_rounded, l.actionRerunCi,
                   () => _run(context, ref, PrAction.rerunCi)),
             if (isPr && caps.approvePullRequests)
-              action(Icons.check_circle_outline_rounded, 'Approve', () async {
-                if (await _confirm(context, 'Approve?',
-                    'Approve $ref0 as ${item.accountLogin}?')) {
+              action(Icons.check_circle_outline_rounded, l.actionApprove,
+                  () async {
+                if (await _confirm(context, l.approveTitle,
+                    l.approveBody(ref0, item.accountLogin))) {
                   if (context.mounted) {
                     await _run(context, ref, PrAction.approve);
                   }
                 }
               }),
             if (isPr && caps.requestChanges)
-              action(Icons.rate_review_outlined, 'Request changes', () async {
+              action(Icons.rate_review_outlined, l.actionRequestChanges,
+                  () async {
                 final c = await _askComment(context);
                 if (c != null && context.mounted) {
                   await _run(context, ref, PrAction.requestChanges, comment: c);
                 }
               }),
             if (isPr && caps.mergePullRequests)
-              action(Icons.merge_rounded, 'Merge', () async {
-                if (await _confirm(context, 'Merge?',
-                    "Merge $ref0? This can't be undone from here.")) {
+              action(Icons.merge_rounded, l.actionMerge, () async {
+                if (await _confirm(context, l.mergeTitle, l.mergeBody(ref0))) {
                   if (context.mounted) {
                     await _run(context, ref, PrAction.merge);
                   }
                 }
               }, color: cs.error),
-            action(Icons.open_in_new_rounded, 'Open in browser', () {
+            action(Icons.open_in_new_rounded, l.actionOpenInBrowser, () {
               Navigator.pop(context);
               final uri = Uri.tryParse(item.htmlUrl);
               if (uri != null) {

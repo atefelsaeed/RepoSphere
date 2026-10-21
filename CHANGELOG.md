@@ -6,6 +6,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 ## [Unreleased]
 
 ### Added
+- **Arabic and English**, with full right-to-left layout, for the Inbox, item detail, quick actions, workspaces, login/connect form, Settings and the background alert notifications. Pick the language in Settings (default: your device language). The older repository-browser screens are still English only.
 - **In-app detail** for Inbox items (GitHub and GitLab): description, changed files with a coloured unified diff, and the discussion, with the quick actions one tap away. Azure DevOps items still open in the browser.
 - Inbox now tells you when **some results may be missing** (a query failed while others succeeded) and why, instead of showing a partial list silently.
 - Widget tests for the Inbox and detail screens.

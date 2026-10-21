@@ -9,6 +9,7 @@ import 'package:repo_sphere/features/repos/data/git_provider_factory.dart';
 import 'package:repo_sphere/features/repos/domain/entities/inbox_item_entity.dart';
 import 'package:repo_sphere/features/repos/domain/repositories/git_provider.dart';
 import 'package:repo_sphere/features/repos/presentation/screens/inbox_screen.dart';
+import 'package:repo_sphere/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../support/fake_provider.dart';
@@ -36,9 +37,16 @@ Future<void> _pump(WidgetTester t, List<FakeProvider> providers) async {
             return const Scaffold(body: Text('DETAIL SCREEN'));
           },
         ),
-        GoRoute(path: 'repos', name: 'repos', builder: (_, __) => const SizedBox()),
-        GoRoute(path: 'settings', name: 'settings', builder: (_, __) => const SizedBox()),
-        GoRoute(path: 'workspaces', name: 'workspaces', builder: (_, __) => const SizedBox()),
+        GoRoute(
+            path: 'repos', name: 'repos', builder: (_, __) => const SizedBox()),
+        GoRoute(
+            path: 'settings',
+            name: 'settings',
+            builder: (_, __) => const SizedBox()),
+        GoRoute(
+            path: 'workspaces',
+            name: 'workspaces',
+            builder: (_, __) => const SizedBox()),
       ],
     ),
   ]);
@@ -47,7 +55,12 @@ Future<void> _pump(WidgetTester t, List<FakeProvider> providers) async {
       connectionsProvider.overrideWith(_Conns.new),
       activeProvidersProvider.overrideWithValue(providers),
     ],
-    child: MaterialApp.router(routerConfig: router),
+    child: MaterialApp.router(
+      routerConfig: router,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('en'),
+    ),
   ));
   await t.pumpAndSettle();
 }
@@ -63,11 +76,13 @@ void main() {
 
   testWidgets('lists items by urgency and shows counts per reason', (t) async {
     await _pump(t, [
-      FakeProvider(ghConn, capabilities: full, items: InboxItem.mergeAndSort([
-        item(ghConn, 1, 'Mention me', [InboxReason.mentioned]),
-        item(ghConn, 2, 'Broken build', [InboxReason.ciFailed]),
-        item(ghConn, 3, 'Please review', [InboxReason.reviewRequested]),
-      ])),
+      FakeProvider(ghConn,
+          capabilities: full,
+          items: InboxItem.mergeAndSort([
+            item(ghConn, 1, 'Mention me', [InboxReason.mentioned]),
+            item(ghConn, 2, 'Broken build', [InboxReason.ciFailed]),
+            item(ghConn, 3, 'Please review', [InboxReason.reviewRequested]),
+          ])),
     ]);
 
     final broken = t.getTopLeft(find.text('Broken build')).dy;
@@ -102,7 +117,8 @@ void main() {
       (t) async {
     await _pump(t, [
       FakeProvider(ghConn, capabilities: full)
-        ..inboxError = const GitHubRateLimitException('Rate limit exceeded. Resets in 5m.'),
+        ..inboxError = const GitHubRateLimitException(
+            'Rate limit exceeded. Resets in 5m.'),
       FakeProvider(glConn, capabilities: full, items: [
         item(glConn, 7, 'GitLab thing', [InboxReason.assigned]),
       ]),
@@ -117,7 +133,9 @@ void main() {
     await _pump(t, [
       FakeProvider(ghConn, capabilities: full)
         ..batch = () => InboxBatch(
-              [item(ghConn, 1, 'Only this loaded', [InboxReason.ciFailed])],
+              [
+                item(ghConn, 1, 'Only this loaded', [InboxReason.ciFailed])
+              ],
               const [GitHubApiException('Search failed.')],
             ),
     ]);
@@ -153,7 +171,9 @@ void main() {
             approvePullRequests: true,
             mergePullRequests: true,
             rerunCi: true),
-        items: [item(glConn, 4, 'Upgrade SDK', [InboxReason.ciFailed])],
+        items: [
+          item(glConn, 4, 'Upgrade SDK', [InboxReason.ciFailed])
+        ],
       ),
     ]);
 

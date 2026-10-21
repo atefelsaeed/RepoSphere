@@ -48,11 +48,12 @@ Future<InboxLoad> loadInbox(Iterable<GitProvider> providers) async {
 }
 
 /// Short, user-facing reason for an inbox failure.
-String inboxErrorText(Object e) {
+String inboxErrorText(Object e,
+    {String fallback = 'Network error or unexpected response.'}) {
   if (e is GitHubAuthException) return e.message;
   if (e is GitHubRateLimitException) return e.message;
   if (e is GitHubApiException) return e.message;
-  return 'Network error or unexpected response.';
+  return fallback;
 }
 
 /// Last successful inbox snapshot, so the app opens instantly.
@@ -71,7 +72,6 @@ class InboxCache {
     }
   }
 
-  static Future<void> write(
-          SharedPreferences prefs, List<InboxItem> items) =>
+  static Future<void> write(SharedPreferences prefs, List<InboxItem> items) =>
       prefs.setString(_key, jsonEncode(items.map((i) => i.toJson()).toList()));
 }
