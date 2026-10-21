@@ -6,6 +6,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 ## [Unreleased]
 
 ### Added
+- New app icon (the hub mark) for iOS, Android (adaptive), macOS, Windows and web; regenerate with `tool/make_icon.py` + `dart run flutter_launcher_icons`.
+- Web: GitHub Pages deploy workflow, updated metadata and PWA manifest (works from a sub-path).
+- Release workflow that builds web, macOS, Windows, Linux and Android artifacts and attaches them to a `v*` tag release; CI now also builds the desktop apps and Android.
 - MIT `LICENSE`.
 - **Unified Inbox** as the home screen: failing CI, requested changes, merge conflicts, review requests, assignments and mentions from every connected GitHub, GitLab (including self-hosted) and Azure DevOps account, merged and prioritised.
 - **Quick actions** on inbox PRs/MRs: approve, request changes, merge, re-run failed CI (per provider capability; confirmation for approve and merge).
@@ -17,6 +20,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 - Azure DevOps inbox: unreviewed PRs, your PRs with rejections or conflicts, and assigned work items.
 
 ### Changed
+- macOS: the app no longer requires a development certificate to build. It now uses the classic keychain instead of the data-protection keychain (which needed a signed keychain-sharing entitlement). Tokens saved by an earlier macOS build are not carried over — reconnect your accounts.
+- Display name is now "RepoSphere" on every platform (was `repo_sphere` / "Repo Sphere").
 - iOS: saved connections are migrated once to the `first_unlock` keychain class so background checks can read tokens while the phone is locked. The migration verifies a backup copy first, never throws and retries on the next launch.
 - iOS minimum deployment target raised from 13.0 to 14.0 (required by Workmanager).
 - `sentry_flutter` upgraded from 8.x to 9.x.

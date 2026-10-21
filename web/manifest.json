@@ -1,14 +1,18 @@
 {
     "name": "RepoSphere",
     "short_name": "RepoSphere",
-    "description": "Your GitHub and GitLab repositories in one unified dashboard.",
-    "start_url": "/",
+    "description": "One inbox for your pull requests, reviews and issues across GitHub, GitLab and Azure DevOps.",
+    "start_url": ".",
     "display": "standalone",
-    "background_color": "#131318",
-    "theme_color": "#6750A4",
+    "background_color": "#070B14",
+    "theme_color": "#4F46E5",
     "orientation": "any",
     "prefer_related_applications": false,
-    "categories": ["developer", "productivity", "utilities"],
+    "categories": [
+        "developer",
+        "productivity",
+        "utilities"
+    ],
     "icons": [
         {
             "src": "icons/Icon-192.png",

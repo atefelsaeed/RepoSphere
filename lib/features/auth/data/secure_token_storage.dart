@@ -14,6 +14,11 @@ class SecureTokenStorage {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    // The data-protection keychain needs a signed "keychain sharing"
+    // entitlement, which would stop anyone without an Apple developer
+    // certificate from building the macOS app. The classic keychain works
+    // for ad-hoc signed builds.
+    mOptions: MacOsOptions(useDataProtectionKeyChain: false),
   );
 
   static const _migration =

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.reposphere.app" "\0"
-            VALUE "FileDescription", "repo_sphere" "\0"
+            VALUE "CompanyName", "Atef Elsaeed" "\0"
+            VALUE "FileDescription", "RepoSphere" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "repo_sphere" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.reposphere.app. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Atef Elsaeed. MIT License." "\0"
             VALUE "OriginalFilename", "repo_sphere.exe" "\0"
-            VALUE "ProductName", "repo_sphere" "\0"
+            VALUE "ProductName", "RepoSphere" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

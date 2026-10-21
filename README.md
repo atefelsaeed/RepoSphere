@@ -6,7 +6,7 @@ Most Git tools answer *"where are my repos?"*. RepoSphere answers *"what do I ne
 
 It is built for people who work across many accounts — freelancers and agencies with a personal login, an org per client, and a self-hosted GitLab for the client who insists.
 
-> **Status: alpha.** Built with Flutter. Web, iOS and Android build today; the macOS, Linux and Windows runners exist but are untested. Expect rough edges — see [CHANGELOG.md](CHANGELOG.md).
+> **Status: alpha.** Built with Flutter for web, macOS, Windows, Linux, Android and iOS. Expect rough edges — see [CHANGELOG.md](CHANGELOG.md).
 
 ## What it does
 
@@ -35,12 +35,31 @@ GitLab has no request-changes call in its REST API, and Azure DevOps actions are
 
 ## Privacy
 
-- Your tokens are stored **on your device** in the platform secure store (iOS Keychain, Android Keystore-backed storage). There is no RepoSphere backend.
+- Your tokens are stored **on your device** in the platform secure store (Keychain on iOS and macOS, Keystore-backed storage on Android, Credential Manager on Windows, the system secret service on Linux, local storage on web). There is no RepoSphere backend.
 - The app talks **directly** to GitHub, GitLab and Azure DevOps (or your self-hosted GitLab). Nothing is proxied.
 - Crash reporting through Sentry is **off** unless you build with your own `SENTRY_DSN`.
 - Workspaces, snoozes and the Inbox snapshot are stored locally and are not synced between devices.
 
+## Run it anywhere
+
+| Platform | How |
+|---|---|
+| **Web** | Open the hosted build (published from `main` by `.github/workflows/pages.yml` — enable it once under *Settings → Pages → Source: GitHub Actions*), or run it yourself. |
+| **macOS** | Download `RepoSphere-macos.zip` from [Releases](https://github.com/atefelsaeed/RepoSphere/releases), unzip, then right-click the app → *Open* the first time. The build is not notarised, so Gatekeeper blocks a plain double-click. |
+| **Windows** | Download `RepoSphere-windows-x64.zip`, unzip, run `repo_sphere.exe`. SmartScreen may warn because the build is unsigned: *More info → Run anyway*. |
+| **Linux** | Download `RepoSphere-linux-x64.tar.gz`, extract, run `./repo_sphere`. Needs GTK 3 and `libsecret` plus a running secret service (GNOME Keyring or KWallet) so tokens can be stored. |
+| **Android** | Download `RepoSphere-android.apk` and sideload it. It is signed with a debug key, so it's for testing, not the Play Store. |
+| **iOS** | Build from source with Xcode (no App Store build yet). |
+
+Release assets are produced by `.github/workflows/release.yml` when a `v*` tag is pushed. Until the first release is tagged, build from source below.
+
+**Web notes**
+
+- GitHub, GitLab.com and Azure DevOps all allow browser requests, so the web build works for them. A **self-hosted GitLab** works only if your instance allows cross-origin API calls from the site you open the app on.
+- Tokens are kept in the browser's local storage on that device. Prefer the desktop or mobile apps for long-lived tokens, and never use the web build on a shared computer.
+
 ## Getting started
+
 
 Requires a recent stable [Flutter](https://docs.flutter.dev/get-started/install) (developed on 3.41).
 
@@ -48,7 +67,7 @@ Requires a recent stable [Flutter](https://docs.flutter.dev/get-started/install)
 git clone https://github.com/atefelsaeed/RepoSphere.git
 cd RepoSphere
 flutter pub get
-flutter run -d chrome        # or an iOS simulator / Android emulator
+flutter run -d chrome        # or: -d macos / windows / linux, or a simulator/emulator
 ```
 
 On first launch connect a GitHub account with a Personal Access Token. Add GitLab and Azure DevOps accounts afterwards from **Settings → Add account**.
