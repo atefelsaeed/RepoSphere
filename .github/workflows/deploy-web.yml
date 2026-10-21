@@ -1,7 +1,4 @@
-name: Deploy web
-
-# Publishes the web build to GitHub Pages.
-# One-time setup: repository Settings → Pages → Source: "GitHub Actions".
+name: Deploy web demo
 
 on:
   push:
@@ -18,11 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -31,10 +25,17 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
-      - uses: actions/configure-pages@v5
+      - run: flutter build web --release --base-href /RepoSphere/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4

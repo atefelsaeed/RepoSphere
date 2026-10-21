@@ -1,5 +1,11 @@
 # RepoSphere
 
+[![CI](https://github.com/atefelsaeed/RepoSphere/actions/workflows/ci.yml/badge.svg)](https://github.com/atefelsaeed/RepoSphere/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Flutter](https://img.shields.io/badge/Flutter-3.41-02569B?logo=flutter)
+
+**Live demo:** [atefelsaeed.github.io/RepoSphere](https://atefelsaeed.github.io/RepoSphere/) · **Author:** [Atef Elsaeed](https://atefelsaeed.github.io)
+
 **One inbox for everything that needs you across GitHub, GitLab and Azure DevOps.**
 
 Most Git tools answer *"where are my repos?"*. RepoSphere answers *"what do I need to do today?"* — failing CI, requested changes, review requests, assignments and mentions from **every account and provider**, in a single prioritised list you can act on without opening a browser.
@@ -44,7 +50,7 @@ GitLab has no request-changes call in its REST API, and Azure DevOps actions are
 
 | Platform | How |
 |---|---|
-| **Web** | Open the hosted build (published from `main` by `.github/workflows/pages.yml` — enable it once under *Settings → Pages → Source: GitHub Actions*), or run it yourself. |
+| **Web** | Open the [live demo](https://atefelsaeed.github.io/RepoSphere/) (published from `main` by `.github/workflows/deploy-web.yml`), or run it yourself. |
 | **macOS** | Download `RepoSphere-macos.zip` from [Releases](https://github.com/atefelsaeed/RepoSphere/releases), unzip, then right-click the app → *Open* the first time. The build is not notarised, so Gatekeeper blocks a plain double-click. |
 | **Windows** | Download `RepoSphere-windows-x64.zip`, unzip, run `repo_sphere.exe`. SmartScreen may warn because the build is unsigned: *More info → Run anyway*. |
 | **Linux** | Download `RepoSphere-linux-x64.tar.gz`, extract, run `./repo_sphere`. Needs GTK 3 and `libsecret` plus a running secret service (GNOME Keyring or KWallet) so tokens can be stored. |
@@ -61,7 +67,7 @@ Release assets are produced by `.github/workflows/release.yml` when a `v*` tag i
 ## Getting started
 
 
-Requires a recent stable [Flutter](https://docs.flutter.dev/get-started/install) (developed on 3.41).
+Requires Flutter **3.41 or newer** (the dependency lockfile needs Dart 3.11).
 
 ```bash
 git clone https://github.com/atefelsaeed/RepoSphere.git
@@ -111,9 +117,39 @@ More detail in [doc/PRODUCT_SPEC.md](doc/PRODUCT_SPEC.md) and the backlog in [do
 
 Flutter · Riverpod 2 · GoRouter · `http` · `flutter_secure_storage` · `shared_preferences` · Workmanager + local notifications.
 
+## Keyboard shortcuts
+
+On the repositories screen: `/` search, `R` refresh, `?` help, `Esc` back.
+
+## Optional configuration
+
+Lives in `lib/core/config/app_config.dart`:
+
+- `githubClientId` enables "Sign in with GitHub" through the OAuth Device Flow (no client secret needed).
+- `supabaseUrl` and `supabaseAnonKey` enable optional Supabase auth.
+- Sentry crash reporting: pass `--dart-define=SENTRY_DSN=...` at build time.
+
+## Tests and CI
+
+```bash
+flutter test
+flutter analyze
+```
+
+GitHub Actions runs analysis, tests and builds for web, macOS, Windows, Linux and Android on every push and pull request. Pushes to `main` also deploy the web demo to GitHub Pages. Pushing a `v*` tag builds every platform and publishes a release.
+
+## Roadmap
+
+- Real-account hardening of the Inbox, and approve/merge/CI actions for Azure DevOps
+- Bitbucket and Gitea/Forgejo
+- Home-screen widget with the urgent count
+- Pull request review in-app: view the diff, approve, request changes
+- Arabic and English localization
+- Signed and notarised desktop builds, App Store / Play Store releases
+
 ## License
 
-[MIT](LICENSE) © 2026 Atef Elsaeed.
+[MIT](LICENSE) © 2026 Atef Mahmoud Elsaeed
 
 ## Contributing
 

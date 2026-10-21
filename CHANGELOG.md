@@ -8,7 +8,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 ### Added
 - Login screen now lets you choose GitHub, GitLab or Azure DevOps (it was GitHub-only), with a link to create a token and the scopes each needs. The same form is used in Settings.
 - New app icon (the hub mark) for iOS, Android (adaptive), macOS, Windows and web; regenerate with `tool/make_icon.py` + `dart run flutter_launcher_icons`.
-- Web: GitHub Pages deploy workflow, updated metadata and PWA manifest (works from a sub-path).
+- Web: updated metadata and PWA manifest (works from a sub-path); the existing `deploy-web.yml` Pages workflow now builds with Flutter 3.41.
 - Release workflow that builds web, macOS, Windows, Linux and Android artifacts and attaches them to a `v*` tag release; CI now also builds the desktop apps and Android.
 - MIT `LICENSE`.
 - **Unified Inbox** as the home screen: failing CI, requested changes, merge conflicts, review requests, assignments and mentions from every connected GitHub, GitLab (including self-hosted) and Azure DevOps account, merged and prioritised.
