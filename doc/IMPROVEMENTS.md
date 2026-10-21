@@ -1,3 +1,5 @@
+> **Historical backlog (April–June 2026).** Kept for context; the roadmap now lives in the [README](../README.md#status-and-roadmap) and releases are described in the [CHANGELOG](../CHANGELOG.md).
+
 # RepoSphere — Improvements Backlog
 > Last updated: June 2026
 
