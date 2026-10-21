@@ -437,11 +437,11 @@ class AzureRepoRepositoryImpl implements GitProvider {
   }
 
   @override
-  Future<List<InboxItem>> getInboxItems() async {
+  Future<InboxBatch> getInboxItems() async {
     final me = (await _ds.getConnectionData())['authenticatedUser']
         as Map<String, dynamic>? ?? const {};
     final myId = me['id'] as String?;
-    if (myId == null) return const [];
+    if (myId == null) return const InboxBatch([]);
     final projects = await _projects();
 
     Future<List<InboxItem>> reviewing() async {

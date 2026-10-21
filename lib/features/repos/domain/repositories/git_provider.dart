@@ -149,7 +149,7 @@ abstract class GitProvider {
 
   /// Open PRs/issues across all repos of this account that need the user's
   /// attention (review requests, failing CI, assignments, mentions).
-  Future<List<InboxItem>> getInboxItems();
+  Future<InboxBatch> getInboxItems();
 
   /// Runs a one-tap [action] on an inbox PR/MR. [comment] is the review body
   /// (required by GitHub for [PrAction.requestChanges]). Throws

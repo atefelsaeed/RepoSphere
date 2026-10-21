@@ -14,12 +14,16 @@ class InboxResult {
   /// Per-account failures, keyed by the account's display name.
   final Map<String, Object> errors;
 
+  /// Accounts that loaded with some queries failing, keyed by display name.
+  final Map<String, Object> partial;
+
   /// True while showing the last saved snapshot, before the refresh lands.
   final bool fromCache;
 
   const InboxResult({
     this.items = const [],
     this.errors = const {},
+    this.partial = const {},
     this.fromCache = false,
   });
 }
@@ -52,7 +56,8 @@ final inboxProvider = StreamProvider<InboxResult>((ref) async* {
       // ignore
     }
   }
-  yield InboxResult(items: load.items, errors: load.errors);
+  yield InboxResult(
+      items: load.items, errors: load.errors, partial: load.partial);
 });
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
@@ -120,6 +125,7 @@ final visibleInboxProvider = Provider<AsyncValue<InboxResult>>((ref) {
   return ref.watch(inboxProvider).whenData((r) => InboxResult(
         items: r.items.where((i) => !dismissals.isHidden(i, now)).toList(),
         errors: r.errors,
+        partial: r.partial,
         fromCache: r.fromCache,
       ));
 });
@@ -142,6 +148,7 @@ final scopedInboxProvider = Provider<AsyncValue<InboxResult>>((ref) {
                 (conn == null || i.connectionId == conn) && inWorkspace(i))
             .toList(),
         errors: r.errors,
+        partial: r.partial,
         fromCache: r.fromCache,
       ));
 });
@@ -154,6 +161,7 @@ final filteredInboxProvider = Provider<AsyncValue<InboxResult>>((ref) {
             ? r.items
             : r.items.where((i) => i.reasons.contains(reason)).toList(),
         errors: r.errors,
+        partial: r.partial,
         fromCache: r.fromCache,
       ));
 });

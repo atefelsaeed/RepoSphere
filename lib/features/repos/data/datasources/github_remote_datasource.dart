@@ -35,18 +35,26 @@ class GitHubRemoteDatasource {
 
   /// Raw `/search/issues` items (issues and PRs) for a search [query].
   Future<List<Map<String, dynamic>>> searchIssuesRaw(String query,
-      {int perPage = 50}) async {
-    final uri = Uri.parse('${AppConstants.githubApiBase}/search/issues')
-        .replace(queryParameters: {
-      'q': query,
-      'per_page': '$perPage',
-      'sort': 'updated',
-    });
-    final response = await _client.get(uri, headers: _headers);
-    _checkResponse(response);
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    return (body['items'] as List<dynamic>? ?? const [])
-        .cast<Map<String, dynamic>>();
+      {int maxItems = 200}) async {
+    final out = <Map<String, dynamic>>[];
+    for (var page = 1; out.length < maxItems; page++) {
+      final uri = Uri.parse('${AppConstants.githubApiBase}/search/issues')
+          .replace(queryParameters: {
+        'q': query,
+        'per_page': '100',
+        'page': '$page',
+        'sort': 'updated',
+      });
+      final response = await _client.get(uri, headers: _headers);
+      _checkResponse(response);
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final items = (body['items'] as List<dynamic>? ?? const [])
+          .cast<Map<String, dynamic>>();
+      out.addAll(items);
+      final total = body['total_count'] as int? ?? out.length;
+      if (items.length < 100 || out.length >= total) break;
+    }
+    return out.length > maxItems ? out.sublist(0, maxItems) : out;
   }
 
   /// Runs a GraphQL [query] and returns its `data` object.
@@ -507,6 +515,13 @@ class GitHubRemoteDatasource {
               resetTs != null ? _resetTimeString(resetTs) : 'a moment';
           throw GitHubRateLimitException(
               'Rate limit exceeded. Resets in $resetIn.');
+        }
+        // Secondary (abuse) limits answer 403 without x-ratelimit-remaining: 0.
+        if (response.body.toLowerCase().contains('rate limit')) {
+          final wait = int.tryParse(response.headers['retry-after'] ?? '');
+          throw GitHubRateLimitException(wait == null
+              ? 'GitHub is rate limiting requests. Try again in a minute.'
+              : 'GitHub is rate limiting requests. Try again in ${wait}s.');
         }
         throw const GitHubApiException(
             'Access forbidden. Check your token scopes.');

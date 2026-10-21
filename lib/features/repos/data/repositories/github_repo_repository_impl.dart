@@ -254,7 +254,7 @@ query {
   }
 
   @override
-  Future<List<InboxItem>> getInboxItems() {
+  Future<InboxBatch> getInboxItems() {
     Future<List<InboxItem>> Function() search(String q, InboxReason r) =>
         () async => (await _ds.searchIssuesRaw('$q archived:false'))
             .map((j) => _searchItem(j, r))

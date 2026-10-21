@@ -27,18 +27,21 @@ enum InboxItemKind { pullRequest, issue }
 /// One-tap actions on an inbox PR/MR, gated by [ProviderCapabilities].
 enum PrAction { approve, requestChanges, merge, rerunCi }
 
-/// Outcome of loading one account's inbox: either items or the error that
-/// stopped every query for that account.
-class AccountInbox {
+/// Items from one account plus the errors of queries that failed while others
+/// succeeded (so the UI can say "some results may be missing").
+class InboxBatch {
   final List<InboxItem> items;
-  final Object? error;
-  const AccountInbox(this.items, [this.error]);
+  final List<Object> failures;
+  const InboxBatch(this.items, [this.failures = const []]);
+
+  bool get isPartial => failures.isNotEmpty;
 }
 
-/// Runs all [queries] for one account. Individual failures are tolerated as
-/// long as at least one query succeeds; if *all* fail, the first error is
-/// rethrown so the UI can tell the user instead of showing a false "all clear".
-Future<List<InboxItem>> collectInbox(
+/// Runs all [queries] for one account. Individual failures are tolerated and
+/// reported in [InboxBatch.failures] as long as at least one query succeeds;
+/// if *all* fail, the first error is rethrown so the UI can tell the user
+/// instead of showing a false "all clear".
+Future<InboxBatch> collectInbox(
     Iterable<Future<List<InboxItem>> Function()> queries) async {
   final outcomes = await Future.wait(queries.map((q) async {
     try {
@@ -51,7 +54,10 @@ Future<List<InboxItem>> collectInbox(
   if (failures.isNotEmpty && failures.length == outcomes.length) {
     throw failures.first.error!;
   }
-  return InboxItem.mergeAndSort(outcomes.expand((o) => o.items));
+  return InboxBatch(
+    InboxItem.mergeAndSort(outcomes.expand((o) => o.items)),
+    failures.map((f) => f.error!).toList(),
+  );
 }
 
 /// A single "needs your attention" entry, normalised across providers.

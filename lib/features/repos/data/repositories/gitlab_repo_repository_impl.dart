@@ -490,11 +490,11 @@ class GitLabRepoRepositoryImpl implements GitProvider {
         .toList();
   }
 
-  /// Reason for one of my own open MRs, from GitLab's merge-status summary.
+  /// Reasons for one of my own open MRs from GitLab's merge-status summary.
+  /// `ci_must_pass` also covers "pipeline hasn't started/finished", so it is
+  /// resolved separately in [_myMergeRequests].
   static InboxReason? _myMrReason(Map<String, dynamic> m) {
     switch (m['detailed_merge_status']) {
-      case 'ci_must_pass':
-        return InboxReason.ciFailed;
       case 'conflict':
       case 'need_rebase':
         return InboxReason.conflicts;
@@ -503,6 +503,40 @@ class GitLabRepoRepositoryImpl implements GitProvider {
       default:
         return null;
     }
+  }
+
+  /// My open MRs that need work. For `ci_must_pass` the head pipeline is
+  /// checked so a pipeline that is merely running or not started isn't
+  /// reported as failed.
+  Future<List<InboxItem>> _myMergeRequests() async {
+    final list = (await _ds.getAccountList(
+            '/merge_requests?scope=created_by_me&state=opened&per_page=100'))
+        .cast<Map<String, dynamic>>();
+    final out = <InboxItem>[];
+    var pipelineChecks = 0;
+    for (final m in list) {
+      var reason = _myMrReason(m);
+      if (m['detailed_merge_status'] == 'ci_must_pass') {
+        var failed = true; // if we can't tell, assume the worse case
+        if (pipelineChecks < 15 && m['project_id'] != null) {
+          pipelineChecks++;
+          try {
+            final full = await _ds.send('GET',
+                    '/projects/${m['project_id']}/merge_requests/${m['iid']}')
+                as Map<String, dynamic>;
+            final status = (full['head_pipeline'] as Map?)?['status'];
+            failed = status == 'failed' || status == 'canceled';
+          } on Exception {
+            // keep the assumption
+          }
+        }
+        if (failed) reason = InboxReason.ciFailed;
+      }
+      if (reason == null) continue;
+      final item = _item(m, InboxItemKind.pullRequest, [reason]);
+      if (item != null) out.add(item);
+    }
+    return out;
   }
 
   Future<List<InboxItem>> _mentions() async {
@@ -528,24 +562,19 @@ class GitLabRepoRepositoryImpl implements GitProvider {
   }
 
   @override
-  Future<List<InboxItem>> getInboxItems() {
+  Future<InboxBatch> getInboxItems() {
     final me = Uri.encodeQueryComponent(connection.accountLogin);
     const mr = InboxItemKind.pullRequest;
     return collectInbox([
       () => _list(
-          '/merge_requests?scope=all&state=opened&reviewer_username=$me&per_page=50',
+          '/merge_requests?scope=all&state=opened&reviewer_username=$me&per_page=100',
           mr,
           (_) => InboxReason.reviewRequested),
-      () => _list('/merge_requests?scope=assigned_to_me&state=opened&per_page=50',
+      () => _list('/merge_requests?scope=assigned_to_me&state=opened&per_page=100',
           mr, (_) => InboxReason.assigned),
-      () => _list('/issues?scope=assigned_to_me&state=opened&per_page=50',
+      () => _list('/issues?scope=assigned_to_me&state=opened&per_page=100',
           InboxItemKind.issue, (_) => InboxReason.assigned),
-      () async => (await _list(
-              '/merge_requests?scope=created_by_me&state=opened&per_page=50',
-              mr,
-              (m) => _myMrReason(m) ?? InboxReason.mentioned))
-          .where((i) => i.reasons.first != InboxReason.mentioned)
-          .toList(),
+      _myMergeRequests,
       _mentions,
     ]);
   }

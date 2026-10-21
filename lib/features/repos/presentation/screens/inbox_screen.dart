@@ -10,6 +10,7 @@ import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/workspace_entity.dart';
 import '../../domain/repositories/git_provider.dart';
 import '../../data/git_provider_factory.dart';
+import '../../data/inbox_loader.dart';
 import '../providers/inbox_provider.dart';
 import '../providers/workspaces_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
@@ -128,7 +129,7 @@ class InboxScreen extends ConsumerWidget {
               ),
             ),
           if (inbox.valueOrNull case final r?
-              when r.errors.isNotEmpty || r.fromCache)
+              when r.errors.isNotEmpty || r.partial.isNotEmpty || r.fromCache)
             _StatusBanner(result: r, onRetry: refresh),
           Expanded(
             child: RefreshIndicator(
@@ -311,30 +312,38 @@ class _StatusBanner extends StatelessWidget {
   final Future<void> Function() onRetry;
   const _StatusBanner({required this.result, required this.onRetry});
 
+  /// One line per problem, e.g. "GitHub · atef: GitHub is rate limiting…".
+  List<String> _lines() => [
+        for (final e in result.errors.entries)
+          "Couldn't load ${e.key}: ${inboxErrorText(e.value)}",
+        for (final e in result.partial.entries)
+          'Some results from ${e.key} may be missing: ${inboxErrorText(e.value)}',
+      ];
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final hasErrors = result.errors.isNotEmpty;
-    final fg = hasErrors ? cs.onErrorContainer : cs.onSurfaceVariant;
+    final lines = _lines();
+    final problem = lines.isNotEmpty;
+    final fg = problem ? cs.onErrorContainer : cs.onSurfaceVariant;
     return Container(
       width: double.infinity,
-      color: hasErrors ? cs.errorContainer : cs.surfaceContainerHighest,
+      color: problem ? cs.errorContainer : cs.surfaceContainerHighest,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Icon(hasErrors ? Icons.cloud_off_rounded : Icons.history_rounded,
+          Icon(problem ? Icons.cloud_off_rounded : Icons.history_rounded,
               size: 18, color: fg),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              hasErrors
-                  ? "Couldn't load: ${result.errors.keys.join(', ')}. "
-                      'Results from other accounts may be incomplete.'
+              problem
+                  ? lines.join('\n')
                   : 'Showing saved results — refreshing…',
               style: TextStyle(fontSize: 12, color: fg),
             ),
           ),
-          if (hasErrors)
+          if (problem)
             TextButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
