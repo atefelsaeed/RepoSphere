@@ -1,8 +1,95 @@
 # RepoSphere — Improvements Backlog
-> Last updated: April 2026
+> Last updated: June 2026
 
 Tracked items needed to bring RepoSphere to a world-class, shippable standard.
 Each item has a status tag: `[ ]` pending · `[x]` done · `[-]` skipped/deferred.
+
+---
+
+## Sprint 6 — Unified Multi-Provider Architecture
+
+Goal: turn RepoSphere from a GitHub-only viewer into a true multi-provider Git
+workspace (GitHub + GitLab + Azure DevOps now; Bitbucket + Gitea/self-hosted next).
+
+### S6-1 · Capability-based `GitProvider` interface `[x]`
+**Why:** the old interface had only 3 methods and most screens bypassed it,
+calling `GitHubRemoteDatasource` directly — there was no real abstraction.
+
+**Delivered:**
+- `GitProviderType` enum (single source of truth, shared by auth + repos)
+- `ProviderCapabilities` so the UI can hide unsupported features
+- Full `GitProvider` surface (repos, branches, commits + diff, PRs/MRs,
+  issues/work-items, comments, releases, file tree + content, languages,
+  contributors, search, writes, notifications, activity, gists)
+- `UnsupportedProviderOperation` for ops a provider can't perform
+
+**Files:** `core/git/git_provider_type.dart`,
+`features/repos/domain/repositories/git_provider.dart`
+
+### S6-2 · Multi-account connections + secure storage `[x]`
+**Why:** tokens were single-account per provider, hardcoded keys.
+
+**Delivered:**
+- `GitConnection` model (type, account, baseUrl for self-hosted/Azure, token)
+- `SecureTokenStorage` stores a JSON connection list + one-time migration of
+  legacy `github_pat` / `gitlab_pat`
+- `connectionsProvider` (`ConnectionsNotifier`: add / remove / update)
+
+**Files:** `features/auth/domain/git_connection.dart`,
+`features/auth/data/secure_token_storage.dart`,
+`features/auth/presentation/providers/connections_provider.dart`
+
+### S6-3 · Provider factory / registry `[x]`
+**Delivered:** `buildGitProvider(connection)` + `activeProvidersProvider`,
+`providerForConnectionProvider`, `providerForRepoProvider` (routes a repo to the
+adapter that owns it via `connectionId` / `providerId`).
+
+**Files:** `features/repos/data/git_provider_factory.dart`,
+`RepoEntity` (+ `connectionId`, `providerId`, `GitProviderType provider`)
+
+### S6-4 · GitHub adapter — full read + write `[x]`
+**Delivered:** `GitHubRepoRepositoryImpl` wraps the whole datasource; added
+write ops `addIssueComment`, `mergePullRequest`, `setIssueState`.
+
+### S6-5 · GitLab adapter — full read `[x]`
+**Delivered:** expanded `GitLabRemoteDatasource` to a full v4 client +
+`GitLabRepoRepositoryImpl` (projects, branches, commits + diff, MRs, issues,
+notes, releases, tree, files, todos, events; self-hosted base URL).
+
+### S6-6 · Azure DevOps adapter — read (proof) `[x]`
+**Delivered:** `AzureRemoteDatasource` (Basic auth, org/project/repo, items,
+WIQL) + `AzureRepoRepositoryImpl` (repos, commits, PRs, **Work Items**, files).
+
+### S6-7 · Tests + quality gate `[x]`
+**Delivered:** unit tests for `GitConnection`, GitLab adapter, Azure adapter
+(MockClient) — 27 tests green, `flutter analyze` clean, web build passing.
+
+### S6-8 · UI wiring — multi-account connect + unified list `[x]`
+**Delivered:**
+- Auth + router gate on `connectionsProvider` (any provider can be the first
+  account — GitHub no longer required).
+- Settings rewritten: lists every connected account with a provider badge,
+  **Add account** sheet (GitHub / GitLab / Azure DevOps, with base/org URL for
+  GitLab self-hosted and Azure) that verifies the token before saving, and
+  per-account remove.
+- Auth screen connects by adding a `GitConnection` (verifies via `/user`).
+- Unified repos list: `allReposProvider` aggregates `activeProvidersProvider`
+  across every account; cards show a provider badge (GL/AZ/…).
+- `githubDatasourceProvider` / GitLab datasource now sourced from the first
+  connection of their type, so existing detail screens work without rewiring.
+- Repo detail hides GitHub-only sections for any non-GitHub repo.
+
+**Files:** `app.dart`, `main.dart`, `core/router/app_router.dart`,
+`auth_screen.dart`, `connections_provider.dart`, `repos_provider.dart`,
+`repos_screen.dart`, `settings_screen.dart`, `repo_detail_screen.dart`,
+`repo_card.dart`.
+
+### S6-9 · UI wiring — deep per-provider detail + writes `[ ]`
+**Remaining:** route each per-repo detail provider (commits/PRs/issues/files/…)
+through `providerForRepoProvider` so GitLab/Azure repos show full detail (not
+just GitHub); surface GitHub write actions (comment, merge PR, close issue) in
+the PR/issue screens; "My Work" cross-provider screen (assigned PRs/issues);
+per-account (not first-of-type) routing for multiple accounts of one provider.
 
 ---
 

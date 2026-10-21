@@ -5,8 +5,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/language_colors.dart';
+import '../../../../core/git/git_provider_type.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/pinned_repos_provider.dart';
+
+/// Short badge code + brand colour per provider (shown on non-GitHub cards).
+({String code, Color color}) _providerBadge(GitProviderType t) => switch (t) {
+      GitProviderType.gitlab => (code: 'GL', color: const Color(0xFFFC6D26)),
+      GitProviderType.azureDevOps =>
+        (code: 'AZ', color: const Color(0xFF0078D4)),
+      GitProviderType.bitbucket =>
+        (code: 'BB', color: const Color(0xFF2684FF)),
+      GitProviderType.gitea => (code: 'GT', color: const Color(0xFF609926)),
+      GitProviderType.github => (code: 'GH', color: const Color(0xFF6E7681)),
+    };
 
 class RepoCard extends ConsumerStatefulWidget {
   final RepoEntity repo;
@@ -45,7 +57,7 @@ class _RepoCardState extends ConsumerState<RepoCard> {
     final cs = theme.colorScheme;
     final repo = widget.repo;
     final isPinned = ref.watch(pinnedReposProvider).contains(repo.id);
-    final isGitLab = repo.provider == RepoProvider.gitlab;
+    final isGitLab = repo.provider != GitProviderType.github;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -103,28 +115,31 @@ class _RepoCardState extends ConsumerState<RepoCard> {
                         Icon(Icons.push_pin_rounded,
                             size: 12, color: cs.primary),
                       ],
-                      // GitLab badge
+                      // Provider badge (any non-GitHub provider)
                       if (isGitLab) ...[
                         const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFC6D26).withAlpha(25),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                                color: const Color(0xFFFC6D26).withAlpha(100),
-                                width: 0.5),
-                          ),
-                          child: const Text(
-                            'GL',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFFC6D26),
+                        Builder(builder: (_) {
+                          final badge = _providerBadge(repo.provider);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: badge.color.withAlpha(25),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                  color: badge.color.withAlpha(100),
+                                  width: 0.5),
                             ),
-                          ),
-                        ),
+                            child: Text(
+                              badge.code,
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: badge.color,
+                              ),
+                            ),
+                          );
+                        }),
                       ],
                       // Private badge
                       if (repo.isPrivate) ...[

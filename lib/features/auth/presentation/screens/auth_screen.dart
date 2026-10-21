@@ -5,9 +5,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/app_config.dart';
-import '../../../../core/utils/exceptions.dart';
 import '../../data/github_device_auth.dart';
+import '../../domain/git_connection.dart';
 import '../providers/auth_provider.dart';
+import '../providers/connections_provider.dart';
+import '../widgets/account_connect_form.dart';
 
 // Auth priority:
 //   1. AppConfig.hasSupabase    → Supabase GitHub OAuth (web redirect)
@@ -22,40 +24,13 @@ class AuthScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
-  final _tokenController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  bool _obscureToken = true;
   bool _isLoading = false;
-  bool _showPatForm = false;
+  bool _showOtherOptions = false;
   String? _errorMessage;
 
-  @override
-  void dispose() {
-    _tokenController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _connectPat() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-    try {
-      await ref
-          .read(authProvider.notifier)
-          .verifyAndSave(_tokenController.text.trim());
-    } on GitHubAuthException catch (e) {
-      setState(() => _errorMessage = e.message);
-    } on GitHubRateLimitException catch (e) {
-      setState(() => _errorMessage = e.message);
-    } catch (_) {
-      setState(() =>
-          _errorMessage = 'Connection error. Check your internet and try again.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
+  Future<void> _addConnection(GitConnection connection) =>
+      ref.read(connectionsProvider.notifier).add(connection);
+  // The router redirects to the Inbox once connections becomes non-empty.
 
   Future<void> _signInWithSupabase() async {
     final service = ref.read(supabaseAuthServiceProvider);
@@ -291,7 +266,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.2),
                 const SizedBox(height: 6),
                 Text(
-                  'Your entire Git universe, one dashboard.',
+                  'One inbox for all your Git work.',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium
                       ?.copyWith(color: cs.onSurfaceVariant),
@@ -299,7 +274,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
                 const SizedBox(height: 36),
 
-                // ── OAuth path (Supabase › Device Flow › PAT) ──────
+                // ── Optional GitHub OAuth (Supabase › Device Flow) ──
                 if (AppConfig.hasSupabase || hasOAuth) ...[
                   FilledButton.icon(
                     onPressed: _isLoading
@@ -323,81 +298,43 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         style: TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 15)),
                   ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.1),
-
                   const SizedBox(height: 16),
-
-                  // Error banner
                   if (_errorMessage != null)
                     _ErrorBanner(message: _errorMessage!)
                         .animate()
                         .fadeIn(duration: 200.ms),
-
-                  // PAT toggle
                   TextButton(
                     onPressed: () =>
-                        setState(() => _showPatForm = !_showPatForm),
+                        setState(() => _showOtherOptions = !_showOtherOptions),
                     child: Text(
-                      _showPatForm
-                          ? 'Hide token form'
-                          : 'Use a Personal Access Token instead',
+                      _showOtherOptions
+                          ? 'Hide other options'
+                          : 'GitLab, Azure DevOps or a token',
                       style: theme.textTheme.bodySmall
                           ?.copyWith(color: cs.onSurfaceVariant),
                     ),
                   ).animate(delay: 480.ms).fadeIn(),
-
                   AnimatedSize(
                     duration: const Duration(milliseconds: 260),
                     curve: Curves.easeOut,
-                    child: _showPatForm
-                        ? _PatCard(
-                            formKey: _formKey,
-                            controller: _tokenController,
-                            obscure: _obscureToken,
-                            isLoading: _isLoading,
-                            onToggleObscure: () =>
-                                setState(() => _obscureToken = !_obscureToken),
-                            onSubmit: _connectPat,
-                            showError: !hasOAuth,
-                            errorMessage: _errorMessage,
+                    child: _showOtherOptions
+                        ? Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: AccountConnectForm(
+                                  onConnect: _addConnection),
+                            ),
                           )
                         : const SizedBox.shrink(),
                   ),
-                ] else ...[
-                  // ── PAT-only path (no client ID configured) ───────
-                  _PatCard(
-                    formKey: _formKey,
-                    controller: _tokenController,
-                    obscure: _obscureToken,
-                    isLoading: _isLoading,
-                    onToggleObscure: () =>
-                        setState(() => _obscureToken = !_obscureToken),
-                    onSubmit: _connectPat,
-                    showError: true,
-                    errorMessage: _errorMessage,
-                  ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.06),
-                ],
-
-                const SizedBox(height: 16),
-
-                // Token creation link (always shown)
-                if (!hasOAuth || _showPatForm) ...[
-                  TextButton.icon(
-                    onPressed: () => launchUrl(
-                      Uri.parse(
-                          'https://github.com/settings/tokens/new?scopes=repo,read:user,notifications,gist&description=RepoSphere'),
-                      mode: LaunchMode.externalApplication,
+                ] else
+                  // ── Pick a provider and connect with a token ────────
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: AccountConnectForm(onConnect: _addConnection),
                     ),
-                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                    label: const Text('Create a token on GitHub'),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Required scopes: repo, read:user, notifications, gist',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: cs.onSurfaceVariant),
-                  ),
-                ],
+                  ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.06),
               ],
             ),
           ),
@@ -408,85 +345,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 }
 
 // ─── Shared sub-widgets ───────────────────────────────────────────────────────
-
-class _PatCard extends StatelessWidget {
-  final GlobalKey<FormState> formKey;
-  final TextEditingController controller;
-  final bool obscure;
-  final bool isLoading;
-  final bool showError;
-  final String? errorMessage;
-  final VoidCallback onToggleObscure;
-  final VoidCallback onSubmit;
-
-  const _PatCard({
-    required this.formKey,
-    required this.controller,
-    required this.obscure,
-    required this.isLoading,
-    required this.showError,
-    required this.errorMessage,
-    required this.onToggleObscure,
-    required this.onSubmit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Personal Access Token',
-                  style: theme.textTheme.labelLarge),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: controller,
-                obscureText: obscure,
-                decoration: InputDecoration(
-                  hintText: 'ghp_xxxxxxxxxxxxxxxxxxxx',
-                  suffixIcon: IconButton(
-                    icon: Icon(obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined),
-                    onPressed: onToggleObscure,
-                  ),
-                ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'Please enter your token';
-                  }
-                  if (v.trim().length < 20) return 'Token looks too short';
-                  return null;
-                },
-                onFieldSubmitted: (_) => onSubmit(),
-              ),
-              const SizedBox(height: 14),
-              if (showError && errorMessage != null) ...[
-                _ErrorBanner(message: errorMessage!),
-                const SizedBox(height: 14),
-              ],
-              FilledButton(
-                onPressed: isLoading ? null : onSubmit,
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Connect'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _ErrorBanner extends StatelessWidget {
   final String message;

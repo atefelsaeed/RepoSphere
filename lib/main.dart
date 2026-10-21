@@ -6,8 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/providers/theme_provider.dart';
-import 'core/utils/exceptions.dart';
-import 'features/auth/presentation/providers/auth_provider.dart';
+import 'features/auth/data/secure_token_storage.dart';
+import 'features/notifications/background_inbox_check.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +19,14 @@ Future<void> main() async {
     );
   }
 
+  try {
+    // Before anything reads tokens; never throws, retried next launch on failure.
+    await SecureTokenStorage.migrateKeychain();
+    await initBackgroundWork();
+  } on Object {
+    // Background alerts are optional; never block app start.
+  }
+
   final prefs = await SharedPreferences.getInstance();
   final themeStr = prefs.getString('themeMode') ?? 'system';
   final initialTheme = switch (themeStr) {
@@ -28,7 +36,6 @@ Future<void> main() async {
   };
 
   final app = ProviderScope(
-    observers: [_AuthErrorObserver()],
     overrides: [
       themeModeProvider.overrideWith((ref) => initialTheme),
     ],
@@ -47,20 +54,5 @@ Future<void> main() async {
     );
   } else {
     runApp(app);
-  }
-}
-
-/// Watches every provider for [GitHubAuthException] and auto-logs out.
-class _AuthErrorObserver extends ProviderObserver {
-  @override
-  void providerDidFail(
-    ProviderBase<Object?> provider,
-    Object error,
-    StackTrace stackTrace,
-    ProviderContainer container,
-  ) {
-    if (error is GitHubAuthException) {
-      container.read(authProvider.notifier).logout();
-    }
   }
 }

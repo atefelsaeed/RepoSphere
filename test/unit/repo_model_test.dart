@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:repo_sphere/core/git/git_provider_type.dart';
 import 'package:repo_sphere/features/repos/data/models/repo_model.dart';
-import 'package:repo_sphere/features/repos/domain/entities/repo_entity.dart';
 
 const _fixture = {
   'id': 1,
@@ -46,7 +46,7 @@ void main() {
 
     test('toEntity sets provider to github', () {
       final entity = RepoModel.fromJson(_fixture).toEntity();
-      expect(entity.provider, RepoProvider.github);
+      expect(entity.provider, GitProviderType.github);
     });
 
     test('handles null optional fields', () {

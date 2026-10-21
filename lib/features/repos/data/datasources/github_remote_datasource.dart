@@ -33,6 +33,48 @@ class GitHubRemoteDatasource {
         'Accept': 'application/vnd.github.v3+json',
       };
 
+  /// Raw `/search/issues` items (issues and PRs) for a search [query].
+  Future<List<Map<String, dynamic>>> searchIssuesRaw(String query,
+      {int perPage = 50}) async {
+    final uri = Uri.parse('${AppConstants.githubApiBase}/search/issues')
+        .replace(queryParameters: {
+      'q': query,
+      'per_page': '$perPage',
+      'sort': 'updated',
+    });
+    final response = await _client.get(uri, headers: _headers);
+    _checkResponse(response);
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return (body['items'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
+  }
+
+  /// Runs a GraphQL [query] and returns its `data` object.
+  Future<Map<String, dynamic>> graphql(String query) async {
+    final response = await _client.post(
+      Uri.parse('${AppConstants.githubApiBase}/graphql'),
+      headers: {..._headers, 'Content-Type': 'application/json'},
+      body: jsonEncode({'query': query}),
+    );
+    _checkResponse(response);
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    if (body['errors'] != null && body['data'] == null) {
+      throw const GitHubApiException('GitHub GraphQL query failed.');
+    }
+    return (body['data'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  /// Generic JSON call for inbox quick actions. [path] starts with `/`.
+  Future<dynamic> send(String method, String path,
+      {Map<String, dynamic>? body}) async {
+    final req = http.Request(method, Uri.parse('${AppConstants.githubApiBase}$path'))
+      ..headers.addAll({..._headers, 'Content-Type': 'application/json'});
+    if (body != null) req.body = jsonEncode(body);
+    final response = await http.Response.fromStream(await _client.send(req));
+    _checkResponse(response);
+    return response.body.isEmpty ? null : jsonDecode(response.body);
+  }
+
   Future<UserModel> getUser() async {
     final response = await _client.get(
       Uri.parse('${AppConstants.githubApiBase}/user'),
@@ -413,6 +455,41 @@ class GitHubRemoteDatasource {
     }
     return IssueModel.fromJson(
         jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<IssueCommentModel> addIssueComment(
+      String owner, String repo, int number, String body) async {
+    final response = await _client.post(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/issues/$number/comments'),
+      headers: _headers,
+      body: jsonEncode({'body': body}),
+    );
+    if (response.statusCode != 201) _checkResponse(response);
+    return IssueCommentModel.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<void> mergePullRequest(String owner, String repo, int number) async {
+    final response = await _client.put(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/pulls/$number/merge'),
+      headers: _headers,
+      body: jsonEncode({'merge_method': 'merge'}),
+    );
+    _checkResponse(response);
+  }
+
+  /// state: 'open' or 'closed'.
+  Future<void> setIssueState(
+      String owner, String repo, int number, String state) async {
+    final response = await _client.patch(
+      Uri.parse(
+          '${AppConstants.githubApiBase}/repos/$owner/$repo/issues/$number'),
+      headers: _headers,
+      body: jsonEncode({'state': state}),
+    );
+    _checkResponse(response);
   }
 
   void _checkResponse(http.Response response) {

@@ -1,3 +1,4 @@
+import '../../../../core/git/git_provider_type.dart';
 import '../../domain/entities/repo_entity.dart';
 
 class GitLabProjectModel {
@@ -91,6 +92,6 @@ class GitLabProjectModel {
         ownerAvatarUrl: ownerAvatarUrl,
         topics: topics,
         defaultBranch: defaultBranch,
-        provider: RepoProvider.gitlab,
+        provider: GitProviderType.gitlab,
       );
 }

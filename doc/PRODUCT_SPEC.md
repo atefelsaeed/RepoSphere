@@ -1,5 +1,11 @@
 # RepoSphere — Product & Architecture Spec
-> Version 4.0 | Last updated: April 2026
+> Version 5.0 | Last updated: June 2026
+>
+> v5 introduces the **unified multi-provider data layer**: one capability-based
+> `GitProvider` interface with GitHub (read + write), GitLab (read), and Azure
+> DevOps (read) adapters, a multi-account connection registry, and a
+> factory/registry that routes any repo back to the account that owns it.
+> UI surfacing of the multi-account experience is in progress.
 
 ---
 
@@ -165,14 +171,16 @@ lib/
 │
 ├── features/
 │   ├── auth/
-│   │   ├── data/         SecureTokenStorage (flutter_secure_storage)
+│   │   ├── domain/       GitConnection (multi-account model)
+│   │   ├── data/         SecureTokenStorage (multi-account + migration)
 │   │   │                 GitHubDeviceAuth (Device Flow + polling)
 │   │   │                 SupabaseAuthService (OAuth via Supabase)
 │   │   └── presentation/ AuthScreen (three-tier) + AuthNotifier
+│   │                     connectionsProvider (ConnectionsNotifier)
 │   │
 │   └── repos/
 │       ├── domain/
-│       │   ├── entities/ RepoEntity (+ RepoProvider enum),
+│       │   ├── entities/ RepoEntity (+ GitProviderType, connectionId, providerId),
 │       │   │             UserEntity, CommitEntity,
 │       │   │             CommitDetailEntity, BranchEntity,
 │       │   │             PullRequestEntity, IssueEntity,
@@ -190,9 +198,14 @@ lib/
 │       │   │             ActivityEventModel, NotificationModel,
 │       │   │             ReleaseModel, GistModel,
 │       │   │             GitLabProjectModel
-│       │   ├── datasources/  GitHubRemoteDatasource (25 API methods)
-│       │   │                 GitLabRemoteDatasource (projects, starred)
-│       │   └── repositories/ GitHubRepoRepositoryImpl
+│       │   ├── datasources/  GitHubRemoteDatasource (read + write),
+│       │   │                 GitLabRemoteDatasource (full v4 client),
+│       │   │                 AzureRemoteDatasource (org/project/repo + WIQL)
+│       │   ├── git_provider_factory.dart  buildGitProvider + registry
+│       │   │                 (activeProviders, providerForRepo/Connection)
+│       │   └── repositories/ GitHubRepoRepositoryImpl,
+│       │                     GitLabRepoRepositoryImpl,
+│       │                     AzureRepoRepositoryImpl
 │       │
 │       └── presentation/
 │           ├── screens/  ReposScreen, RepoDetailScreen,
@@ -239,20 +252,64 @@ lib/
 └── main.dart             Supabase.initialize() (guarded by AppConfig)
 ```
 
-### 5.2 Provider Abstraction
+### 5.2 Provider Abstraction (capability-based)
+
+Every provider lives behind **one** rich, capability-based interface. Screens
+depend on `GitProvider`, never on a concrete API. The interface covers the full
+surface (user, repos, branches, commits + diff, PRs/MRs, issues/work-items,
+comments, releases, file tree + content, languages, contributors, search, plus
+writes and account feeds). Operations a provider can't do throw
+`UnsupportedProviderOperation`; the UI gates on `ProviderCapabilities` first.
 
 ```dart
-abstract class GitProvider {
-  Future<UserEntity> getUser();
-  Future<List<RepoEntity>> getRepos();
-  Future<List<RepoEntity>> getStarredRepos();
+enum GitProviderType { github, gitlab, azureDevOps, bitbucket, gitea }
+
+class ProviderCapabilities {
+  final bool pullRequests, issues, workItems, releases, gists, notifications,
+      activity, starring, fileTree, contributors, languages, search,
+      writeComments, mergePullRequests, editIssueState, createIssues;
+  bool get hasIssueTracker => issues || workItems; // Azure → work items
 }
 
-// Implementations:
-// ✅ GitHubRepoRepositoryImpl
-// ✅ GitLabRemoteDatasource  (direct datasource — merged in allReposProvider)
-// 🔜 BitbucketRepoRepositoryImpl (Phase 4)
+abstract class GitProvider {
+  GitProviderType get type;
+  GitConnection get connection;            // which account this adapter serves
+  ProviderCapabilities get capabilities;   // what the UI may show
+
+  Future<UserEntity> getUser();
+  Future<List<RepoEntity>> getRepos({int page, int perPage});
+  Future<List<BranchEntity>> getBranches(RepoEntity repo);
+  Future<List<CommitEntity>> getCommits(RepoEntity repo, {String? branch, ...});
+  Future<List<PullRequestEntity>> getPullRequests(RepoEntity repo, {String state});
+  Future<List<IssueEntity>> getIssues(RepoEntity repo, {String state});
+  Future<List<RepoContentItem>> getContents(RepoEntity repo, String path, {String? ref});
+  // … releases, comments, languages, contributors, search, gists, activity …
+  // writes (capability-gated):
+  Future<void> setStar(RepoEntity repo, bool starred);
+  Future<IssueCommentEntity> addIssueComment(RepoEntity repo, int number, String body);
+  Future<void> mergePullRequest(RepoEntity repo, int number);
+  Future<void> setIssueState(RepoEntity repo, int number, IssueState state);
+}
+
+// Implementations (all behind the interface, selected by GitProviderFactory):
+// ✅ GitHubRepoRepositoryImpl   — full read + write
+// ✅ GitLabRepoRepositoryImpl   — full read (writes throw UnsupportedProviderOperation)
+// ✅ AzureRepoRepositoryImpl    — read (repos/commits/PRs/work-items/files)
+// 🔜 BitbucketRepoRepositoryImpl, GiteaRepoRepositoryImpl
 ```
+
+**Multi-account registry** (`git_provider_factory.dart`):
+
+```dart
+GitProvider? buildGitProvider(GitConnection c, http.Client client); // c.type → adapter
+activeProvidersProvider        Provider<List<GitProvider>>          // every connected account
+providerForConnectionProvider  Provider.family<GitProvider?, String>// by connection id
+providerForRepoProvider        Provider.family<GitProvider?, RepoEntity> // resolves repo.connectionId
+```
+
+`RepoEntity` carries `provider` (`GitProviderType`), `connectionId`, and
+`providerId` (provider-native id — e.g. Azure repos are keyed by GUID), so any
+repo can be routed back to the adapter that owns it.
 
 ### 5.3 State Management (Riverpod 2.x)
 
@@ -759,9 +816,15 @@ Repo Management:
   ⬜ Code diff viewer (compare branches/commits)
 
 Multi-Provider:
-  ⬜ GitLab commits, MRs, issues (in-app screens)
+  ✅ Unified capability-based GitProvider interface + factory/registry
+  ✅ Multi-account connections (several accounts per provider) + secure storage
+  ✅ GitLab commits, MRs, issues, notes, releases, tree/files (data layer)
+  ✅ Azure DevOps repos, commits, PRs, Work Items (WIQL), files (data layer)
+  🔄 Surface all of the above in the UI (settings connect, unified list,
+      per-repo screens via providerForRepoProvider, My Work screen)
+  ⬜ GitLab/Azure write actions (comment, merge, close)
   ⬜ GitLab OAuth (replace PAT)
-  ⬜ Bitbucket repos + PRs
+  ⬜ Bitbucket + Gitea/self-hosted adapters
 
 Productivity:
   ⬜ Cross-repo notifications (webhook-driven)
@@ -839,24 +902,72 @@ Tech:
 ── Gists ─────────────────────────────────────────────────────────────
 ✅ GET  /gists                                   Authenticated user's gists
 
+── Writes (data layer ✅ — UI surfacing in progress) ──────────────────
+✅ POST /repos/{owner}/{repo}/issues/{n}/comments  Comment on issue/PR
+✅ PUT  /repos/{owner}/{repo}/pulls/{n}/merge      Merge a PR
+✅ PATCH /repos/{owner}/{repo}/issues/{n}          Close / reopen issue
+
 ── Planned ───────────────────────────────────────────────────────────
-⬜ POST /repos/{owner}/{repo}/issues/{n}/comments  Comment on issue
-⬜ PATCH /repos/{owner}/{repo}/issues/{n}         Update issue (close/assign)
-⬜ POST /repos/{owner}/{repo}/pulls/{n}/reviews  Review PR
+⬜ POST /repos/{owner}/{repo}/pulls/{n}/reviews  Review PR (approve/request changes)
 ⬜ GET  /repos/{owner}/{repo}/compare/{b}...{h}  Diff view
 ```
 
 ## 8. GitLab API Coverage
 
 ```
-── Projects ──────────────────────────────────────────────────────────
-✅ GET  /api/v4/projects                         User's projects (membership)
-✅ GET  /api/v4/projects?starred=true            Starred projects
+── Account / Projects ────────────────────────────────────────────────
+✅ GET  /api/v4/user                              Current user
+✅ GET  /api/v4/projects                          User's projects (membership)
+✅ GET  /api/v4/projects?starred=true             Starred projects
+✅ GET  /api/v4/projects?search=                  Search projects
 
-── Planned ───────────────────────────────────────────────────────────
-⬜ GET  /api/v4/projects/{id}/repository/commits  Commits
-⬜ GET  /api/v4/projects/{id}/merge_requests      Merge Requests
-⬜ GET  /api/v4/projects/{id}/issues              Issues
+── Code ──────────────────────────────────────────────────────────────
+✅ GET  /api/v4/projects/{id}/repository/branches Branches
+✅ GET  /api/v4/projects/{id}/repository/commits  Commits
+✅ GET  .../commits/{sha}  +  .../commits/{sha}/diff   Commit detail + diff
+✅ GET  /api/v4/projects/{id}/repository/tree      File tree
+✅ GET  .../repository/files/{path}                File content (base64)
+✅ GET  /api/v4/projects/{id}/languages            Languages
+✅ GET  .../repository/contributors                Contributors
+
+── Collaboration ─────────────────────────────────────────────────────
+✅ GET  /api/v4/projects/{id}/merge_requests       Merge Requests
+✅ GET  /api/v4/projects/{id}/issues               Issues
+✅ GET  .../issues/{iid}/notes                      Issue notes (comments)
+✅ GET  /api/v4/projects/{id}/releases             Releases
+
+── Account feeds ─────────────────────────────────────────────────────
+✅ GET  /api/v4/todos                              Todos (→ notifications)
+✅ POST /api/v4/todos/{id}/mark_as_done            Acknowledge todo
+✅ GET  /api/v4/events                             Activity feed
+
+Notes: state maps GitHub-style open/closed/all → GitLab opened/closed/all.
+       Self-hosted GitLab supported via a per-connection base URL.
+       Writes (comment/merge/close) planned — currently GitHub-only.
+```
+
+## 8b. Azure DevOps API Coverage
+
+```
+── Account / Repos ───────────────────────────────────────────────────
+✅ GET  {org}/_apis/connectionData                 Authenticated user
+✅ GET  {org}/_apis/git/repositories               All repos across the org
+
+── Code ──────────────────────────────────────────────────────────────
+✅ GET  .../git/repositories/{id}/refs?filter=heads/   Branches
+✅ GET  .../git/repositories/{id}/commits              Commits
+✅ GET  .../commits/{id}  +  .../commits/{id}/changes  Commit detail + files
+✅ GET  .../git/repositories/{id}/items                File tree + content
+
+── Collaboration ─────────────────────────────────────────────────────
+✅ GET  .../git/repositories/{id}/pullrequests         Pull requests
+✅ POST {org}/{project}/_apis/wit/wiql                 Work Item query (WIQL)
+✅ GET  {org}/_apis/wit/workitems?ids=                 Work Item details
+
+Notes: auth = Basic base64(":PAT"); api-version=7.1.
+       "Issues" tab is backed by Work Items (capabilities.workItems = true,
+       capabilities.issues = false). Repos are keyed by GUID (RepoEntity.providerId);
+       RepoEntity.ownerLogin holds the Azure project (used as the WIQL TeamProject).
 ```
 
 ---
@@ -978,11 +1089,34 @@ class AppConfig {
 }
 
 class StorageKeys {
+  // Multi-account: a JSON list of GitConnection objects.
+  static const connections = 'git_connections';
+
+  // Legacy single-account keys — read-only, migrated into `connections` on
+  // first launch (SecureTokenStorage.readConnections).
   static const githubToken = 'github_pat';
   static const githubUserLogin = 'github_user_login';
   static const gitlabToken = 'gitlab_pat';
 }
 ```
+
+**Multi-account model** (`features/auth/domain/git_connection.dart`):
+
+```dart
+class GitConnection {
+  final String id;            // generated
+  final GitProviderType type; // github | gitlab | azureDevOps | bitbucket | gitea
+  final String accountLogin;
+  final String? avatarUrl;
+  final String? baseUrl;      // self-hosted instance or Azure org URL
+  final String token;         // PAT
+}
+```
+
+Connections are managed by `ConnectionsNotifier` (`connectionsProvider`) —
+`add` / `remove` / `updateConnection` — and persisted via
+`SecureTokenStorage.writeConnections`. `readConnections()` migrates the legacy
+`github_pat` / `gitlab_pat` keys into connections automatically.
 
 **To enable Device Flow:**
 1. github.com/settings/developers → OAuth Apps → New OAuth App

@@ -1,57 +1,78 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
-import '../../../auth/data/secure_token_storage.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/git/git_provider_type.dart';
+import '../../../auth/domain/git_connection.dart';
+import '../../../auth/presentation/providers/connections_provider.dart';
 import '../../data/datasources/github_remote_datasource.dart';
-import '../../data/datasources/gitlab_remote_datasource.dart';
-import '../../data/repositories/github_repo_repository_impl.dart';
+import '../../data/git_provider_factory.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/git_provider.dart';
-import 'repos_notifier.dart';
 
-final _httpClientProvider = Provider<http.Client>((ref) {
-  final client = http.Client();
-  ref.onDispose(client.close);
-  return client;
-});
+/// First connection of a given type, or null.
+GitConnection? _firstConnectionOfType(
+    List<GitConnection> conns, GitProviderType type) {
+  for (final c in conns) {
+    if (c.type == type) return c;
+  }
+  return null;
+}
 
+/// Legacy GitHub datasource — now sourced from the first connected GitHub
+/// account so existing per-repo detail providers keep working unchanged.
 final githubDatasourceProvider = Provider<GitHubRemoteDatasource?>((ref) {
-  final token = ref.watch(authProvider).valueOrNull;
-  if (token == null || token.isEmpty) return null;
-  final client = ref.watch(_httpClientProvider);
-  return GitHubRemoteDatasource(client: client, token: token);
+  final conns = ref.watch(connectionsProvider).valueOrNull ?? const [];
+  final gh = _firstConnectionOfType(conns, GitProviderType.github);
+  if (gh == null) return null;
+  final client = ref.watch(sharedHttpClientProvider);
+  return GitHubRemoteDatasource(client: client, token: gh.token);
 });
 
-final gitProviderProvider = Provider<GitProvider?>((ref) {
-  final datasource = ref.watch(githubDatasourceProvider);
-  if (datasource == null) return null;
-  return GitHubRepoRepositoryImpl(datasource);
+/// The active adapter used for account-level queries (profile, etc.).
+/// Prefers GitHub, falls back to the first connected account.
+final primaryProviderProvider = Provider<GitProvider?>((ref) {
+  final providers = ref.watch(activeProvidersProvider);
+  if (providers.isEmpty) return null;
+  for (final p in providers) {
+    if (p.type == GitProviderType.github) return p;
+  }
+  return providers.first;
 });
 
 final currentUserProvider = FutureProvider<UserEntity?>((ref) async {
-  final provider = ref.watch(gitProviderProvider);
+  final provider = ref.watch(primaryProviderProvider);
   if (provider == null) return null;
   return provider.getUser();
 });
 
-final allReposProvider = Provider<AsyncValue<List<RepoEntity>>>((ref) {
-  final state = ref.watch(reposNotifierProvider);
-  final gitlabAsync = ref.watch(gitlabReposProvider);
-
-  if (state.isLoading) return const AsyncLoading();
-  if (state.error != null && state.repos.isEmpty) {
-    return AsyncError(state.error!, StackTrace.empty);
-  }
-  return gitlabAsync.whenData(
-    (gitlabRepos) => [...state.repos, ...gitlabRepos],
-  );
+/// All repositories across every connected account, merged.
+final allReposProvider = FutureProvider<List<RepoEntity>>((ref) async {
+  final providers = ref.watch(activeProvidersProvider);
+  if (providers.isEmpty) return const [];
+  final results = await Future.wait(providers.map((p) async {
+    try {
+      return await p.getRepos();
+    } catch (_) {
+      return <RepoEntity>[];
+    }
+  }));
+  return results.expand((e) => e).toList();
 });
 
+/// Starred repos across providers that support starring.
 final starredReposProvider = FutureProvider<List<RepoEntity>>((ref) async {
-  final provider = ref.watch(gitProviderProvider);
-  if (provider == null) return [];
-  return provider.getStarredRepos();
+  final providers = ref
+      .watch(activeProvidersProvider)
+      .where((p) => p.capabilities.starring)
+      .toList();
+  if (providers.isEmpty) return const [];
+  final results = await Future.wait(providers.map((p) async {
+    try {
+      return await p.getStarredRepos();
+    } catch (_) {
+      return <RepoEntity>[];
+    }
+  }));
+  return results.expand((e) => e).toList();
 });
 
 enum RepoSort { updated, stars, name, created }
@@ -59,36 +80,6 @@ enum RepoSort { updated, stars, name, created }
 final repoFilterProvider = StateProvider<RepoFilter>((ref) => RepoFilter.all);
 final searchQueryProvider = StateProvider<String>((ref) => '');
 final repoSortProvider = StateProvider<RepoSort>((ref) => RepoSort.updated);
-
-/// GitLab datasource — null when no token is saved.
-final gitlabDatasourceProvider =
-    FutureProvider<GitLabRemoteDatasource?>((ref) async {
-  // Re-evaluate when GitHub auth changes (logout clears all tokens too)
-  ref.watch(authProvider);
-  final token = await SecureTokenStorage.readGitLabToken();
-  if (token == null || token.isEmpty) return null;
-  return GitLabRemoteDatasource(client: http.Client(), token: token);
-});
-
-/// Returns the connected GitLab username, or null if not connected.
-final gitlabConnectedUserProvider = FutureProvider<String?>((ref) async {
-  final dsAsync = ref.watch(gitlabDatasourceProvider);
-  final ds = dsAsync.valueOrNull;
-  if (ds == null) return null;
-  try {
-    return await ds.verifyToken();
-  } catch (_) {
-    return null;
-  }
-});
-
-final gitlabReposProvider = FutureProvider<List<RepoEntity>>((ref) async {
-  final dsAsync = ref.watch(gitlabDatasourceProvider);
-  final ds = dsAsync.valueOrNull;
-  if (ds == null) return [];
-  final projects = await ds.getProjects();
-  return projects.map((p) => p.toEntity()).toList();
-});
 
 final filteredReposProvider = Provider<AsyncValue<List<RepoEntity>>>((ref) {
   final filter = ref.watch(repoFilterProvider);
@@ -105,8 +96,9 @@ final filteredReposProvider = Provider<AsyncValue<List<RepoEntity>>>((ref) {
 
     switch (filter) {
       case RepoFilter.owned:
-        filtered =
-            filtered.where((r) => !r.isFork && r.ownerLogin == userLogin).toList();
+        filtered = filtered
+            .where((r) => !r.isFork && r.ownerLogin == userLogin)
+            .toList();
       case RepoFilter.forked:
         filtered = filtered.where((r) => r.isFork).toList();
       case RepoFilter.publicOnly:
@@ -132,7 +124,8 @@ final filteredReposProvider = Provider<AsyncValue<List<RepoEntity>>>((ref) {
       case RepoSort.stars:
         filtered.sort((a, b) => b.stargazersCount.compareTo(a.stargazersCount));
       case RepoSort.name:
-        filtered.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        filtered
+            .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       case RepoSort.created:
         filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }

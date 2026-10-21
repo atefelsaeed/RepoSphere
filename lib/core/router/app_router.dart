@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/auth/domain/git_connection.dart';
+import '../../features/auth/presentation/providers/connections_provider.dart';
 import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../../features/repos/domain/entities/commit_entity.dart';
 import '../../features/repos/domain/entities/issue_entity.dart';
@@ -23,13 +24,15 @@ import '../../features/repos/presentation/screens/notifications_screen.dart';
 import '../../features/repos/presentation/screens/repo_readme_screen.dart';
 import '../../features/repos/presentation/screens/repo_releases_screen.dart';
 import '../../features/repos/presentation/screens/gists_screen.dart';
+import '../../features/repos/presentation/screens/inbox_screen.dart';
+import '../../features/repos/presentation/screens/workspaces_screen.dart';
 import '../../features/repos/presentation/screens/repos_screen.dart';
 import '../../features/repos/presentation/screens/settings_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
   return GoRouter(
-    initialLocation: '/repos',
+    initialLocation: '/inbox',
     refreshListenable: notifier,
     redirect: notifier.redirect,
     errorBuilder: (context, state) => Scaffold(
@@ -50,7 +53,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                     color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: () => context.goNamed('repos'),
+              onPressed: () => context.goNamed('inbox'),
               icon: const Icon(Icons.home_rounded, size: 16),
               label: const Text('Go home'),
             ),
@@ -93,6 +96,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         name: 'settings',
         builder: (_, __) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/inbox',
+        name: 'inbox',
+        builder: (_, __) => const InboxScreen(),
+      ),
+      GoRoute(
+        path: '/workspaces',
+        name: 'workspaces',
+        builder: (_, __) => const WorkspacesScreen(),
       ),
       GoRoute(
         path: '/repos',
@@ -200,19 +213,19 @@ class _RouterNotifier extends ChangeNotifier {
   final Ref _ref;
 
   _RouterNotifier(this._ref) {
-    _ref.listen<AsyncValue<String?>>(
-        authProvider, (_, __) => notifyListeners());
+    _ref.listen<AsyncValue<List<GitConnection>>>(
+        connectionsProvider, (_, __) => notifyListeners());
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
-    final authState = _ref.read(authProvider);
-    if (authState.isLoading) return null;
+    final conns = _ref.read(connectionsProvider);
+    if (conns.isLoading) return null;
 
-    final isAuthenticated = authState.valueOrNull?.isNotEmpty == true;
+    final isAuthenticated = (conns.valueOrNull ?? const []).isNotEmpty;
     final isOnAuth = state.matchedLocation == '/auth';
 
     if (!isAuthenticated && !isOnAuth) return '/auth';
-    if (isAuthenticated && isOnAuth) return '/repos';
+    if (isAuthenticated && isOnAuth) return '/inbox';
     return null;
   }
 }

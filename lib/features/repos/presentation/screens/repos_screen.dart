@@ -4,12 +4,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/presentation/providers/connections_provider.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../../domain/repositories/git_provider.dart';
 import '../providers/notifications_provider.dart';
 import '../providers/pinned_repos_provider.dart';
-import '../providers/repos_notifier.dart';
 import '../providers/repos_provider.dart';
 import '../widgets/repo_card.dart';
 import '../../../../core/providers/theme_provider.dart';
@@ -46,10 +45,8 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
   }
 
   void _onScroll() {
-    final pos = _scrollController.position;
-    if (pos.pixels >= pos.maxScrollExtent - 300) {
-      ref.read(reposNotifierProvider.notifier).loadMore();
-    }
+    // Cross-provider pagination is handled per-adapter; the unified list loads
+    // the first page from each connection. (Infinite scroll: future work.)
   }
 
   bool _handleKey(KeyEvent event) {
@@ -78,7 +75,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
   }
 
   Future<void> _refresh() async {
-    ref.read(reposNotifierProvider.notifier).refresh();
+    ref.invalidate(allReposProvider);
     ref.invalidate(starredReposProvider);
     ref.invalidate(currentUserProvider);
   }
@@ -110,6 +107,12 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
           ],
         ),
         actions: [
+          // Inbox (home)
+          IconButton(
+            tooltip: 'Inbox',
+            icon: const Icon(Icons.inbox_outlined),
+            onPressed: () => context.goNamed('inbox'),
+          ),
           // Settings
           IconButton(
             tooltip: 'Settings',
@@ -209,9 +212,9 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
               final confirmed = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Disconnect'),
+                  title: const Text('Disconnect all'),
                   content: const Text(
-                      'Remove your GitHub token from this device?'),
+                      'Remove all connected accounts from this device?'),
                   actions: [
                     TextButton(
                       onPressed: () => ctx.pop(false),
@@ -225,7 +228,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                 ),
               );
               if (confirmed == true) {
-                ref.read(authProvider.notifier).logout();
+                ref.read(connectionsProvider.notifier).removeAll();
               }
             },
           ),
@@ -405,34 +408,8 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
               ),
             ),
 
-            // Pagination footer
-            SliverToBoxAdapter(
-              child: Builder(builder: (context) {
-                final state = ref.watch(reposNotifierProvider);
-                if (state.isLoadingMore) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                if (!state.hasMore && state.repos.isNotEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: Text(
-                        'All ${state.repos.length} GitHub repos loaded',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                            ),
-                      ),
-                    ),
-                  );
-                }
-                return const SizedBox(height: 24);
-              }),
-            ),
+            // Footer
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
           ],
         ),
       ),

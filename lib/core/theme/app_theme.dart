@@ -119,7 +119,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          labelStyle: GoogleFonts.inter(fontSize: 13),
+          labelStyle: GoogleFonts.inter(
+              fontSize: 13, color: const Color(0xFFF9FAFB)),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         ),
         dividerTheme: const DividerThemeData(
@@ -212,7 +213,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          labelStyle: GoogleFonts.inter(fontSize: 13),
+          labelStyle: GoogleFonts.inter(
+              fontSize: 13, color: const Color(0xFF0F172A)),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         ),
         dividerTheme: const DividerThemeData(
