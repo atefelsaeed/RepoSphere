@@ -115,6 +115,7 @@ class AppTheme {
         chipTheme: ChipThemeData(
           backgroundColor: AppColors.darkSurface,
           selectedColor: AppColors.primary.withAlpha(60),
+          checkmarkColor: AppColors.primaryLight,
           side: const BorderSide(color: AppColors.darkBorder),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
@@ -209,6 +210,7 @@ class AppTheme {
         chipTheme: ChipThemeData(
           backgroundColor: AppColors.lightBg,
           selectedColor: AppColors.primary.withAlpha(20),
+          checkmarkColor: AppColors.primary,
           side: const BorderSide(color: AppColors.lightBorder),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),

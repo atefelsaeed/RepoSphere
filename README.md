@@ -12,6 +12,13 @@ Most Git tools answer *"where are my repos?"*. RepoSphere answers *"what do I ne
 
 It is built for people who work across many accounts — freelancers and agencies with a personal login, an org per client, and a self-hosted GitLab for the client who insists.
 
+<p align="center">
+  <img src="doc/screenshots/inbox-dark.png" width="250" alt="Unified Inbox across GitHub and GitLab, dark theme">
+  <img src="doc/screenshots/inbox-actions-dark.png" width="250" alt="Quick actions: re-run CI, approve, request changes, merge">
+  <img src="doc/screenshots/inbox-workspace-light.png" width="250" alt="Inbox filtered to one client workspace, light theme">
+</p>
+<p align="center"><sub>Demo data. Left to right: everything that needs you, act without opening a browser, one client at a time.</sub></p>
+
 > **Status: alpha.** Built with Flutter for web, macOS, Windows, Linux, Android and iOS. Expect rough edges — see [CHANGELOG.md](CHANGELOG.md).
 
 ## What it does

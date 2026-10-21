@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/app_version.dart';
 import '../../../notifications/background_inbox_check.dart';
 import '../../../notifications/notification_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -139,7 +140,7 @@ class SettingsScreen extends ConsumerWidget {
                   children: const [
                     _AboutRow(label: 'App', value: 'RepoSphere'),
                     Divider(height: 20),
-                    _AboutRow(label: 'Version', value: '1.0.0-alpha'),
+                    _AboutRow(label: 'Version', value: appVersion),
                     Divider(height: 20),
                     _AboutRow(
                         label: 'Providers',
