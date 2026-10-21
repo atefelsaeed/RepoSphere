@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:repo_sphere/core/providers/locale_provider.dart';
 import 'package:repo_sphere/features/repos/domain/entities/inbox_item_entity.dart';
-import 'package:repo_sphere/l10n/app_localizations.dart';
 import 'package:repo_sphere/l10n/l10n.dart';
 
 Map<String, dynamic> _arb(String code) =>

@@ -8,7 +8,6 @@ import 'package:repo_sphere/features/repos/data/git_provider_factory.dart';
 import 'package:repo_sphere/features/repos/domain/entities/inbox_item_entity.dart';
 import 'package:repo_sphere/features/repos/domain/repositories/git_provider.dart';
 import 'package:repo_sphere/features/repos/presentation/screens/inbox_screen.dart';
-import 'package:repo_sphere/l10n/app_localizations.dart';
 import 'package:repo_sphere/l10n/l10n.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
