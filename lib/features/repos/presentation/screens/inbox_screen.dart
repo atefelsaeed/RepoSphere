@@ -167,6 +167,7 @@ class InboxScreen extends ConsumerWidget {
         padding: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
         child: ChoiceChip(
           avatar: dot == null ? null : CircleAvatar(backgroundColor: dot, radius: 6),
+          showCheckmark: false,
           label: Text(label),
           selected: selected == id,
           onSelected: (_) =>

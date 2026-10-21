@@ -5,6 +5,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-21
+
+First release of the unified Inbox: RepoSphere now answers "what needs me today?" across all your Git accounts.
+
 ### Added
 - Login screen now lets you choose GitHub, GitLab or Azure DevOps (it was GitHub-only), with a link to create a token and the scopes each needs. The same form is used in Settings.
 - New app icon (the hub mark) for iOS, Android (adaptive), macOS, Windows and web; regenerate with `tool/make_icon.py` + `dart run flutter_launcher_icons`.
@@ -29,6 +33,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 - CI now builds with a current stable Flutter instead of 3.24.
 
 ### Fixed
+- Check marks on selected filter chips were invisible in the light theme, and the workspace chip's colour dot was hidden when selected.
 - Self-hosted GitLab could not be added from the UI: the instance URL field was never shown for GitLab. It now is (optional), and URLs typed without `https://` are normalised.
 - Android release builds had no `INTERNET` permission in the main manifest, so they could not reach any Git host.
 - Android builds failed to compile because `sentry_flutter` 8.x did not support the project's Kotlin version.
