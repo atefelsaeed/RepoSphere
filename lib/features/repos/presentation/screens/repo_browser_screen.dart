@@ -8,6 +8,7 @@ import '../providers/repo_branches_provider.dart';
 import '../providers/repo_contents_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class RepoBrowserScreen extends ConsumerStatefulWidget {
   final RepoEntity repo;
@@ -51,6 +52,7 @@ class _RepoBrowserScreenState extends ConsumerState<RepoBrowserScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final contentsAsync = ref.watch(repoContentsProvider(_args));
@@ -149,7 +151,7 @@ class _RepoBrowserScreenState extends ConsumerState<RepoBrowserScreen> {
                                   Icon(Icons.folder_open_rounded,
                                       size: 48, color: cs.onSurfaceVariant),
                                   const SizedBox(height: 12),
-                                  Text('Empty directory',
+                                  Text(l.emptyDirectory,
                                       style: theme.textTheme.bodyLarge
                                           ?.copyWith(
                                               color: cs.onSurfaceVariant)),
@@ -234,6 +236,7 @@ class _BranchSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final cs = Theme.of(context).colorScheme;
     final all = branches.contains(selected) ? branches : [selected, ...branches];
 
@@ -275,7 +278,7 @@ class _BranchSelector extends StatelessWidget {
                         color: cs.primaryContainer,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text('default',
+                      child: Text(l.defaultBadge,
                           style: TextStyle(
                               fontSize: 10,
                               color: cs.onPrimaryContainer)),

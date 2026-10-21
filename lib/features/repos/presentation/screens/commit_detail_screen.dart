@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/commit_entity.dart';
 import '../../domain/entities/commit_detail_entity.dart';
@@ -9,6 +8,7 @@ import '../../domain/entities/repo_entity.dart';
 import '../providers/commit_detail_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class CommitDetailScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -22,6 +22,7 @@ class CommitDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final detailAsync = ref.watch(commitDetailProvider(
@@ -43,7 +44,7 @@ class CommitDetailScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Open on GitHub',
+            tooltip: l.openOnProvider('GitHub'),
             icon: const Icon(Icons.open_in_new_rounded),
             onPressed: () => launchUrl(Uri.parse(commit.htmlUrl),
                 mode: LaunchMode.externalApplication),
@@ -68,6 +69,7 @@ class _CommitDetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -118,7 +120,7 @@ class _CommitDetailBody extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'committed ${timeago.format(detail.date)}',
+                    l.committedAgo(ago(context, detail.date)),
                     style: theme.textTheme.labelSmall
                         ?.copyWith(color: cs.onSurfaceVariant),
                   ),
@@ -142,7 +144,7 @@ class _CommitDetailBody extends StatelessWidget {
               Icon(Icons.insert_drive_file_outlined,
                   size: 16, color: cs.onSurfaceVariant),
               const SizedBox(width: 6),
-              Text('${detail.files.length} file${detail.files.length == 1 ? '' : 's'} changed',
+              Text(l.filesChangedCount(detail.files.length),
                   style: theme.textTheme.labelMedium),
               const SizedBox(width: 16),
               Text('+${detail.totalAdditions}',

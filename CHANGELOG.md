@@ -5,12 +5,20 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+### Added
+- **Forgejo / Gitea** (including Codeberg and self-hosted servers): Inbox, in-app detail with diff, approve, request changes and merge. Choose it on the login screen or in Settings.
+- **Azure DevOps**: approve, request changes, merge, and in-app detail (changed files and discussion for PRs; description and comments for work items).
+
+### Changed
+- **Arabic everywhere:** the repository browser (repos list, repo detail, commits, files, PRs, issues, releases, gists, activity, notifications, profile, search) and provider error messages are now translated too, with RTL layout. A test guards against new hard-coded English labels.
+- The in-app detail hides the `+0 −0` counter for providers that list changed files without line counts.
+
 ## [0.3.0] — 2026-10-21
 
 **First published release.** RepoSphere answers "what needs me today?" across all your Git accounts: one prioritised Inbox for GitHub, GitLab (including self-hosted) and Azure DevOps with failing CI, requested changes, conflicts, review requests, assignments and mentions; approve / request changes / merge / re-run CI from the item; client workspaces; urgent alerts on mobile; Arabic and English. Builds for web, macOS, Windows, Linux and Android. Version 0.2.0 was prepared but never tagged, so its changes are included here (see CHANGELOG.md).
 
 ### Added
-- **Arabic and English**, with full right-to-left layout, for the Inbox, item detail, quick actions, workspaces, login/connect form, Settings and the background alert notifications. Pick the language in Settings (default: your device language). The older repository-browser screens are still English only.
+- **Arabic and English**, with full right-to-left layout, for the Inbox, item detail, quick actions, workspaces, login/connect form, Settings and the background alert notifications. Pick the language in Settings (default: your device language). The repository-browser screens are translated too (see Unreleased).
 - **In-app detail** for Inbox items (GitHub and GitLab): description, changed files with a coloured unified diff, and the discussion, with the quick actions one tap away. Azure DevOps items still open in the browser.
 - Inbox now tells you when **some results may be missing** (a query failed while others succeeded) and why, instead of showing a partial list silently.
 - Widget tests for the Inbox and detail screens.

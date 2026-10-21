@@ -6,9 +6,11 @@ import '../../auth/presentation/providers/connections_provider.dart';
 import '../domain/entities/repo_entity.dart';
 import '../domain/repositories/git_provider.dart';
 import 'datasources/azure_remote_datasource.dart';
+import 'datasources/gitea_remote_datasource.dart';
 import 'datasources/github_remote_datasource.dart';
 import 'datasources/gitlab_remote_datasource.dart';
 import 'repositories/azure_repo_repository_impl.dart';
+import 'repositories/gitea_repo_repository_impl.dart';
 import 'repositories/github_repo_repository_impl.dart';
 import 'repositories/gitlab_repo_repository_impl.dart';
 
@@ -48,9 +50,16 @@ GitProvider? buildGitProvider(GitConnection connection, http.Client client) {
         ),
         connection,
       );
-    case GitProviderType.bitbucket:
     case GitProviderType.gitea:
-      // Implemented in later phases.
+      final url = connection.baseUrl;
+      if (url == null || url.isEmpty) return null;
+      return GiteaRepoRepositoryImpl(
+        GiteaRemoteDatasource(
+            client: client, token: connection.token, baseUrl: url),
+        connection,
+      );
+    case GitProviderType.bitbucket:
+      // Implemented in a later phase.
       return null;
   }
 }

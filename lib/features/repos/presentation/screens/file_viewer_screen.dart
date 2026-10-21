@@ -9,6 +9,7 @@ import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_contents_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class FileViewerScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -24,6 +25,7 @@ class FileViewerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     final fileAsync = ref.watch(fileContentProvider(
       (owner: repo.ownerLogin, repo: repo.name, path: path),
     ));
@@ -48,13 +50,13 @@ class FileViewerScreen extends ConsumerWidget {
         actions: [
           fileAsync.whenOrNull(
             data: (file) => IconButton(
-              tooltip: 'Copy content',
+              tooltip: l.copyContent,
               icon: const Icon(Icons.copy_rounded),
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: file.content));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Copied to clipboard'),
+                  SnackBar(
+                    content: Text(l.copiedToClipboard),
                     duration: Duration(seconds: 2),
                   ),
                 );
@@ -62,7 +64,7 @@ class FileViewerScreen extends ConsumerWidget {
             ),
           ) ?? const SizedBox.shrink(),
           IconButton(
-            tooltip: 'Open on GitHub',
+            tooltip: l.openOnProvider('GitHub'),
             icon: const Icon(Icons.open_in_new_rounded),
             onPressed: () => launchUrl(
               Uri.parse(
@@ -101,6 +103,7 @@ class _CodeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final lines = content.split('\n');
     final language = _detectLanguage(fileName);
 
@@ -114,7 +117,7 @@ class _CodeView extends StatelessWidget {
                 size: 48,
                 color: Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(height: 12),
-            Text('Binary file — cannot display',
+            Text(l.binaryFile,
                 style: Theme.of(context).textTheme.bodyLarge),
           ],
         ),

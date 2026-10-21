@@ -6,6 +6,7 @@ import '../../../../core/utils/exceptions.dart';
 import '../../../repos/data/datasources/azure_remote_datasource.dart';
 import '../../../repos/data/datasources/github_remote_datasource.dart';
 import '../../../repos/data/datasources/gitlab_remote_datasource.dart';
+import '../../../repos/data/datasources/gitea_remote_datasource.dart';
 import '../../data/secure_token_storage.dart';
 import '../../../../l10n/l10n.dart';
 import '../../domain/git_connection.dart';
@@ -61,6 +62,13 @@ String normalizeInstanceUrl(String input) {
             : '$baseUrl/_usersSettings/tokens'),
         scopes: 'Code (read), Work Items (read)',
       );
+    case GitProviderType.gitea:
+      return (
+        url: Uri.parse(baseUrl.isEmpty
+            ? 'https://codeberg.org/user/settings/applications'
+            : '$baseUrl/user/settings/applications'),
+        scopes: 'read:user, read:repository, write:repository, write:issue',
+      );
     default:
       return (
         url: Uri.parse(
@@ -104,6 +112,7 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
     GitProviderType.github,
     GitProviderType.gitlab,
     GitProviderType.azureDevOps,
+    GitProviderType.gitea,
   ];
 
   @override
@@ -113,18 +122,22 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
     super.dispose();
   }
 
-  bool get _urlRequired => _type == GitProviderType.azureDevOps;
+  bool get _urlRequired =>
+      _type == GitProviderType.azureDevOps || _type == GitProviderType.gitea;
   bool get _urlVisible =>
-      _type == GitProviderType.gitlab || _type == GitProviderType.azureDevOps;
+      _type == GitProviderType.gitlab || _urlRequired;
 
-  String _urlLabel(AppLocalizations l) => _type == GitProviderType.azureDevOps
-      ? l.connectAzureUrlLabel
-      : l.connectGitlabUrlLabel;
+  String _urlLabel(AppLocalizations l) => switch (_type) {
+        GitProviderType.azureDevOps => l.connectAzureUrlLabel,
+        GitProviderType.gitea => l.connectGiteaUrlLabel,
+        _ => l.connectGitlabUrlLabel,
+      };
 
   String _tokenHint(AppLocalizations l) => switch (_type) {
         GitProviderType.github => 'ghp_xxxxxxxx',
         GitProviderType.gitlab => 'glpat-xxxxxxxx',
         GitProviderType.azureDevOps => 'Azure DevOps PAT',
+        GitProviderType.gitea => 'Forgejo / Gitea token',
         _ => l.tokenLabel,
       };
 
@@ -137,7 +150,9 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
       return;
     }
     if (_urlRequired && url.isEmpty) {
-      setState(() => _error = l.azureNeedsOrg);
+      setState(() => _error = _type == GitProviderType.gitea
+          ? l.giteaNeedsUrl
+          : l.azureNeedsOrg);
       return;
     }
     setState(() {
@@ -198,6 +213,17 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
           token: token,
           baseUrl: baseUrl,
         );
+      case GitProviderType.gitea:
+        final login = await GiteaRemoteDatasource(
+                client: client, token: token, baseUrl: baseUrl)
+            .verifyToken();
+        return GitConnection(
+          id: id,
+          type: GitProviderType.gitea,
+          accountLogin: login,
+          token: token,
+          baseUrl: baseUrl,
+        );
       default:
         throw Exception('Unsupported provider');
     }
@@ -205,7 +231,7 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
 
   String _friendly(Object e, AppLocalizations l) {
     if (e is GitHubAuthException) return l.invalidToken;
-    if (e is GitHubRateLimitException) return e.message;
+    if (e is GitHubRateLimitException) return translateErrorMessage(l, e.message);
     final s = e.toString();
     if (s.contains('401') || s.contains('Invalid')) return l.invalidToken;
     return _urlVisible ? l.couldNotConnectUrl : l.couldNotConnectNet;
@@ -257,7 +283,9 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
               labelText: _urlLabel(l),
               hintText: _type == GitProviderType.gitlab
                   ? l.connectGitlabUrlHint
-                  : 'https://dev.azure.com/your-org',
+                  : _type == GitProviderType.gitea
+                      ? 'https://codeberg.org'
+                      : 'https://dev.azure.com/your-org',
               prefixIcon: const Icon(Icons.link_rounded),
             ),
           ),

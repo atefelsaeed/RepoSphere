@@ -7,7 +7,6 @@ import '../../../auth/presentation/providers/connections_provider.dart';
 import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/workspace_entity.dart';
 import '../../data/git_provider_factory.dart';
-import '../../data/inbox_loader.dart';
 import '../../../../l10n/l10n.dart';
 import '../providers/inbox_provider.dart';
 import '../widgets/inbox_action_sheet.dart';
@@ -328,10 +327,10 @@ class _StatusBanner extends StatelessWidget {
   List<String> _lines(AppLocalizations l) => [
         for (final e in result.errors.entries)
           l.bannerCouldntLoad(
-              e.key, inboxErrorText(e.value, fallback: l.errNetwork)),
+              e.key, localizedError(l, e.value)),
         for (final e in result.partial.entries)
           l.bannerPartial(
-              e.key, inboxErrorText(e.value, fallback: l.errNetwork)),
+              e.key, localizedError(l, e.value)),
       ];
 
   @override

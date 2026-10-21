@@ -93,6 +93,8 @@ S = {
   # ── Connect form / login ──
   "connectAzureUrlLabel": ("Organisation URL (https://dev.azure.com/your-org)", "رابط المؤسسة (https://dev.azure.com/your-org)", []),
   "connectGitlabUrlLabel": ("Self-hosted GitLab URL (optional)", "رابط GitLab المستضاف ذاتيًا (اختياري)", []),
+  "connectGiteaUrlLabel": ("Forgejo / Gitea URL (e.g. https://codeberg.org)", "رابط Forgejo / Gitea (مثل https://codeberg.org)", []),
+  "giteaNeedsUrl": ("Forgejo / Gitea needs the server URL.", "يحتاج Forgejo / Gitea إلى رابط الخادم.", []),
   "connectGitlabUrlHint": ("Empty = gitlab.com", "فارغ = gitlab.com", []),
   "tokenLabel": ("Personal Access Token", "رمز الوصول الشخصي", []),
   "enterToken": ("Enter a token.", "أدخل الرمز.", []),
@@ -149,6 +151,11 @@ S = {
   "alertChannelName": ("Inbox alerts", "تنبيهات الوارد", []),
   "alertChannelDescription": ("Failing CI, review requests and other urgent items", "فشل CI وطلبات المراجعة وعناصر عاجلة أخرى", []),
 }
+
+# Strings of the repository-browser screens live in their own table.
+from strings_legacy import LEGACY  # noqa: E402
+S.update(LEGACY)
+
 
 def arb(idx):
     d = {"@@locale": ["en", "ar"][idx]}

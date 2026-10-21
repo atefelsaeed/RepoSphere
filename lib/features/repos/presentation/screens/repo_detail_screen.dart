@@ -18,6 +18,7 @@ import '../providers/repos_provider.dart';
 import '../widgets/commit_tile.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class RepoDetailScreen extends ConsumerStatefulWidget {
   final RepoEntity repo;
@@ -50,6 +51,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final repo = widget.repo;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
@@ -77,7 +79,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
         title: Text(repo.name),
         actions: [
           Tooltip(
-            message: isPinned ? 'Unpin' : 'Pin',
+            message: isPinned ? l.unpin : l.pin,
             child: IconButton(
               icon: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
@@ -100,12 +102,12 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                 extra: (repo: repo, path: '', branch: null),
               ),
               icon: const Icon(Icons.folder_open_rounded, size: 16),
-              label: const Text('Browse Code'),
+              label: Text(l.browseCode),
             ),
             const SizedBox(width: 8),
             isStarredAsync?.whenOrNull(
               data: (starred) => Tooltip(
-                message: starred ? 'Unstar' : 'Star',
+                message: starred ? l.unstar : l.star,
                 child: IconButton(
                   icon: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
@@ -130,7 +132,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
             const SizedBox(width: 8),
           ],
           Tooltip(
-            message: _copied ? 'Copied!' : 'Copy link',
+            message: _copied ? l.copied : l.copyLink,
             child: IconButton(
               icon: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
@@ -149,9 +151,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
               mode: LaunchMode.externalApplication,
             ),
             icon: const Icon(Icons.open_in_new_rounded, size: 16),
-            label: Text(repo.provider == GitProviderType.github
-                ? 'Open on GitHub'
-                : 'Open on ${repo.provider.label}'),
+            label: Text(l.openOnProvider(repo.provider.label)),
           ),
           const SizedBox(width: 12),
         ],
@@ -193,7 +193,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                     Chip(
                       avatar: Icon(Icons.lock_outline_rounded,
                           size: 14, color: cs.onSurfaceVariant),
-                      label: Text('Private',
+                      label: Text(l.filterPrivate,
                           style: TextStyle(color: cs.onSurfaceVariant)),
                       side: BorderSide(color: cs.outlineVariant),
                     )
@@ -201,7 +201,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                     Chip(
                       avatar: Icon(Icons.public_rounded,
                           size: 14, color: cs.onSurfaceVariant),
-                      label: Text('Public',
+                      label: Text(l.filterPublic,
                           style: TextStyle(color: cs.onSurfaceVariant)),
                       side: BorderSide(color: cs.outlineVariant),
                     ),
@@ -236,7 +236,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                   children: [
                     _NavButton(
                       icon: Icons.call_merge_rounded,
-                      label: 'Pull Requests',
+                      label: l.pullRequests,
                       color: const Color(0xFF3FB950),
                       onTap: () => context.goNamed('repo-prs',
                           pathParameters: {'id': '${repo.id}'},
@@ -244,7 +244,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                     ),
                     _NavButton(
                       icon: Icons.circle_outlined,
-                      label: 'Issues',
+                      label: l.issues,
                       color: const Color(0xFFF59E0B),
                       onTap: () => context.goNamed('repo-issues',
                           pathParameters: {'id': '${repo.id}'},
@@ -260,7 +260,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                     ),
                     _NavButton(
                       icon: Icons.commit_rounded,
-                      label: 'Commits',
+                      label: l.commits,
                       color: const Color(0xFFA371F7),
                       onTap: () => context.goNamed('repo-commits',
                           pathParameters: {'id': '${repo.id}'},
@@ -268,7 +268,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                     ),
                     _NavButton(
                       icon: Icons.folder_open_rounded,
-                      label: 'Browse Code',
+                      label: l.browseCode,
                       color: cs.secondary,
                       onTap: () => context.goNamed('repo-browser',
                           pathParameters: {'id': '${repo.id}'},
@@ -276,7 +276,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                     ),
                     _NavButton(
                       icon: Icons.new_releases_outlined,
-                      label: 'Releases',
+                      label: l.releases,
                       color: const Color(0xFF54AEFF),
                       onTap: () => context.goNamed('repo-releases',
                           pathParameters: {'id': '${repo.id}'},
@@ -310,7 +310,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                   if (repo.isFork)
                     _InfoChip(
                       icon: const Icon(Icons.fork_right_rounded, size: 14),
-                      label: 'Fork',
+                      label: l.forkLabel,
                     ),
                   if (repo.defaultBranch != null)
                     _InfoChip(
@@ -339,7 +339,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
               // Topics
               if (repo.topics.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                Text('Topics', style: theme.textTheme.labelLarge),
+                Text(l.topics, style: theme.textTheme.labelLarge),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
@@ -369,13 +369,13 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                 children: [
                   Expanded(
                     child: _DateTile(
-                      label: 'Created',
+                      label: l.sortCreated,
                       date: repo.createdAt,
                     ),
                   ),
                   Expanded(
                     child: _DateTile(
-                      label: 'Last updated',
+                      label: l.sortUpdated,
                       date: repo.updatedAt,
                     ),
                   ),
@@ -396,7 +396,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                         Icon(Icons.commit_rounded,
                             size: 18, color: cs.onSurfaceVariant),
                         const SizedBox(width: 8),
-                        Text('Recent Commits',
+                        Text(l.recentCommits,
                             style: theme.textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.bold)),
                       ],
@@ -408,7 +408,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                         extra: (repo: repo, branch: repo.defaultBranch),
                       ),
                       icon: const Icon(Icons.arrow_forward_rounded, size: 14),
-                      label: const Text('View all'),
+                      label: Text(l.viewAll),
                       style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact),
                     ),
@@ -420,7 +420,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                   data: (commits) => commits.isEmpty
                       ? Padding(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Text('No commits found',
+                          child: Text(l.noCommitsFound,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                   color: cs.onSurfaceVariant)),
                         )
@@ -480,25 +480,26 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _StatItem(
             icon: Icons.star_border_rounded,
             value: repo.stargazersCount,
-            label: 'Stars'),
+            label: l.sortStars),
         _StatItem(
             icon: Icons.fork_right_rounded,
             value: repo.forksCount,
-            label: 'Forks'),
+            label: l.forks),
         _StatItem(
             icon: Icons.visibility_outlined,
             value: repo.watchersCount,
-            label: 'Watchers'),
+            label: l.watchers),
         _StatItem(
             icon: Icons.circle_outlined,
             value: repo.openIssuesCount,
-            label: 'Issues'),
+            label: l.issues),
       ],
     );
   }
@@ -601,6 +602,7 @@ class _LanguageBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final total = languages.values.fold(0, (a, b) => a + b);
@@ -610,7 +612,7 @@ class _LanguageBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Languages', style: theme.textTheme.labelLarge),
+        Text(l.languages, style: theme.textTheme.labelLarge),
         const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
@@ -660,12 +662,13 @@ class _ContributorsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Contributors', style: theme.textTheme.labelLarge),
+        Text(l.contributors, style: theme.textTheme.labelLarge),
         const SizedBox(height: 10),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -677,7 +680,7 @@ class _ContributorsRow extends StatelessWidget {
                   children: [
                     Tooltip(
                       message:
-                          '${c.login} · ${c.contributions} commits',
+                          l.contributorTooltip(c.login, c.contributions),
                       child: CircleAvatar(
                         radius: 20,
                         backgroundImage: NetworkImage(c.avatarUrl),
@@ -749,6 +752,7 @@ class _CloneSectionState extends State<_CloneSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final httpsUrl =
         'https://github.com/${widget.repo.ownerLogin}/${widget.repo.name}.git';
@@ -758,7 +762,7 @@ class _CloneSectionState extends State<_CloneSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Clone', style: theme.textTheme.labelLarge),
+        Text(l.clone, style: theme.textTheme.labelLarge),
         const SizedBox(height: 8),
         _CloneRow(
           label: 'HTTPS',
@@ -793,6 +797,7 @@ class _CloneRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -834,7 +839,7 @@ class _CloneRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Tooltip(
-            message: copied ? 'Copied!' : 'Copy',
+            message: copied ? l.copied : l.copy,
             child: GestureDetector(
               onTap: onCopy,
               child: AnimatedSwitcher(

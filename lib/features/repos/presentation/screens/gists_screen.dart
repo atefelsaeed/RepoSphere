@@ -1,28 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/gist_entity.dart';
 import '../providers/gists_provider.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class GistsScreen extends ConsumerWidget {
   const GistsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final gistsAsync = ref.watch(gistsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Gists',
+        title: Text(l.yourGists,
             style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l.refresh,
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => ref.invalidate(gistsProvider),
           ),
@@ -41,7 +42,7 @@ class GistsScreen extends ConsumerWidget {
             children: [
               Icon(Icons.error_outline_rounded, size: 48, color: cs.error),
               const SizedBox(height: 12),
-              Text('Failed to load gists',
+              Text(l.failedLoadGists,
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(e.toString(),
@@ -60,7 +61,7 @@ class GistsScreen extends ConsumerWidget {
                   Icon(Icons.code_off_rounded,
                       size: 56, color: cs.onSurfaceVariant),
                   const SizedBox(height: 16),
-                  Text('No gists yet',
+                  Text(l.noGistsYet,
                       style: theme.textTheme.titleMedium
                           ?.copyWith(color: cs.onSurfaceVariant)),
                 ],
@@ -92,6 +93,7 @@ class _GistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -138,7 +140,7 @@ class _GistCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    gist.isPublic ? 'Public' : 'Secret',
+                    gist.isPublic ? l.filterPublic : l.gistSecret,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -204,7 +206,7 @@ class _GistCard extends StatelessWidget {
                     size: 12, color: cs.onSurfaceVariant),
                 const SizedBox(width: 4),
                 Text(
-                  'Updated ${timeago.format(gist.updatedAt)}',
+                  l.updatedAgo(ago(context, gist.updatedAt)),
                   style: theme.textTheme.labelSmall
                       ?.copyWith(color: cs.onSurfaceVariant),
                 ),

@@ -1,4 +1,5 @@
 import '../../../../core/git/git_provider_type.dart';
+import '../../../../core/utils/exceptions.dart';
 import '../../../auth/domain/git_connection.dart';
 import '../../domain/entities/activity_event_entity.dart';
 import '../../domain/entities/branch_entity.dart';
@@ -39,6 +40,10 @@ class AzureRepoRepositoryImpl implements GitProvider {
         workItems: true,
         fileTree: true,
         inbox: true,
+        itemDetail: true,
+        approvePullRequests: true,
+        requestChanges: true,
+        mergePullRequests: true,
       );
 
   static String _stripRef(String? ref) =>
@@ -514,13 +519,218 @@ class AzureRepoRepositoryImpl implements GitProvider {
     return collectInbox([reviewing, authored, workItems]);
   }
 
-  @override
-  Future<void> performPrAction(InboxItem item, PrAction action,
-          {String? comment}) =>
-      throw const UnsupportedProviderOperation(
-          GitProviderType.azureDevOps, 'pull request actions');
+  /// `Project/repo` → (`Project`, `repo`).
+  static ({String project, String repo}) _split(String repoFullName) {
+    final i = repoFullName.indexOf('/');
+    return i < 0
+        ? (project: repoFullName, repo: '')
+        : (project: repoFullName.substring(0, i), repo: repoFullName.substring(i + 1));
+  }
+
+  String _prBase(InboxItem item) {
+    final r = _split(item.repoFullName);
+    return '${connection.baseUrl}/${Uri.encodeComponent(r.project)}'
+        '/_apis/git/repositories/${Uri.encodeComponent(r.repo)}'
+        '/pullrequests/${item.number}';
+  }
+
+  Future<String> _myId() async {
+    final me = (await _ds.getConnectionData())['authenticatedUser']
+        as Map<String, dynamic>? ?? const {};
+    final id = me['id'] as String?;
+    if (id == null) {
+      throw const GitHubApiException('Could not identify your Azure DevOps user.');
+    }
+    return id;
+  }
 
   @override
-  Future<ItemDetail> getItemDetail(InboxItem item) => throw const UnsupportedProviderOperation(
-      GitProviderType.azureDevOps, 'item detail');
+  Future<void> performPrAction(InboxItem item, PrAction action,
+      {String? comment}) async {
+    if (item.kind != InboxItemKind.pullRequest) {
+      throw const UnsupportedProviderOperation(
+          GitProviderType.azureDevOps, 'work item actions');
+    }
+    final base = _prBase(item);
+    switch (action) {
+      case PrAction.approve:
+        await _ds.send('PUT', '$base/reviewers/${await _myId()}',
+            body: {'vote': 10});
+      case PrAction.requestChanges:
+        if (comment == null || comment.trim().isEmpty) {
+          throw const GitHubApiException(
+              'A comment is required to request changes.');
+        }
+        await _ds.send('POST', '$base/threads', body: {
+          'comments': [
+            {'parentCommentId': 0, 'content': comment, 'commentType': 1}
+          ],
+          'status': 1,
+        });
+        // -5 = "waiting for the author".
+        await _ds.send('PUT', '$base/reviewers/${await _myId()}',
+            body: {'vote': -5});
+      case PrAction.merge:
+        final pr = await _ds.send('GET', base) as Map<String, dynamic>;
+        final commit =
+            (pr['lastMergeSourceCommit'] as Map?)?['commitId'] as String?;
+        if (commit == null) {
+          throw const GitHubApiException('Could not find the PR source commit.');
+        }
+        await _ds.send('PATCH', base, body: {
+          'status': 'completed',
+          'lastMergeSourceCommit': {'commitId': commit},
+          'completionOptions': {'mergeStrategy': 'noFastForward'},
+        });
+      case PrAction.rerunCi:
+        throw const UnsupportedProviderOperation(
+            GitProviderType.azureDevOps, 're-run CI');
+    }
+  }
+
+  /// Azure returns work-item descriptions and comments as HTML; show text.
+  static String htmlToPlain(String? html) {
+    if (html == null) return '';
+    return html
+        .replaceAll(RegExp(r'<\s*br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</\s*(p|div|li|h[1-6])\s*>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'<[^>]+>'), '')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&amp;', '&')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
+  }
+
+  @override
+  Future<ItemDetail> getItemDetail(InboxItem item) async {
+    return item.kind == InboxItemKind.pullRequest
+        ? _prDetail(item)
+        : _workItemDetail(item);
+  }
+
+  Future<ItemDetail> _prDetail(InboxItem item) async {
+    final base = _prBase(item);
+    final pr = await _ds.send('GET', base) as Map<String, dynamic>;
+
+    // Latest iteration's changed files (Azure's API has no ready-made diff).
+    var files = const <DiffFile>[];
+    try {
+      final iterations =
+          ((await _ds.send('GET', '$base/iterations') as Map)['value'] as List? ?? const []);
+      if (iterations.isNotEmpty) {
+        final last = (iterations.last as Map)['id'];
+        final changes = await _ds.send('GET', '$base/iterations/$last/changes')
+            as Map<String, dynamic>;
+        files = (changes['changeEntries'] as List? ?? const [])
+            .cast<Map<String, dynamic>>()
+            .where((c) => (c['item'] as Map?)?['isFolder'] != true)
+            .map((c) {
+          final type = '${c['changeType']}'.toLowerCase();
+          return DiffFile(
+            path: ((c['item'] as Map?)?['path'] as String? ?? '')
+                .replaceFirst('/', ''),
+            status: type.contains('add')
+                ? 'added'
+                : type.contains('delete')
+                    ? 'removed'
+                    : type.contains('rename')
+                        ? 'renamed'
+                        : 'modified',
+            additions: 0,
+            deletions: 0,
+          );
+        }).toList();
+      }
+    } on Exception {
+      // The changed-files list is a bonus; the rest of the detail still shows.
+    }
+
+    final threads = ((await _ds.send('GET', '$base/threads')
+            as Map<String, dynamic>)['value'] as List? ??
+        const []);
+    final comments = <DetailComment>[];
+    for (final t in threads.cast<Map<String, dynamic>>()) {
+      for (final c in (t['comments'] as List? ?? const [])
+          .cast<Map<String, dynamic>>()) {
+        if ('${c['commentType']}'.toLowerCase() != 'text') continue; // system
+        final a = c['author'] as Map<String, dynamic>? ?? const {};
+        comments.add(DetailComment(
+          authorLogin: a['displayName'] as String? ?? '',
+          authorAvatarUrl: a['imageUrl'] as String?,
+          body: c['content'] as String? ?? '',
+          createdAt: _date(c['publishedDate']),
+        ));
+      }
+    }
+    comments.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    final by = pr['createdBy'] as Map<String, dynamic>? ?? const {};
+    final status = pr['status'] as String? ?? 'active';
+    return ItemDetail(
+      title: pr['title'] as String? ?? item.title,
+      body: pr['description'] as String? ?? '',
+      authorLogin: by['displayName'] as String? ?? '',
+      authorAvatarUrl: by['imageUrl'] as String?,
+      state: status == 'completed'
+          ? 'merged'
+          : status == 'abandoned'
+              ? 'closed'
+              : pr['isDraft'] == true
+                  ? 'draft'
+                  : 'open',
+      createdAt: _date(pr['creationDate']),
+      headBranch: _stripRef(pr['sourceRefName'] as String?),
+      baseBranch: _stripRef(pr['targetRefName'] as String?),
+      files: files,
+      comments: comments,
+    );
+  }
+
+  Future<ItemDetail> _workItemDetail(InboxItem item) async {
+    final org = connection.baseUrl;
+    final project = Uri.encodeComponent(item.repoFullName);
+    final wi = await _ds.send('GET', '$org/_apis/wit/workitems/${item.number}')
+        as Map<String, dynamic>;
+    final f = wi['fields'] as Map<String, dynamic>? ?? const {};
+
+    var comments = const <DetailComment>[];
+    try {
+      final raw = await _ds.send('GET',
+              '$org/$project/_apis/wit/workItems/${item.number}/comments',
+              apiVersion: '7.1-preview.4')
+          as Map<String, dynamic>;
+      comments = (raw['comments'] as List? ?? const [])
+          .cast<Map<String, dynamic>>()
+          .map((c) {
+        final a = c['createdBy'] as Map<String, dynamic>? ?? const {};
+        return DetailComment(
+          authorLogin: a['displayName'] as String? ?? '',
+          authorAvatarUrl: a['imageUrl'] as String?,
+          body: htmlToPlain(c['text'] as String?),
+          createdAt: _date(c['createdDate']),
+        );
+      }).toList();
+    } on Exception {
+      // Comments are optional.
+    }
+
+    final createdBy = f['System.CreatedBy'];
+    final state = (f['System.State'] as String? ?? '').toLowerCase();
+    return ItemDetail(
+      title: f['System.Title'] as String? ?? item.title,
+      body: htmlToPlain(f['System.Description'] as String?),
+      authorLogin: createdBy is Map
+          ? (createdBy['displayName'] as String? ?? '')
+          : '${createdBy ?? ''}',
+      state: const ['closed', 'done', 'removed', 'resolved'].contains(state)
+          ? 'closed'
+          : 'open',
+      createdAt: _date(f['System.CreatedDate']),
+      comments: comments,
+    );
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/repos_provider.dart';
+import '../../../../l10n/l10n.dart';
 
 class CreateIssueSheet extends ConsumerStatefulWidget {
   final RepoEntity repo;
@@ -64,6 +65,7 @@ class _CreateIssueSheetState extends ConsumerState<CreateIssueSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -101,7 +103,7 @@ class _CreateIssueSheetState extends ConsumerState<CreateIssueSheet> {
                   Icon(Icons.circle_outlined,
                       size: 18, color: const Color(0xFF3FB950)),
                   const SizedBox(width: 8),
-                  Text('New Issue',
+                  Text(l.newIssue,
                       style: theme.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.bold)),
                   const Spacer(),
@@ -116,12 +118,12 @@ class _CreateIssueSheetState extends ConsumerState<CreateIssueSheet> {
               TextFormField(
                 controller: _titleController,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Title',
-                  labelText: 'Title',
+                decoration: InputDecoration(
+                  hintText: l.titleLabel,
+                  labelText: l.titleLabel,
                 ),
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Title is required' : null,
+                    (v == null || v.trim().isEmpty) ? l.titleRequired : null,
                 textInputAction: TextInputAction.next,
               ),
 
@@ -129,9 +131,9 @@ class _CreateIssueSheetState extends ConsumerState<CreateIssueSheet> {
 
               TextFormField(
                 controller: _bodyController,
-                decoration: const InputDecoration(
-                  hintText: 'Describe the issue… (optional)',
-                  labelText: 'Description',
+                decoration: InputDecoration(
+                  hintText: l.describeIssueHint,
+                  labelText: l.descriptionLabel,
                   alignLabelWithHint: true,
                 ),
                 maxLines: 5,
@@ -171,7 +173,7 @@ class _CreateIssueSheetState extends ConsumerState<CreateIssueSheet> {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.add_circle_outline_rounded, size: 18),
-                label: const Text('Submit Issue'),
+                label: Text(l.submitIssue),
               ),
             ],
           ),

@@ -1,25 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../providers/notifications_provider.dart';
 import '../providers/repos_provider.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final notificationsAsync = ref.watch(notificationsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications',
+        title: Text(l.notificationsSection,
             style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           notificationsAsync.maybeWhen(
@@ -32,13 +33,13 @@ class NotificationsScreen extends ConsumerWidget {
                       ref.invalidate(notificationsProvider);
                     },
                     icon: const Icon(Icons.done_all_rounded, size: 16),
-                    label: const Text('Mark all read'),
+                    label: Text(l.markAllRead),
                   )
                 : const SizedBox.shrink(),
             orElse: () => const SizedBox.shrink(),
           ),
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l.refresh,
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => ref.invalidate(notificationsProvider),
           ),
@@ -58,7 +59,7 @@ class NotificationsScreen extends ConsumerWidget {
             children: [
               Icon(Icons.error_outline_rounded, size: 48, color: cs.error),
               const SizedBox(height: 12),
-              Text('Failed to load notifications',
+              Text(l.failedLoadNotifications,
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(e.toString(),
@@ -77,11 +78,11 @@ class NotificationsScreen extends ConsumerWidget {
                   Icon(Icons.notifications_none_rounded,
                       size: 56, color: cs.onSurfaceVariant),
                   const SizedBox(height: 16),
-                  Text('All caught up!',
+                  Text(l.allCaughtUp,
                       style: theme.textTheme.titleMedium
                           ?.copyWith(color: cs.onSurfaceVariant)),
                   const SizedBox(height: 4),
-                  Text('No notifications',
+                  Text(l.noNotifications,
                       style: theme.textTheme.bodySmall
                           ?.copyWith(color: cs.onSurfaceVariant)),
                 ],
@@ -189,7 +190,7 @@ class _NotifTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        timeago.format(notif.updatedAt),
+                        ago(context, notif.updatedAt),
                         style: theme.textTheme.labelSmall
                             ?.copyWith(color: cs.onSurfaceVariant),
                       ),
@@ -198,7 +199,7 @@ class _NotifTile extends StatelessWidget {
                   if (notif.reason.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
-                      _reasonLabel(notif.reason),
+                      _reasonLabel(context.l10n, notif.reason),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: cs.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
@@ -234,15 +235,15 @@ class _NotifTile extends StatelessWidget {
         _ => cs.onSurfaceVariant,
       };
 
-  String _reasonLabel(String reason) => switch (reason) {
-        'subscribed' => 'Subscribed',
-        'mention' => 'Mentioned',
-        'assign' => 'Assigned',
-        'review_requested' => 'Review requested',
-        'author' => 'Author',
-        'comment' => 'Commented',
-        'team_mention' => 'Team mentioned',
-        'state_change' => 'State changed',
+  String _reasonLabel(AppLocalizations l, String reason) => switch (reason) {
+        'subscribed' => l.reasonSubscribed,
+        'mention' => l.reasonMentioned,
+        'assign' => l.reasonAssignedShort,
+        'review_requested' => l.reasonReviewRequested,
+        'author' => l.reasonAuthor,
+        'comment' => l.reasonCommented,
+        'team_mention' => l.reasonTeamMention,
+        'state_change' => l.reasonStateChange,
         _ => reason,
       };
 }

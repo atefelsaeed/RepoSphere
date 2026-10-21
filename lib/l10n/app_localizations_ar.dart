@@ -256,6 +256,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get connectGitlabUrlLabel => 'رابط GitLab المستضاف ذاتيًا (اختياري)';
 
   @override
+  String get connectGiteaUrlLabel =>
+      'رابط Forgejo / Gitea (مثل https://codeberg.org)';
+
+  @override
+  String get giteaNeedsUrl => 'يحتاج Forgejo / Gitea إلى رابط الخادم.';
+
+  @override
   String get connectGitlabUrlHint => 'فارغ = gitlab.com';
 
   @override
@@ -455,4 +462,485 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get alertChannelDescription =>
       'فشل CI وطلبات المراجعة وعناصر عاجلة أخرى';
+
+  @override
+  String get tooltipActivity => 'النشاط';
+
+  @override
+  String get tooltipGists => 'الـ Gists';
+
+  @override
+  String get tooltipExplore => 'استكشاف GitHub';
+
+  @override
+  String get tooltipSort => 'ترتيب';
+
+  @override
+  String get sortUpdated => 'آخر تحديث';
+
+  @override
+  String get sortStars => 'النجوم';
+
+  @override
+  String get sortName => 'الاسم';
+
+  @override
+  String get sortCreated => 'تاريخ الإنشاء';
+
+  @override
+  String get tooltipToggleTheme => 'تبديل السمة';
+
+  @override
+  String get tooltipProfile => 'الملف الشخصي';
+
+  @override
+  String get tooltipLogout => 'تسجيل الخروج';
+
+  @override
+  String get disconnectAllTitle => 'فصل الكل';
+
+  @override
+  String get disconnectAllBody => 'إزالة كل الحسابات المتصلة من هذا الجهاز؟';
+
+  @override
+  String get disconnect => 'فصل';
+
+  @override
+  String get searchReposHint => 'ابحث في المستودعات…';
+
+  @override
+  String get pinned => 'المثبّتة';
+
+  @override
+  String get noReposFound => 'لم يتم العثور على مستودعات';
+
+  @override
+  String get filterOwned => 'المملوكة';
+
+  @override
+  String get filterForked => 'المنسوخة (Fork)';
+
+  @override
+  String get filterStarred => 'المميّزة بنجمة';
+
+  @override
+  String get filterPublic => 'العامة';
+
+  @override
+  String get filterPrivate => 'الخاصة';
+
+  @override
+  String get shortcutSearch => 'التركيز على شريط البحث';
+
+  @override
+  String get shortcutRefresh => 'تحديث المستودعات';
+
+  @override
+  String get shortcutHelp => 'عرض هذه النافذة';
+
+  @override
+  String get shortcutsTitle => 'اختصارات لوحة المفاتيح';
+
+  @override
+  String get close => 'إغلاق';
+
+  @override
+  String repoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مستودع',
+      many: '$count مستودعًا',
+      few: '$count مستودعات',
+      two: 'مستودعان',
+      one: 'مستودع واحد',
+      zero: 'لا مستودعات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get unpin => 'إلغاء التثبيت';
+
+  @override
+  String get pin => 'تثبيت';
+
+  @override
+  String get browseCode => 'تصفّح الكود';
+
+  @override
+  String get unstar => 'إزالة النجمة';
+
+  @override
+  String get star => 'نجمة';
+
+  @override
+  String get copied => 'تم النسخ!';
+
+  @override
+  String get copyLink => 'نسخ الرابط';
+
+  @override
+  String get pullRequests => 'طلبات الدمج (PRs)';
+
+  @override
+  String get issues => 'المشكلات (Issues)';
+
+  @override
+  String get commits => 'الـ Commits';
+
+  @override
+  String get releases => 'الإصدارات';
+
+  @override
+  String get forkLabel => 'Fork';
+
+  @override
+  String get topics => 'المواضيع';
+
+  @override
+  String get recentCommits => 'أحدث الـ Commits';
+
+  @override
+  String get viewAll => 'عرض الكل';
+
+  @override
+  String get noCommitsFound => 'لا توجد Commits';
+
+  @override
+  String get forks => 'عدد الـ Forks';
+
+  @override
+  String get watchers => 'المتابعون';
+
+  @override
+  String get languages => 'اللغات';
+
+  @override
+  String get contributors => 'المساهمون';
+
+  @override
+  String get clone => 'استنساخ';
+
+  @override
+  String get copy => 'نسخ';
+
+  @override
+  String openOnProvider(String provider) {
+    return 'فتح على $provider';
+  }
+
+  @override
+  String contributorTooltip(String login, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Commit',
+      many: '$count Commit',
+      few: '$count Commits',
+      two: 'Commitان',
+      one: 'Commit واحد',
+    );
+    return '$login · $_temp0';
+  }
+
+  @override
+  String get noProfileData => 'لا توجد بيانات للملف الشخصي';
+
+  @override
+  String get reposLabel => 'المستودعات';
+
+  @override
+  String get followers => 'المتابعون';
+
+  @override
+  String get following => 'يتابع';
+
+  @override
+  String get searchAllHint => 'ابحث في كل مستودعات GitHub…';
+
+  @override
+  String get searchFailed => 'فشل البحث';
+
+  @override
+  String get searchAcrossTitle => 'ابحث في كل GitHub';
+
+  @override
+  String get searchAcrossBody =>
+      'ابحث عن المستودعات بالاسم أو الموضوع أو الوصف';
+
+  @override
+  String get recentSearches => 'عمليات البحث الأخيرة';
+
+  @override
+  String get clearAll => 'مسح الكل';
+
+  @override
+  String get markAllRead => 'تعليم الكل كمقروء';
+
+  @override
+  String get refresh => 'تحديث';
+
+  @override
+  String get failedLoadNotifications => 'تعذّر تحميل الإشعارات';
+
+  @override
+  String get allCaughtUp => 'لا جديد!';
+
+  @override
+  String get noNotifications => 'لا توجد إشعارات';
+
+  @override
+  String get reasonSubscribed => 'مشترك';
+
+  @override
+  String get reasonAssignedShort => 'مُسنَد';
+
+  @override
+  String get reasonAuthor => 'المؤلف';
+
+  @override
+  String get reasonCommented => 'تم التعليق';
+
+  @override
+  String get reasonTeamMention => 'تمت الإشارة إلى الفريق';
+
+  @override
+  String get reasonStateChange => 'تغيّرت الحالة';
+
+  @override
+  String get failedLoadActivity => 'تعذّر تحميل النشاط';
+
+  @override
+  String get noRecentActivity => 'لا يوجد نشاط حديث';
+
+  @override
+  String get yourGists => 'الـ Gists الخاصة بك';
+
+  @override
+  String get failedLoadGists => 'تعذّر تحميل الـ Gists';
+
+  @override
+  String get noGistsYet => 'لا توجد Gists بعد';
+
+  @override
+  String get gistSecret => 'سرّي';
+
+  @override
+  String get newIssue => 'مشكلة جديدة';
+
+  @override
+  String get tabOpen => 'مفتوحة';
+
+  @override
+  String get tabClosed => 'مغلقة';
+
+  @override
+  String get loadMore => 'تحميل المزيد';
+
+  @override
+  String get tabMerged => 'مدموجة';
+
+  @override
+  String joinedAgo(String time) {
+    return 'انضم $time';
+  }
+
+  @override
+  String noResultsFor(String query) {
+    return 'لا توجد نتائج لـ \"$query\"';
+  }
+
+  @override
+  String reposForQuery(int count, String query) {
+    return '$count+ مستودع لـ \"$query\"';
+  }
+
+  @override
+  String updatedAgo(String time) {
+    return 'آخر تحديث $time';
+  }
+
+  @override
+  String get noOpenIssues => 'لا توجد مشكلات مفتوحة';
+
+  @override
+  String get noClosedIssues => 'لا توجد مشكلات مغلقة';
+
+  @override
+  String get noOpenPrs => 'لا توجد طلبات دمج مفتوحة';
+
+  @override
+  String get noClosedPrs => 'لا توجد طلبات دمج مغلقة';
+
+  @override
+  String get noMergedPrs => 'لا توجد طلبات دمج مدموجة';
+
+  @override
+  String openedAgo(String time) {
+    return 'فُتحت $time';
+  }
+
+  @override
+  String closedAgo(String time) {
+    return 'أُغلقت $time';
+  }
+
+  @override
+  String byAuthor(String author) {
+    return 'بواسطة $author';
+  }
+
+  @override
+  String get prOpen => 'مفتوح';
+
+  @override
+  String get prMerged => 'مدموج';
+
+  @override
+  String get prClosed => 'مغلق';
+
+  @override
+  String get prDraft => 'مسودة';
+
+  @override
+  String get noDescriptionProvided => 'لم يُقدَّم وصف.';
+
+  @override
+  String get noCommitsOnBranch => 'لا توجد Commits في هذا الفرع';
+
+  @override
+  String get defaultBadge => 'افتراضي';
+
+  @override
+  String get noReleasesYet => 'لا توجد إصدارات بعد';
+
+  @override
+  String get viewOnGithub => 'عرض على GitHub';
+
+  @override
+  String get copyContent => 'نسخ المحتوى';
+
+  @override
+  String get copiedToClipboard => 'تم النسخ إلى الحافظة';
+
+  @override
+  String get binaryFile => 'ملف ثنائي — لا يمكن عرضه';
+
+  @override
+  String get emptyDirectory => 'مجلد فارغ';
+
+  @override
+  String get noReadmeFound => 'لم يُعثر على README';
+
+  @override
+  String get titleLabel => 'العنوان';
+
+  @override
+  String get titleRequired => 'العنوان مطلوب';
+
+  @override
+  String get describeIssueHint => 'صف المشكلة… (اختياري)';
+
+  @override
+  String get descriptionLabel => 'الوصف';
+
+  @override
+  String get submitIssue => 'إرسال المشكلة';
+
+  @override
+  String get comments => 'التعليقات';
+
+  @override
+  String get emptyComment => '(تعليق فارغ)';
+
+  @override
+  String prTitle(int number) {
+    return 'PR #$number';
+  }
+
+  @override
+  String issueTitle(int number) {
+    return 'مشكلة #$number';
+  }
+
+  @override
+  String releasedAgo(String time) {
+    return 'صدر $time';
+  }
+
+  @override
+  String committedAgo(String time) {
+    return 'تم الـ Commit $time';
+  }
+
+  @override
+  String commentedAgo(String time) {
+    return 'علّق $time';
+  }
+
+  @override
+  String filesChangedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ملف متغيّر',
+      many: '$count ملفًا متغيّرًا',
+      few: '$count ملفات متغيّرة',
+      two: 'ملفان متغيّران',
+      one: 'ملف واحد متغيّر',
+      zero: 'لا ملفات متغيّرة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String commentCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تعليق',
+      many: '$count تعليقًا',
+      few: '$count تعليقات',
+      two: 'تعليقان',
+      one: 'تعليق واحد',
+      zero: 'لا تعليقات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get errInvalidToken => 'الرمز غير صالح أو منتهي. أعد الربط من فضلك.';
+
+  @override
+  String get errForbidden => 'الوصول مرفوض. تحقق من صلاحيات الرمز.';
+
+  @override
+  String get errNotFound => 'المورد غير موجود.';
+
+  @override
+  String get errTooMany => 'طلبات كثيرة جدًا. حاول بعد قليل.';
+
+  @override
+  String get errInvalidRequest =>
+      'طلب غير صالح. تحقق من البيانات وحاول مجددًا.';
+
+  @override
+  String get errServer => 'الخادم يواجه مشكلة. حاول لاحقًا.';
+
+  @override
+  String errUnexpected(String code) {
+    return 'خطأ غير متوقع ($code).';
+  }
+
+  @override
+  String get errCommentRequired => 'التعليق مطلوب لطلب التعديلات.';
+
+  @override
+  String get errRateLimited => 'يحدّ GitHub من عدد الطلبات. حاول بعد دقيقة.';
+
+  @override
+  String errRateLimitedIn(String seconds) {
+    return 'يحدّ GitHub من عدد الطلبات. حاول بعد $seconds ثانية.';
+  }
 }

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/release_entity.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_releases_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class RepoReleasesScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -16,6 +16,7 @@ class RepoReleasesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final releasesAsync = ref.watch(
@@ -27,7 +28,7 @@ class RepoReleasesScreen extends ConsumerWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Releases',
+            Text(l.releases,
                 style: TextStyle(fontWeight: FontWeight.bold)),
             Text(repo.fullName,
                 style: theme.textTheme.labelSmall
@@ -55,7 +56,7 @@ class RepoReleasesScreen extends ConsumerWidget {
                   Icon(Icons.new_releases_outlined,
                       size: 56, color: cs.onSurfaceVariant),
                   const SizedBox(height: 16),
-                  Text('No releases yet',
+                  Text(l.noReleasesYet,
                       style: theme.textTheme.titleMedium
                           ?.copyWith(color: cs.onSurfaceVariant)),
                 ],
@@ -91,6 +92,7 @@ class _ReleaseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -124,7 +126,7 @@ class _ReleaseTile extends StatelessWidget {
                 if (release.isPreRelease)
                   _Badge('Pre-release', const Color(0xFFF59E0B))
                 else if (release.isDraft)
-                  _Badge('Draft', cs.onSurfaceVariant)
+                  _Badge(l.prDraft, cs.onSurfaceVariant)
                 else if (isLatest)
                   _Badge('Latest', const Color(0xFF3FB950)),
               ],
@@ -177,7 +179,7 @@ class _ReleaseTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'released ${timeago.format(release.publishedAt)}',
+                  l.releasedAgo(ago(context, release.publishedAt)),
                   style: theme.textTheme.labelSmall
                       ?.copyWith(color: cs.onSurfaceVariant),
                 ),
@@ -210,7 +212,7 @@ class _ReleaseTile extends StatelessWidget {
               onPressed: () => launchUrl(Uri.parse(release.htmlUrl),
                   mode: LaunchMode.externalApplication),
               icon: const Icon(Icons.open_in_new_rounded, size: 14),
-              label: const Text('View on GitHub'),
+              label: Text(l.viewOnGithub),
               style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact),
             ),

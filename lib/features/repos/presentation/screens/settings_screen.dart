@@ -177,7 +177,7 @@ class SettingsScreen extends ConsumerWidget {
                     const Divider(height: 20),
                     _AboutRow(
                         label: l.aboutProviders,
-                        value: 'GitHub · GitLab · Azure DevOps'),
+                        value: 'GitHub · GitLab · Azure DevOps · Forgejo'),
                   ],
                 ),
               ),

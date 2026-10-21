@@ -8,6 +8,7 @@ import '../providers/repo_branches_provider.dart';
 import '../widgets/commit_tile.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class RepoCommitsScreen extends ConsumerStatefulWidget {
   final RepoEntity repo;
@@ -56,6 +57,7 @@ class _RepoCommitsScreenState extends ConsumerState<RepoCommitsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -71,7 +73,7 @@ class _RepoCommitsScreenState extends ConsumerState<RepoCommitsScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Commits',
+            Text(l.commits,
                 style: TextStyle(fontWeight: FontWeight.bold)),
             Text(
               widget.repo.fullName,
@@ -133,7 +135,7 @@ class _RepoCommitsScreenState extends ConsumerState<RepoCommitsScreen> {
                 Icon(Icons.commit_rounded,
                     size: 48, color: cs.onSurfaceVariant),
                 const SizedBox(height: 12),
-                Text('No commits on this branch',
+                Text(l.noCommitsOnBranch,
                     style: theme.textTheme.bodyLarge
                         ?.copyWith(color: cs.onSurfaceVariant)),
               ],
@@ -159,7 +161,7 @@ class _RepoCommitsScreenState extends ConsumerState<RepoCommitsScreen> {
                       : Center(
                           child: TextButton(
                             onPressed: notifier.loadMore,
-                            child: const Text('Load more'),
+                            child: Text(l.loadMore),
                           ),
                         ),
                 );
@@ -198,6 +200,7 @@ class _BranchSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final cs = Theme.of(context).colorScheme;
     final allBranches =
         branches.contains(selected) ? branches : [selected, ...branches];
@@ -244,7 +247,7 @@ class _BranchSelector extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        'default',
+                        l.defaultBadge,
                         style: TextStyle(
                             fontSize: 10, color: cs.onPrimaryContainer),
                       ),

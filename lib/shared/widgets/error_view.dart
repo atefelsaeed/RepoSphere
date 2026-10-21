@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/utils/exceptions.dart';
+import '../../l10n/l10n.dart';
 
 class ErrorView extends StatelessWidget {
   final Object error;
@@ -13,9 +14,10 @@ class ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final (icon, color, message) = _resolve(error, cs);
+    final (icon, color, message) = _resolve(error, cs, context.l10n);
 
     return Center(
       child: Padding(
@@ -35,7 +37,7 @@ class ErrorView extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Retry'),
+                label: Text(l.retry),
               ),
             ],
           ],
@@ -44,26 +46,27 @@ class ErrorView extends StatelessWidget {
     );
   }
 
-  static (IconData, Color, String) _resolve(Object error, ColorScheme cs) {
+  static (IconData, Color, String) _resolve(
+      Object error, ColorScheme cs, AppLocalizations l) {
     if (error is GitHubAuthException) {
       return (
         Icons.lock_outline_rounded,
         cs.error,
-        error.message,
+        translateErrorMessage(l, error.message),
       );
     }
     if (error is GitHubRateLimitException) {
       return (
         Icons.hourglass_empty_rounded,
         const Color(0xFFF59E0B),
-        error.message,
+        translateErrorMessage(l, error.message),
       );
     }
     if (error is GitHubApiException) {
       return (
         Icons.cloud_off_rounded,
         cs.onSurfaceVariant,
-        error.message,
+        translateErrorMessage(l, error.message),
       );
     }
     // Raw string or unknown — strip "Exception: " prefix if present

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/issue_comment_entity.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class CommentThread extends StatelessWidget {
   final AsyncValue<List<IssueCommentEntity>> commentsAsync;
@@ -13,6 +13,7 @@ class CommentThread extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -22,7 +23,7 @@ class CommentThread extends StatelessWidget {
         children: [
           Divider(color: cs.outlineVariant),
           const SizedBox(height: 12),
-          Text('Comments', style: theme.textTheme.labelLarge),
+          Text(l.comments, style: theme.textTheme.labelLarge),
           const SizedBox(height: 12),
           ...List.generate(
             2,
@@ -47,7 +48,7 @@ class CommentThread extends StatelessWidget {
                     size: 16, color: cs.onSurfaceVariant),
                 const SizedBox(width: 6),
                 Text(
-                  '${comments.length} comment${comments.length == 1 ? '' : 's'}',
+                  l.commentCount(comments.length),
                   style: theme.textTheme.labelLarge,
                 ),
               ],
@@ -73,6 +74,7 @@ class CommentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -118,7 +120,7 @@ class CommentCard extends StatelessWidget {
                         ?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(width: 6),
                 Text(
-                  'commented ${timeago.format(comment.createdAt)}',
+                  l.commentedAgo(ago(context, comment.createdAt)),
                   style: theme.textTheme.labelSmall
                       ?.copyWith(color: cs.onSurfaceVariant),
                 ),
@@ -153,7 +155,7 @@ class CommentCard extends StatelessWidget {
                       ),
                     ),
                   )
-                : Text('(empty comment)',
+                : Text(l.emptyComment,
                     style: theme.textTheme.bodySmall
                         ?.copyWith(color: cs.onSurfaceVariant)),
           ),

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import '../../domain/entities/pull_request_entity.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_prs_provider.dart';
 import '../widgets/label_chip.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class RepoPrsScreen extends ConsumerStatefulWidget {
   final RepoEntity repo;
@@ -50,6 +50,7 @@ class _RepoPrsScreenState extends ConsumerState<RepoPrsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final state = ref.watch(repoPrsProvider(_args));
@@ -60,7 +61,7 @@ class _RepoPrsScreenState extends ConsumerState<RepoPrsScreen>
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Pull Requests',
+            Text(l.pullRequests,
                 style: TextStyle(fontWeight: FontWeight.bold)),
             Text(widget.repo.fullName,
                 style: theme.textTheme.labelSmall
@@ -70,10 +71,10 @@ class _RepoPrsScreenState extends ConsumerState<RepoPrsScreen>
         bottom: TabBar(
           controller: _tabController,
           onTap: (i) => notifier.changeFilter(_filters[i]),
-          tabs: const [
-            Tab(text: 'Open'),
-            Tab(text: 'Closed'),
-            Tab(text: 'Merged'),
+          tabs: [
+            Tab(text: l.tabOpen),
+            Tab(text: l.tabClosed),
+            Tab(text: l.tabMerged),
           ],
         ),
       ),
@@ -98,7 +99,7 @@ class _RepoPrsScreenState extends ConsumerState<RepoPrsScreen>
                 Icon(Icons.merge_type_rounded,
                     size: 48, color: cs.onSurfaceVariant),
                 const SizedBox(height: 12),
-                Text('No ${state.filter} pull requests',
+                Text(switch (state.filter) { 'open' => l.noOpenPrs, 'closed' => l.noClosedPrs, _ => l.noMergedPrs },
                     style: theme.textTheme.bodyLarge
                         ?.copyWith(color: cs.onSurfaceVariant)),
               ],
@@ -123,7 +124,7 @@ class _RepoPrsScreenState extends ConsumerState<RepoPrsScreen>
                       : Center(
                           child: TextButton(
                             onPressed: notifier.loadMore,
-                            child: const Text('Load more'),
+                            child: Text(l.loadMore),
                           ),
                         ),
                 );
@@ -211,7 +212,7 @@ class _PrTile extends StatelessWidget {
                       Text('·',
                           style: TextStyle(color: cs.onSurfaceVariant)),
                       Text(
-                        timeago.format(pr.updatedAt),
+                        ago(context, pr.updatedAt),
                         style: theme.textTheme.labelSmall
                             ?.copyWith(color: cs.onSurfaceVariant),
                       ),

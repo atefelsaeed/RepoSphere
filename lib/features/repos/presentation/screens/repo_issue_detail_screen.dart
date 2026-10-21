@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/issue_comments_provider.dart';
 import '../widgets/comment_thread.dart';
 import '../widgets/label_chip.dart';
+import '../../../../l10n/l10n.dart';
 
 class RepoIssueDetailScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -19,6 +19,7 @@ class RepoIssueDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     final commentsAsync = ref.watch(issueCommentsProvider(
       (owner: repo.ownerLogin, repo: repo.name, number: issue.number),
     ));
@@ -31,14 +32,14 @@ class RepoIssueDetailScreen extends ConsumerWidget {
     final stateIcon = isOpen
         ? Icons.circle_outlined
         : Icons.check_circle_outline_rounded;
-    final stateLabel = isOpen ? 'Open' : 'Closed';
+    final stateLabel = isOpen ? l.prOpen : l.prClosed;
 
     return Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Issue #${issue.number}',
+            Text(l.issueTitle(issue.number),
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             Text(repo.fullName,
                 style: theme.textTheme.labelSmall
@@ -47,7 +48,7 @@ class RepoIssueDetailScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Open on GitHub',
+            tooltip: l.openOnProvider('GitHub'),
             icon: const Icon(Icons.open_in_new_rounded),
             onPressed: () => launchUrl(Uri.parse(issue.htmlUrl),
                 mode: LaunchMode.externalApplication),
@@ -116,8 +117,8 @@ class RepoIssueDetailScreen extends ConsumerWidget {
               const SizedBox(width: 6),
               Text(
                 isOpen
-                    ? 'opened ${timeago.format(issue.createdAt)}'
-                    : 'closed ${timeago.format(issue.closedAt ?? issue.updatedAt)}',
+                    ? l.openedAgo(ago(context, issue.createdAt))
+                    : l.closedAgo(ago(context, issue.closedAt ?? issue.updatedAt)),
                 style: theme.textTheme.labelSmall
                     ?.copyWith(color: cs.onSurfaceVariant),
               ),
@@ -166,7 +167,7 @@ class RepoIssueDetailScreen extends ConsumerWidget {
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Text('No description provided.',
+                child: Text(l.noDescriptionProvided,
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(color: cs.onSurfaceVariant)),
               ),

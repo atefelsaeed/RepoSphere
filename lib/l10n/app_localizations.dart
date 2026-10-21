@@ -548,6 +548,18 @@ abstract class AppLocalizations {
   /// **'Self-hosted GitLab URL (optional)'**
   String get connectGitlabUrlLabel;
 
+  /// No description provided for @connectGiteaUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgejo / Gitea URL (e.g. https://codeberg.org)'**
+  String get connectGiteaUrlLabel;
+
+  /// No description provided for @giteaNeedsUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgejo / Gitea needs the server URL.'**
+  String get giteaNeedsUrl;
+
   /// No description provided for @connectGitlabUrlHint.
   ///
   /// In en, this message translates to:
@@ -865,6 +877,810 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failing CI, review requests and other urgent items'**
   String get alertChannelDescription;
+
+  /// No description provided for @tooltipActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get tooltipActivity;
+
+  /// No description provided for @tooltipGists.
+  ///
+  /// In en, this message translates to:
+  /// **'Gists'**
+  String get tooltipGists;
+
+  /// No description provided for @tooltipExplore.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore GitHub'**
+  String get tooltipExplore;
+
+  /// No description provided for @tooltipSort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get tooltipSort;
+
+  /// No description provided for @sortUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated'**
+  String get sortUpdated;
+
+  /// No description provided for @sortStars.
+  ///
+  /// In en, this message translates to:
+  /// **'Stars'**
+  String get sortStars;
+
+  /// No description provided for @sortName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get sortName;
+
+  /// No description provided for @sortCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get sortCreated;
+
+  /// No description provided for @tooltipToggleTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle theme'**
+  String get tooltipToggleTheme;
+
+  /// No description provided for @tooltipProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get tooltipProfile;
+
+  /// No description provided for @tooltipLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout'**
+  String get tooltipLogout;
+
+  /// No description provided for @disconnectAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect all'**
+  String get disconnectAllTitle;
+
+  /// No description provided for @disconnectAllBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all connected accounts from this device?'**
+  String get disconnectAllBody;
+
+  /// No description provided for @disconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get disconnect;
+
+  /// No description provided for @searchReposHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search repositories…'**
+  String get searchReposHint;
+
+  /// No description provided for @pinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get pinned;
+
+  /// No description provided for @noReposFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No repositories found'**
+  String get noReposFound;
+
+  /// No description provided for @filterOwned.
+  ///
+  /// In en, this message translates to:
+  /// **'Owned'**
+  String get filterOwned;
+
+  /// No description provided for @filterForked.
+  ///
+  /// In en, this message translates to:
+  /// **'Forked'**
+  String get filterForked;
+
+  /// No description provided for @filterStarred.
+  ///
+  /// In en, this message translates to:
+  /// **'Starred'**
+  String get filterStarred;
+
+  /// No description provided for @filterPublic.
+  ///
+  /// In en, this message translates to:
+  /// **'Public'**
+  String get filterPublic;
+
+  /// No description provided for @filterPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get filterPrivate;
+
+  /// No description provided for @shortcutSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus search bar'**
+  String get shortcutSearch;
+
+  /// No description provided for @shortcutRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh repositories'**
+  String get shortcutRefresh;
+
+  /// No description provided for @shortcutHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Show this dialog'**
+  String get shortcutHelp;
+
+  /// No description provided for @shortcutsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keyboard Shortcuts'**
+  String get shortcutsTitle;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @repoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 repository} other{{count} repositories}}'**
+  String repoCount(int count);
+
+  /// No description provided for @unpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get unpin;
+
+  /// No description provided for @pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get pin;
+
+  /// No description provided for @browseCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse code'**
+  String get browseCode;
+
+  /// No description provided for @unstar.
+  ///
+  /// In en, this message translates to:
+  /// **'Unstar'**
+  String get unstar;
+
+  /// No description provided for @star.
+  ///
+  /// In en, this message translates to:
+  /// **'Star'**
+  String get star;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied!'**
+  String get copied;
+
+  /// No description provided for @copyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy link'**
+  String get copyLink;
+
+  /// No description provided for @pullRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Pull requests'**
+  String get pullRequests;
+
+  /// No description provided for @issues.
+  ///
+  /// In en, this message translates to:
+  /// **'Issues'**
+  String get issues;
+
+  /// No description provided for @commits.
+  ///
+  /// In en, this message translates to:
+  /// **'Commits'**
+  String get commits;
+
+  /// No description provided for @releases.
+  ///
+  /// In en, this message translates to:
+  /// **'Releases'**
+  String get releases;
+
+  /// No description provided for @forkLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fork'**
+  String get forkLabel;
+
+  /// No description provided for @topics.
+  ///
+  /// In en, this message translates to:
+  /// **'Topics'**
+  String get topics;
+
+  /// No description provided for @recentCommits.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent commits'**
+  String get recentCommits;
+
+  /// No description provided for @viewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View all'**
+  String get viewAll;
+
+  /// No description provided for @noCommitsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No commits found'**
+  String get noCommitsFound;
+
+  /// No description provided for @forks.
+  ///
+  /// In en, this message translates to:
+  /// **'Forks'**
+  String get forks;
+
+  /// No description provided for @watchers.
+  ///
+  /// In en, this message translates to:
+  /// **'Watchers'**
+  String get watchers;
+
+  /// No description provided for @languages.
+  ///
+  /// In en, this message translates to:
+  /// **'Languages'**
+  String get languages;
+
+  /// No description provided for @contributors.
+  ///
+  /// In en, this message translates to:
+  /// **'Contributors'**
+  String get contributors;
+
+  /// No description provided for @clone.
+  ///
+  /// In en, this message translates to:
+  /// **'Clone'**
+  String get clone;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @openOnProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Open on {provider}'**
+  String openOnProvider(String provider);
+
+  /// No description provided for @contributorTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'{login} · {count, plural, one{1 commit} other{{count} commits}}'**
+  String contributorTooltip(String login, int count);
+
+  /// No description provided for @noProfileData.
+  ///
+  /// In en, this message translates to:
+  /// **'No profile data'**
+  String get noProfileData;
+
+  /// No description provided for @reposLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Repos'**
+  String get reposLabel;
+
+  /// No description provided for @followers.
+  ///
+  /// In en, this message translates to:
+  /// **'Followers'**
+  String get followers;
+
+  /// No description provided for @following.
+  ///
+  /// In en, this message translates to:
+  /// **'Following'**
+  String get following;
+
+  /// No description provided for @searchAllHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search all GitHub repositories…'**
+  String get searchAllHint;
+
+  /// No description provided for @searchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Search failed'**
+  String get searchFailed;
+
+  /// No description provided for @searchAcrossTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search across all of GitHub'**
+  String get searchAcrossTitle;
+
+  /// No description provided for @searchAcrossBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Find repos by name, topic, or description'**
+  String get searchAcrossBody;
+
+  /// No description provided for @recentSearches.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent searches'**
+  String get recentSearches;
+
+  /// No description provided for @clearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get clearAll;
+
+  /// No description provided for @markAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all read'**
+  String get markAllRead;
+
+  /// No description provided for @refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// No description provided for @failedLoadNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load notifications'**
+  String get failedLoadNotifications;
+
+  /// No description provided for @allCaughtUp.
+  ///
+  /// In en, this message translates to:
+  /// **'All caught up!'**
+  String get allCaughtUp;
+
+  /// No description provided for @noNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications'**
+  String get noNotifications;
+
+  /// No description provided for @reasonSubscribed.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribed'**
+  String get reasonSubscribed;
+
+  /// No description provided for @reasonAssignedShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned'**
+  String get reasonAssignedShort;
+
+  /// No description provided for @reasonAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'Author'**
+  String get reasonAuthor;
+
+  /// No description provided for @reasonCommented.
+  ///
+  /// In en, this message translates to:
+  /// **'Commented'**
+  String get reasonCommented;
+
+  /// No description provided for @reasonTeamMention.
+  ///
+  /// In en, this message translates to:
+  /// **'Team mentioned'**
+  String get reasonTeamMention;
+
+  /// No description provided for @reasonStateChange.
+  ///
+  /// In en, this message translates to:
+  /// **'State changed'**
+  String get reasonStateChange;
+
+  /// No description provided for @failedLoadActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load activity'**
+  String get failedLoadActivity;
+
+  /// No description provided for @noRecentActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent activity'**
+  String get noRecentActivity;
+
+  /// No description provided for @yourGists.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Gists'**
+  String get yourGists;
+
+  /// No description provided for @failedLoadGists.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load gists'**
+  String get failedLoadGists;
+
+  /// No description provided for @noGistsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No gists yet'**
+  String get noGistsYet;
+
+  /// No description provided for @gistSecret.
+  ///
+  /// In en, this message translates to:
+  /// **'Secret'**
+  String get gistSecret;
+
+  /// No description provided for @newIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'New issue'**
+  String get newIssue;
+
+  /// No description provided for @tabOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get tabOpen;
+
+  /// No description provided for @tabClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get tabClosed;
+
+  /// No description provided for @loadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get loadMore;
+
+  /// No description provided for @tabMerged.
+  ///
+  /// In en, this message translates to:
+  /// **'Merged'**
+  String get tabMerged;
+
+  /// No description provided for @joinedAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined {time}'**
+  String joinedAgo(String time);
+
+  /// No description provided for @noResultsFor.
+  ///
+  /// In en, this message translates to:
+  /// **'No results for \"{query}\"'**
+  String noResultsFor(String query);
+
+  /// No description provided for @reposForQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}+ repositories for \"{query}\"'**
+  String reposForQuery(int count, String query);
+
+  /// No description provided for @updatedAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {time}'**
+  String updatedAgo(String time);
+
+  /// No description provided for @noOpenIssues.
+  ///
+  /// In en, this message translates to:
+  /// **'No open issues'**
+  String get noOpenIssues;
+
+  /// No description provided for @noClosedIssues.
+  ///
+  /// In en, this message translates to:
+  /// **'No closed issues'**
+  String get noClosedIssues;
+
+  /// No description provided for @noOpenPrs.
+  ///
+  /// In en, this message translates to:
+  /// **'No open pull requests'**
+  String get noOpenPrs;
+
+  /// No description provided for @noClosedPrs.
+  ///
+  /// In en, this message translates to:
+  /// **'No closed pull requests'**
+  String get noClosedPrs;
+
+  /// No description provided for @noMergedPrs.
+  ///
+  /// In en, this message translates to:
+  /// **'No merged pull requests'**
+  String get noMergedPrs;
+
+  /// No description provided for @openedAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'opened {time}'**
+  String openedAgo(String time);
+
+  /// No description provided for @closedAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'closed {time}'**
+  String closedAgo(String time);
+
+  /// No description provided for @byAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'by {author}'**
+  String byAuthor(String author);
+
+  /// No description provided for @prOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get prOpen;
+
+  /// No description provided for @prMerged.
+  ///
+  /// In en, this message translates to:
+  /// **'Merged'**
+  String get prMerged;
+
+  /// No description provided for @prClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get prClosed;
+
+  /// No description provided for @prDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get prDraft;
+
+  /// No description provided for @noDescriptionProvided.
+  ///
+  /// In en, this message translates to:
+  /// **'No description provided.'**
+  String get noDescriptionProvided;
+
+  /// No description provided for @noCommitsOnBranch.
+  ///
+  /// In en, this message translates to:
+  /// **'No commits on this branch'**
+  String get noCommitsOnBranch;
+
+  /// No description provided for @defaultBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'default'**
+  String get defaultBadge;
+
+  /// No description provided for @noReleasesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No releases yet'**
+  String get noReleasesYet;
+
+  /// No description provided for @viewOnGithub.
+  ///
+  /// In en, this message translates to:
+  /// **'View on GitHub'**
+  String get viewOnGithub;
+
+  /// No description provided for @copyContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy content'**
+  String get copyContent;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get copiedToClipboard;
+
+  /// No description provided for @binaryFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Binary file — cannot display'**
+  String get binaryFile;
+
+  /// No description provided for @emptyDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty directory'**
+  String get emptyDirectory;
+
+  /// No description provided for @noReadmeFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No README found'**
+  String get noReadmeFound;
+
+  /// No description provided for @titleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get titleLabel;
+
+  /// No description provided for @titleRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Title is required'**
+  String get titleRequired;
+
+  /// No description provided for @describeIssueHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the issue… (optional)'**
+  String get describeIssueHint;
+
+  /// No description provided for @descriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get descriptionLabel;
+
+  /// No description provided for @submitIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit issue'**
+  String get submitIssue;
+
+  /// No description provided for @comments.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get comments;
+
+  /// No description provided for @emptyComment.
+  ///
+  /// In en, this message translates to:
+  /// **'(empty comment)'**
+  String get emptyComment;
+
+  /// No description provided for @prTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'PR #{number}'**
+  String prTitle(int number);
+
+  /// No description provided for @issueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Issue #{number}'**
+  String issueTitle(int number);
+
+  /// No description provided for @releasedAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'released {time}'**
+  String releasedAgo(String time);
+
+  /// No description provided for @committedAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'committed {time}'**
+  String committedAgo(String time);
+
+  /// No description provided for @commentedAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'commented {time}'**
+  String commentedAgo(String time);
+
+  /// No description provided for @filesChangedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 file changed} other{{count} files changed}}'**
+  String filesChangedCount(int count);
+
+  /// No description provided for @commentCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 comment} other{{count} comments}}'**
+  String commentCount(int count);
+
+  /// No description provided for @errInvalidToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid or expired token. Please reconnect.'**
+  String get errInvalidToken;
+
+  /// No description provided for @errForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Access forbidden. Check your token scopes.'**
+  String get errForbidden;
+
+  /// No description provided for @errNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource not found.'**
+  String get errNotFound;
+
+  /// No description provided for @errTooMany.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Try again in a moment.'**
+  String get errTooMany;
+
+  /// No description provided for @errInvalidRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid request. Check the data and try again.'**
+  String get errInvalidRequest;
+
+  /// No description provided for @errServer.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is having issues. Try again later.'**
+  String get errServer;
+
+  /// No description provided for @errUnexpected.
+  ///
+  /// In en, this message translates to:
+  /// **'Unexpected error ({code}).'**
+  String errUnexpected(String code);
+
+  /// No description provided for @errCommentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'A comment is required to request changes.'**
+  String get errCommentRequired;
+
+  /// No description provided for @errRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub is rate limiting requests. Try again in a minute.'**
+  String get errRateLimited;
+
+  /// No description provided for @errRateLimitedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub is rate limiting requests. Try again in {seconds}s.'**
+  String errRateLimitedIn(String seconds);
 }
 
 class _AppLocalizationsDelegate
