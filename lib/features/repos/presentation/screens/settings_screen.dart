@@ -2,16 +2,11 @@ import 'package:flutter/material.dart';
 import '../../../notifications/background_inbox_check.dart';
 import '../../../notifications/notification_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/git/git_provider_type.dart';
 import '../../../../core/providers/theme_provider.dart';
-import '../../../auth/data/secure_token_storage.dart';
 import '../../../auth/domain/git_connection.dart';
 import '../../../auth/presentation/providers/connections_provider.dart';
-import '../../data/datasources/azure_remote_datasource.dart';
-import '../../data/datasources/github_remote_datasource.dart';
-import '../../data/datasources/gitlab_remote_datasource.dart';
+import '../../../auth/presentation/widgets/account_connect_form.dart';
 import '../providers/repos_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -166,11 +161,29 @@ class SettingsScreen extends ConsumerWidget {
       builder: (_) => Padding(
         padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: _AddAccountSheet(
-          onConnect: (conn) async {
-            await ref.read(connectionsProvider.notifier).add(conn);
-            ref.invalidate(allReposProvider);
-          },
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Connect an account',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                AccountConnectForm(
+                  onConnect: (conn) async {
+                    await ref.read(connectionsProvider.notifier).add(conn);
+                    ref.invalidate(allReposProvider);
+                  },
+                  onConnected: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -209,18 +222,6 @@ class SettingsScreen extends ConsumerWidget {
       };
 }
 
-// ─── Provider visuals ─────────────────────────────────────────────────────────
-
-({Color color, IconData icon}) _providerStyle(GitProviderType t) => switch (t) {
-      GitProviderType.github => (color: const Color(0xFF6E7681), icon: Icons.hub_rounded),
-      GitProviderType.gitlab => (color: const Color(0xFFFC6D26), icon: Icons.code_rounded),
-      GitProviderType.azureDevOps =>
-        (color: const Color(0xFF0078D4), icon: Icons.cloud_rounded),
-      GitProviderType.bitbucket =>
-        (color: const Color(0xFF2684FF), icon: Icons.merge_type_rounded),
-      GitProviderType.gitea => (color: const Color(0xFF609926), icon: Icons.coffee_rounded),
-    };
-
 // ─── Sub-widgets ──────────────────────────────────────────────────────────────
 
 class _ConnectionTile extends StatelessWidget {
@@ -231,7 +232,7 @@ class _ConnectionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final style = _providerStyle(connection.type);
+    final style = providerStyle(connection.type);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -301,223 +302,6 @@ class _EmptyConnections extends StatelessWidget {
           Expanded(
             child: Text('No accounts connected. Tap "Add account" to connect.',
                 style: TextStyle(color: cs.onSurfaceVariant)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AddAccountSheet extends StatefulWidget {
-  final Future<void> Function(GitConnection) onConnect;
-  const _AddAccountSheet({required this.onConnect});
-
-  @override
-  State<_AddAccountSheet> createState() => _AddAccountSheetState();
-}
-
-class _AddAccountSheetState extends State<_AddAccountSheet> {
-  GitProviderType _type = GitProviderType.github;
-  final _tokenCtrl = TextEditingController();
-  final _baseUrlCtrl = TextEditingController();
-  bool _obscure = true;
-  bool _busy = false;
-  String? _error;
-
-  static const _selectable = [
-    GitProviderType.github,
-    GitProviderType.gitlab,
-    GitProviderType.azureDevOps,
-  ];
-
-  @override
-  void dispose() {
-    _tokenCtrl.dispose();
-    _baseUrlCtrl.dispose();
-    super.dispose();
-  }
-
-  String get _baseUrlLabel => _type == GitProviderType.azureDevOps
-      ? 'Organisation URL (https://dev.azure.com/your-org)'
-      : 'Instance URL (https://gitlab.example.com)';
-
-  String get _tokenHint => switch (_type) {
-        GitProviderType.github => 'ghp_xxxxxxxx',
-        GitProviderType.gitlab => 'glpat-xxxxxxxx',
-        GitProviderType.azureDevOps => 'Azure DevOps PAT',
-        _ => 'Personal Access Token',
-      };
-
-  Future<void> _connect() async {
-    final token = _tokenCtrl.text.trim();
-    final baseUrl = _baseUrlCtrl.text.trim();
-    if (token.isEmpty) {
-      setState(() => _error = 'Enter a token.');
-      return;
-    }
-    if (_type == GitProviderType.azureDevOps && baseUrl.isEmpty) {
-      setState(() => _error = 'Azure DevOps needs an organisation URL.');
-      return;
-    }
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    final client = http.Client();
-    try {
-      final connection = await _verify(client, token, baseUrl);
-      await widget.onConnect(connection);
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      setState(() => _error = _friendly(e));
-    } finally {
-      client.close();
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<GitConnection> _verify(
-      http.Client client, String token, String baseUrl) async {
-    final id = SecureTokenStorage.newConnectionId();
-    switch (_type) {
-      case GitProviderType.github:
-        final user =
-            (await GitHubRemoteDatasource(client: client, token: token)
-                    .getUser())
-                .toEntity();
-        return GitConnection(
-          id: id,
-          type: GitProviderType.github,
-          accountLogin: user.login,
-          avatarUrl: user.avatarUrl,
-          token: token,
-        );
-      case GitProviderType.gitlab:
-        final username = await GitLabRemoteDatasource(
-                client: client,
-                token: token,
-                baseUrl: baseUrl.isEmpty ? null : baseUrl)
-            .verifyToken();
-        return GitConnection(
-          id: id,
-          type: GitProviderType.gitlab,
-          accountLogin: username,
-          token: token,
-          baseUrl: baseUrl.isEmpty ? null : baseUrl,
-        );
-      case GitProviderType.azureDevOps:
-        final data = await AzureRemoteDatasource(
-                client: client, pat: token, orgUrl: baseUrl)
-            .getConnectionData();
-        final u = data['authenticatedUser'] as Map<String, dynamic>? ?? const {};
-        return GitConnection(
-          id: id,
-          type: GitProviderType.azureDevOps,
-          accountLogin: (u['providerDisplayName'] as String?) ?? 'azure',
-          token: token,
-          baseUrl: baseUrl,
-        );
-      default:
-        throw Exception('Unsupported provider');
-    }
-  }
-
-  String _friendly(Object e) {
-    final s = e.toString();
-    if (s.contains('Auth') || s.contains('Invalid') || s.contains('401')) {
-      return 'Invalid token. Check the value and scopes.';
-    }
-    return 'Could not connect. Check the token and URL.';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final needsBaseUrl = _type.requiresBaseUrl;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Connect an account',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            children: _selectable.map((t) {
-              final style = _providerStyle(t);
-              final selected = t == _type;
-              return ChoiceChip(
-                avatar: Icon(style.icon,
-                    size: 16,
-                    color: selected ? Colors.white : style.color),
-                label: Text(t.label),
-                selected: selected,
-                selectedColor: style.color,
-                labelStyle: TextStyle(
-                    color: selected ? Colors.white : null,
-                    fontWeight: FontWeight.w600),
-                onSelected: (_) => setState(() {
-                  _type = t;
-                  _error = null;
-                }),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-          if (needsBaseUrl) ...[
-            TextField(
-              controller: _baseUrlCtrl,
-              decoration: InputDecoration(
-                labelText: _baseUrlLabel,
-                prefixIcon: const Icon(Icons.link_rounded),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          TextField(
-            controller: _tokenCtrl,
-            obscureText: _obscure,
-            decoration: InputDecoration(
-              labelText: 'Personal Access Token',
-              hintText: _tokenHint,
-              prefixIcon: const Icon(Icons.key_rounded),
-              suffixIcon: IconButton(
-                icon: Icon(_obscure
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined),
-                onPressed: () => setState(() => _obscure = !_obscure),
-              ),
-            ),
-            onSubmitted: (_) => _connect(),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, size: 16, color: cs.error),
-                const SizedBox(width: 6),
-                Expanded(
-                    child: Text(_error!,
-                        style: TextStyle(color: cs.error, fontSize: 13))),
-              ],
-            ),
-          ],
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: _busy ? null : _connect,
-            icon: _busy
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.link_rounded, size: 16),
-            label: Text(_busy ? 'Connecting…' : 'Connect'),
           ),
         ],
       ),

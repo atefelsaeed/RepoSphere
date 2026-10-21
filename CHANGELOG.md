@@ -6,6 +6,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 ## [Unreleased]
 
 ### Added
+- Login screen now lets you choose GitHub, GitLab or Azure DevOps (it was GitHub-only), with a link to create a token and the scopes each needs. The same form is used in Settings.
 - New app icon (the hub mark) for iOS, Android (adaptive), macOS, Windows and web; regenerate with `tool/make_icon.py` + `dart run flutter_launcher_icons`.
 - Web: GitHub Pages deploy workflow, updated metadata and PWA manifest (works from a sub-path).
 - Release workflow that builds web, macOS, Windows, Linux and Android artifacts and attaches them to a `v*` tag release; CI now also builds the desktop apps and Android.
@@ -28,6 +29,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 - CI now builds with a current stable Flutter instead of 3.24.
 
 ### Fixed
+- Self-hosted GitLab could not be added from the UI: the instance URL field was never shown for GitLab. It now is (optional), and URLs typed without `https://` are normalised.
 - Android release builds had no `INTERNET` permission in the main manifest, so they could not reach any Git host.
 - Android builds failed to compile because `sentry_flutter` 8.x did not support the project's Kotlin version.
 - Chip labels were unreadable in the dark theme.

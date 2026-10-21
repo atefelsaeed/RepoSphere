@@ -70,7 +70,7 @@ flutter pub get
 flutter run -d chrome        # or: -d macos / windows / linux, or a simulator/emulator
 ```
 
-On first launch connect a GitHub account with a Personal Access Token. Add GitLab and Azure DevOps accounts afterwards from **Settings → Add account**.
+On first launch pick your provider (GitHub, GitLab — including a self-hosted URL — or Azure DevOps) and connect with a Personal Access Token. Add more accounts any time from **Settings → Add account**.
 
 ### Tokens
 
