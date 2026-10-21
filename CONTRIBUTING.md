@@ -13,7 +13,7 @@ flutter test           # must pass
 flutter run -d chrome  # quickest way to see UI changes
 ```
 
-You need a recent stable Flutter (developed on 3.41). Mobile builds need Xcode (iOS) or the Android SDK.
+You need Flutter 3.41 or newer. Mobile builds need Xcode (iOS) or the Android SDK. Linux desktop builds need `clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev libjsoncpp-dev libcurl4-openssl-dev`.
 
 To work on the Inbox without real accounts, point `connectionsProvider` and `activeProvidersProvider` at fake providers in a throwaway entry point — see `test/unit/inbox_test.dart` for how adapters are faked with `MockClient`.
 
