@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
+import '../../core/providers/locale_provider.dart';
+import '../../l10n/l10n.dart';
 import '../auth/data/secure_token_storage.dart';
 import '../repos/data/git_provider_factory.dart';
 import '../repos/data/inbox_dismissal_store.dart';
@@ -69,8 +71,14 @@ Future<int> runInboxCheck({bool force = false}) async {
     await prefs.setStringList(_seenKey, plan.nextSeen.toList());
 
     if (plan.fresh.isEmpty) return 0;
-    final text = alertText(plan.fresh);
-    await NotificationService.showInboxAlert(text.title, text.body);
+    // No BuildContext here (background isolate): use the saved language choice,
+    // else the device language, else English.
+    final l = lookupAppLocalizations(resolveLocale(
+        prefs.getString(localePrefKey), PlatformDispatcher.instance.locale));
+    final text = alertText(plan.fresh, l);
+    await NotificationService.showInboxAlert(text.title, text.body,
+        channelName: l.alertChannelName,
+        channelDescription: l.alertChannelDescription);
     return plan.fresh.length;
   } finally {
     client.close();

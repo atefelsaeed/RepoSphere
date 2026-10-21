@@ -6,6 +6,7 @@ import 'package:repo_sphere/core/git/git_provider_type.dart';
 import 'package:repo_sphere/features/auth/domain/git_connection.dart';
 import 'package:repo_sphere/core/utils/exceptions.dart';
 import 'package:repo_sphere/features/repos/data/datasources/azure_remote_datasource.dart';
+import 'package:repo_sphere/features/repos/data/inbox_loader.dart';
 import 'package:repo_sphere/features/repos/data/datasources/github_remote_datasource.dart';
 import 'package:repo_sphere/features/repos/data/datasources/gitlab_remote_datasource.dart';
 import 'package:repo_sphere/features/repos/data/repositories/azure_repo_repository_impl.dart';
@@ -88,8 +89,15 @@ void main() {
       if (path.endsWith('/merge_requests') &&
           q['scope'] == 'created_by_me') {
         return http.Response(
-            jsonEncode([mr(2, status: 'ci_must_pass'), mr(3, status: 'mergeable')]),
+            jsonEncode([
+              {...mr(2, status: 'ci_must_pass'), 'project_id': 7},
+              mr(3, status: 'mergeable'),
+            ]),
             200);
+      }
+      if (path.endsWith('/projects/7/merge_requests/2')) {
+        return http.Response(
+            jsonEncode({'head_pipeline': {'status': 'failed'}}), 200);
       }
       return http.Response('[]', 200);
     });
@@ -104,7 +112,7 @@ void main() {
       ),
     );
 
-    final items = await adapter.getInboxItems();
+    final items = (await adapter.getInboxItems()).items;
 
     expect(items.map((i) => i.number), [2, 1, 5]);
     expect(items[0].primaryReason, InboxReason.ciFailed);
@@ -119,7 +127,9 @@ void main() {
         () async => [_item(1, [InboxReason.assigned])],
         () async => throw const GitHubApiException('boom'),
       ]);
-      expect(out.length, 1);
+      expect(out.items.length, 1);
+      expect(out.isPartial, isTrue);
+      expect(out.failures.length, 1);
     });
 
     test('rethrows when every query fails (no false "all clear")', () async {
@@ -219,7 +229,7 @@ void main() {
             200);
       });
 
-      final items = await adapter(client).getInboxItems();
+      final items = (await adapter(client).getInboxItems()).items;
 
       expect(items.map((i) => i.number), [3, 9]);
       expect(items[0].reasons, [
@@ -401,7 +411,7 @@ void main() {
       ),
     );
 
-    final items = await adapter.getInboxItems();
+    final items = (await adapter.getInboxItems()).items;
 
     expect(items.map((i) => i.number), [3, 1, 11]);
     expect(items[0].primaryReason, InboxReason.changesRequested);
@@ -409,5 +419,110 @@ void main() {
     expect(items[2].kind, InboxItemKind.issue);
     expect(items[1].htmlUrl,
         'https://dev.azure.com/org/Proj/_git/repo/pullrequest/1');
+  });
+
+  group('robustness', () {
+    const conn = GitConnection(
+      id: 'gh-1',
+      type: GitProviderType.github,
+      accountLogin: 'me',
+      token: 't',
+    );
+    GitHubRepoRepositoryImpl gh(http.Client c) => GitHubRepoRepositoryImpl(
+        GitHubRemoteDatasource(client: c, token: 't'), conn);
+
+    Map<String, dynamic> hit(int n) => {
+          'number': n,
+          'title': 'PR $n',
+          'html_url': 'https://github.com/o/r/pull/$n',
+          'updated_at': '2024-01-04T00:00:00Z',
+          'repository_url': 'https://api.github.com/repos/o/r',
+          'pull_request': {},
+          'user': {'login': 'bob'},
+        };
+
+    test('GitHub search follows pages beyond the first 100 results', () async {
+      final pages = <String>[];
+      final client = MockClient((req) async {
+        if (req.url.path == '/graphql') {
+          return http.Response(jsonEncode({'data': {'search': {'nodes': []}}}), 200);
+        }
+        final page = int.parse(req.url.queryParameters['page']!);
+        final q = req.url.queryParameters['q']!;
+        if (q.contains('review-requested')) pages.add('$page');
+        final items = q.contains('review-requested')
+            ? [for (var i = 0; i < (page == 1 ? 100 : 30); i++) hit(page * 1000 + i)]
+            : <Map<String, dynamic>>[];
+        return http.Response(jsonEncode({'total_count': 130, 'items': items}), 200);
+      });
+
+      final batch = await gh(client).getInboxItems();
+
+      expect(pages, ['1', '2']);
+      expect(batch.items.length, 130);
+      expect(batch.isPartial, isFalse);
+    });
+
+    test('a secondary rate limit is reported, other results still shown',
+        () async {
+      final client = MockClient((req) async {
+        if (req.url.path == '/graphql') {
+          return http.Response(jsonEncode({'data': {'search': {'nodes': []}}}), 200);
+        }
+        final q = req.url.queryParameters['q']!;
+        if (q.contains('mentions')) {
+          return http.Response(
+              jsonEncode({'message': 'You have exceeded a secondary rate limit.'}),
+              403,
+              headers: {'retry-after': '42'});
+        }
+        return http.Response(
+            jsonEncode({
+              'total_count': 1,
+              'items': q.contains('review-requested') ? [hit(9)] : []
+            }),
+            200);
+      });
+
+      final batch = await gh(client).getInboxItems();
+
+      expect(batch.items.map((i) => i.number), [9]);
+      expect(batch.isPartial, isTrue);
+      expect(inboxErrorText(batch.failures.first), contains('42s'));
+    });
+
+    test('GitLab: a running pipeline is not reported as CI failed', () async {
+      final client = MockClient((req) async {
+        final path = req.url.path;
+        if (path.endsWith('/merge_requests') &&
+            req.url.queryParameters['scope'] == 'created_by_me') {
+          return http.Response(
+              jsonEncode([
+                {
+                  'iid': 5,
+                  'project_id': 3,
+                  'title': 'MR 5',
+                  'web_url': 'u',
+                  'updated_at': '2024-01-02T00:00:00Z',
+                  'references': {'full': 'g/p!5'},
+                  'detailed_merge_status': 'ci_must_pass',
+                }
+              ]),
+              200);
+        }
+        if (path.endsWith('/projects/3/merge_requests/5')) {
+          return http.Response(
+              jsonEncode({'head_pipeline': {'status': 'running'}}), 200);
+        }
+        return http.Response('[]', 200);
+      });
+      final adapter = GitLabRepoRepositoryImpl(
+        GitLabRemoteDatasource(client: client, token: 't'),
+        const GitConnection(
+            id: 'gl', type: GitProviderType.gitlab, accountLogin: 'a', token: 't'),
+      );
+
+      expect((await adapter.getInboxItems()).items, isEmpty);
+    });
   });
 }

@@ -24,11 +24,12 @@ It is built for people who work across many accounts — freelancers and agencie
 ## What it does
 
 - **Unified Inbox** — everything urgent, most urgent first: CI failed → changes requested → merge conflicts → review requested → assigned → mentioned. The same PR found by several queries shows up once, with every reason.
-- **Act in place** — approve, request changes, merge, or re-run failed CI from the item itself.
+- **Read and act in place** — open an item to see its description, changed files with a coloured diff and the discussion (GitHub and GitLab), then approve, request changes, merge, or re-run failed CI without leaving the app.
 - **Clear it out** — swipe to mark done (it comes back only if there's new activity) or snooze until later today, tomorrow or next week.
 - **Workspaces per client** — group whole accounts *and/or* specific orgs or groups under a client name and colour. One GitHub login can serve several clients; filter the Inbox to one client at a time.
 - **Multi-account, multi-provider** — connect any number of GitHub, GitLab (including **self-hosted**) and Azure DevOps accounts at once.
 - **Urgent alerts on mobile** — optional background check that notifies you about *newly* urgent items only. No server involved.
+- **Arabic and English** — full right-to-left layout and Arabic notifications; switch in Settings. (The older repository-browser screens are English only for now.)
 - **Fast and tolerant** — opens instantly from the last snapshot. If one account fails (expired token, offline) you get a banner naming it, not a false "all clear".
 - **Also a repo browser** — repos, file tree with syntax highlighting, commits and diffs, PRs/MRs, issues/work items, releases, activity.
 
@@ -150,8 +151,8 @@ GitHub Actions runs analysis, tests and builds for web, macOS, Windows, Linux an
 - Real-account hardening of the Inbox, and approve/merge/CI actions for Azure DevOps
 - Bitbucket and Gitea/Forgejo
 - Home-screen widget with the urgent count
-- Pull request review in-app: view the diff, approve, request changes
-- Arabic and English localization
+- Inline review comments and file-level review in the in-app PR view
+- Translate the remaining repository-browser screens; more languages
 - Signed and notarised desktop builds, App Store / Play Store releases
 
 ## License

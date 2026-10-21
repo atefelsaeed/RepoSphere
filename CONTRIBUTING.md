@@ -38,6 +38,17 @@ Rules of thumb:
 - **Gate features on `ProviderCapabilities`**, not on `provider == github`.
 - Providers map their API into the shared entities in `domain/entities/`.
 
+## Strings and translations
+
+User-visible text lives in `tool/gen_arb.py` (English and Arabic side by side), never hard-coded in widgets.
+
+1. Add or edit the entry in `tool/gen_arb.py`, then run `python3 tool/gen_arb.py` and `flutter gen-l10n`.
+2. Use it with `context.l10n.yourKey` (`import '.../l10n/l10n.dart'`). Code that has no `BuildContext` (like background notifications) uses `lookupAppLocalizations(locale)`.
+3. Use `AlignmentDirectional` / `EdgeInsetsDirectional` instead of left/right, and wrap code-like text (branch names, paths, diffs, `@login`) in `Directionality(textDirection: TextDirection.ltr, ...)`.
+4. `test/unit/l10n_test.dart` fails if a key is missing in one language or placeholders differ.
+
+To add a language, add it to `tool/gen_arb.py` and `supportedLanguageCodes` in `lib/core/providers/locale_provider.dart`.
+
 ## Adding or extending a provider
 
 1. Add the REST client in `data/datasources/` (thin: returns decoded JSON or models).

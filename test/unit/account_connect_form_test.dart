@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:repo_sphere/core/git/git_provider_type.dart';
 import 'package:repo_sphere/features/auth/presentation/widgets/account_connect_form.dart';
+import 'package:repo_sphere/l10n/app_localizations.dart';
 
 void main() {
   group('normalizeInstanceUrl', () {
@@ -13,8 +14,8 @@ void main() {
     });
 
     test('keeps an explicit scheme and port', () {
-      expect(normalizeInstanceUrl('http://10.0.0.5:8080'),
-          'http://10.0.0.5:8080');
+      expect(
+          normalizeInstanceUrl('http://10.0.0.5:8080'), 'http://10.0.0.5:8080');
     });
 
     test('empty stays empty', () {
@@ -31,14 +32,17 @@ void main() {
     });
 
     test('Azure links to the organisation token page', () {
-      final h = tokenHelp(
-          GitProviderType.azureDevOps, 'https://dev.azure.com/acme');
+      final h =
+          tokenHelp(GitProviderType.azureDevOps, 'https://dev.azure.com/acme');
       expect(h.url.path, '/acme/_usersSettings/tokens');
     });
   });
 
   group('AccountConnectForm', () {
     Future<void> pump(WidgetTester t) => t.pumpWidget(MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
           home: Scaffold(
             body: SingleChildScrollView(
               child: AccountConnectForm(onConnect: (_) async {}),
@@ -70,8 +74,8 @@ void main() {
       await t.enterText(find.byType(TextField).last, 'azure-pat-token');
       await t.tap(find.text('Connect'));
       await t.pump();
-      expect(find.text('Azure DevOps needs an organisation URL.'),
-          findsOneWidget);
+      expect(
+          find.text('Azure DevOps needs an organisation URL.'), findsOneWidget);
     });
 
     testWidgets('empty token is rejected', (t) async {

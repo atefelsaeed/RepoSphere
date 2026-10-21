@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/providers/locale_provider.dart';
 import 'core/providers/theme_provider.dart';
+import 'l10n/l10n.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/connections_provider.dart';
@@ -14,6 +16,7 @@ class RepoSphereApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final connectionsState = ref.watch(connectionsProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
 
     if (connectionsState.isLoading) {
       return MaterialApp(
@@ -21,6 +24,9 @@ class RepoSphereApp extends ConsumerWidget {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: themeMode,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: locale,
         home: const _SplashScreen(),
       );
     }
@@ -40,6 +46,9 @@ class RepoSphereApp extends ConsumerWidget {
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: themeMode,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: locale,
           routerConfig: router,
         ),
       ),
@@ -77,8 +86,8 @@ class _SplashScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.hub_rounded,
-                  size: 38, color: Colors.white),
+              child:
+                  const Icon(Icons.hub_rounded, size: 38, color: Colors.white),
             )
                 .animate()
                 .scale(
@@ -104,9 +113,7 @@ class _SplashScreen extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
-            )
-                .animate(delay: 280.ms)
-                .fadeIn(duration: 400.ms),
+            ).animate(delay: 280.ms).fadeIn(duration: 400.ms),
           ],
         ),
       ),

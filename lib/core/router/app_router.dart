@@ -24,7 +24,9 @@ import '../../features/repos/presentation/screens/notifications_screen.dart';
 import '../../features/repos/presentation/screens/repo_readme_screen.dart';
 import '../../features/repos/presentation/screens/repo_releases_screen.dart';
 import '../../features/repos/presentation/screens/gists_screen.dart';
+import '../../features/repos/domain/entities/inbox_item_entity.dart';
 import '../../features/repos/presentation/screens/inbox_screen.dart';
+import '../../features/repos/presentation/screens/item_detail_screen.dart';
 import '../../features/repos/presentation/screens/workspaces_screen.dart';
 import '../../features/repos/presentation/screens/repos_screen.dart';
 import '../../features/repos/presentation/screens/settings_screen.dart';
@@ -101,6 +103,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/inbox',
         name: 'inbox',
         builder: (_, __) => const InboxScreen(),
+        routes: [
+          GoRoute(
+            path: 'item',
+            name: 'inbox-item',
+            builder: (_, state) =>
+                ItemDetailScreen(item: state.extra as InboxItem),
+          ),
+        ],
       ),
       GoRoute(
         path: '/workspaces',

@@ -5,7 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'core/config/app_config.dart';
+import 'core/providers/locale_provider.dart';
 import 'core/providers/theme_provider.dart';
+import 'l10n/l10n.dart';
 import 'features/auth/data/secure_token_storage.dart';
 import 'features/notifications/background_inbox_check.dart';
 
@@ -35,9 +37,13 @@ Future<void> main() async {
     _ => ThemeMode.system,
   };
 
+  registerTimeagoLocales();
+  final initialLocale = localeFromPref(prefs.getString(localePrefKey));
+
   final app = ProviderScope(
     overrides: [
       themeModeProvider.overrideWith((ref) => initialTheme),
+      localeProvider.overrideWith((ref) => initialLocale),
     ],
     child: const RepoSphereApp(),
   );
@@ -47,8 +53,9 @@ Future<void> main() async {
       (options) {
         options.dsn = AppConfig.sentryDsn;
         options.tracesSampleRate = 0.2;
-        options.environment =
-            const bool.fromEnvironment('dart.vm.product') ? 'production' : 'debug';
+        options.environment = const bool.fromEnvironment('dart.vm.product')
+            ? 'production'
+            : 'debug';
       },
       appRunner: () => runApp(app),
     );

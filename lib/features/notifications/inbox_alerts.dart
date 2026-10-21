@@ -1,3 +1,4 @@
+import '../../l10n/l10n.dart';
 import '../repos/domain/entities/inbox_item_entity.dart';
 
 /// Reasons worth interrupting the user for. Assignments and mentions stay in
@@ -38,15 +39,16 @@ AlertPlan planAlerts(List<InboxItem> items, Set<String>? seen) {
   return AlertPlan(fresh, next);
 }
 
-/// Notification text for [fresh] (non-empty, most urgent first).
-({String title, String body}) alertText(List<InboxItem> fresh) {
+/// Notification text for [fresh] (non-empty, most urgent first), in the
+/// language of [l].
+({String title, String body}) alertText(
+    List<InboxItem> fresh, AppLocalizations l) {
   String line(InboxItem i) =>
-      '${i.primaryReason.label} · ${i.repoFullName}#${i.number}';
-  final title = fresh.length == 1
-      ? fresh.first.title
-      : '${fresh.length} items need your attention';
+      '${i.primaryReason.localized(l)} · ${i.repoFullName}#${i.number}';
+  final title =
+      fresh.length == 1 ? fresh.first.title : l.alertTitleMany(fresh.length);
   final lines = fresh.take(3).map(line).toList();
-  if (fresh.length > 3) lines.add('and ${fresh.length - 3} more');
+  if (fresh.length > 3) lines.add(l.alertAndMore(fresh.length - 3));
   return (
     title: title,
     body: fresh.length == 1 ? line(fresh.first) : lines.join('\n'),

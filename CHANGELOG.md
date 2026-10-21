@@ -5,6 +5,20 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+### Added
+- **Arabic and English**, with full right-to-left layout, for the Inbox, item detail, quick actions, workspaces, login/connect form, Settings and the background alert notifications. Pick the language in Settings (default: your device language). The older repository-browser screens are still English only.
+- **In-app detail** for Inbox items (GitHub and GitLab): description, changed files with a coloured unified diff, and the discussion, with the quick actions one tap away. Azure DevOps items still open in the browser.
+- Inbox now tells you when **some results may be missing** (a query failed while others succeeded) and why, instead of showing a partial list silently.
+- Widget tests for the Inbox and detail screens.
+
+### Changed
+- Tapping an Inbox item opens its detail; long-press (or the Actions button in the detail) opens the quick-action sheet. Swipe gestures are unchanged.
+- GitHub search results are paged (up to 200 per query) instead of stopping at the first 50.
+- Errors name the real reason, e.g. "GitHub is rate limiting requests. Try again in 42s." (secondary rate limits used to read "Access forbidden").
+
+### Fixed
+- GitLab: a merge request whose pipeline was still running or not started was reported as "CI failed". The head pipeline is now checked.
+
 ## [0.2.0] — 2026-10-21
 
 First release of the unified Inbox: RepoSphere now answers "what needs me today?" across all your Git accounts.

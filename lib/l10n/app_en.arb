@@ -1,0 +1,269 @@
+{
+  "@@locale": "en",
+  "inboxTitle": "Inbox",
+  "tooltipWorkspaces": "Workspaces",
+  "tooltipRepositories": "Repositories",
+  "tooltipSettings": "Settings",
+  "filterAll": "All",
+  "filterUnassigned": "Unassigned",
+  "filterEverything": "Everything",
+  "filterWithCount": "{label} · {count}",
+  "@filterWithCount": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "emptyTitle": "You're all caught up",
+  "emptyBody": "Nothing needs your attention right now.",
+  "bannerCouldntLoad": "Couldn't load {account}: {reason}",
+  "@bannerCouldntLoad": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "bannerPartial": "Some results from {account} may be missing: {reason}",
+  "@bannerPartial": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "bannerSavedRefreshing": "Showing saved results — refreshing…",
+  "errNetwork": "Network error or unexpected response.",
+  "retry": "Retry",
+  "swipeDone": "Done",
+  "swipeSnooze": "Snooze",
+  "snoozeLater": "Later today (4 hours)",
+  "snoozeTomorrow": "Tomorrow",
+  "snoozeNextWeek": "Next week",
+  "markedDone": "Marked done",
+  "undo": "Undo",
+  "reasonCiFailed": "CI failed",
+  "reasonChangesRequested": "Changes requested",
+  "reasonConflicts": "Merge conflicts",
+  "reasonReviewRequested": "Review requested",
+  "reasonAssigned": "Assigned to you",
+  "reasonMentioned": "Mentioned",
+  "actionRerunCi": "Re-run failed CI",
+  "actionApprove": "Approve",
+  "actionRequestChanges": "Request changes",
+  "actionMerge": "Merge",
+  "actionOpenInBrowser": "Open in browser",
+  "doneApproved": "Approved",
+  "doneChangesRequested": "Changes requested",
+  "doneMerged": "Merged",
+  "doneCiRerun": "CI re-run started",
+  "failedWith": "Failed: {error}",
+  "@failedWith": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "send": "Send",
+  "approveTitle": "Approve?",
+  "approveBody": "Approve {ref} as {account}?",
+  "@approveBody": {
+    "placeholders": {
+      "ref": {
+        "type": "String"
+      },
+      "account": {
+        "type": "String"
+      }
+    }
+  },
+  "mergeTitle": "Merge?",
+  "mergeBody": "Merge {ref}? This can't be undone from here.",
+  "@mergeBody": {
+    "placeholders": {
+      "ref": {
+        "type": "String"
+      }
+    }
+  },
+  "requestChangesHint": "What needs to change?",
+  "detailActions": "Actions",
+  "detailMore": "More",
+  "detailNoDescription": "No description.",
+  "detailFilesChanged": "Files changed · {count}",
+  "@detailFilesChanged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "detailDiscussion": "Discussion · {count}",
+  "@detailDiscussion": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "detailNoComments": "No comments yet.",
+  "detailNoDiff": "No diff available (binary or too large). Open it in the browser.",
+  "detailMoreLines": "… {count} more lines. Open in the browser for the full diff.",
+  "@detailMoreLines": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stateOpen": "open",
+  "stateClosed": "closed",
+  "stateMerged": "merged",
+  "stateDraft": "draft",
+  "workspacesTitle": "Workspaces",
+  "workspaceNew": "New workspace",
+  "workspaceEmptyTitle": "Group your work by client",
+  "workspaceEmptyBody": "A workspace combines accounts and orgs from GitHub, GitLab or Azure DevOps under one client name, so your Inbox can show one client at a time.",
+  "workspaceNoAccounts": "No accounts yet",
+  "workspaceRemovedAccount": "Removed account",
+  "workspaceNameLabel": "Client / workspace name",
+  "workspaceAccountsOrgs": "Accounts & orgs",
+  "workspaceOrgHelp": "Leave the org field empty to include the whole account.",
+  "workspaceAccountLabel": "Account",
+  "workspaceOrgLabel": "Org / group (optional)",
+  "tooltipRemove": "Remove",
+  "workspaceAddRule": "Add account or org",
+  "delete": "Delete",
+  "save": "Save",
+  "connectAzureUrlLabel": "Organisation URL (https://dev.azure.com/your-org)",
+  "connectGitlabUrlLabel": "Self-hosted GitLab URL (optional)",
+  "connectGitlabUrlHint": "Empty = gitlab.com",
+  "tokenLabel": "Personal Access Token",
+  "enterToken": "Enter a token.",
+  "azureNeedsOrg": "Azure DevOps needs an organisation URL.",
+  "invalidToken": "Invalid token. Check the value and its scopes.",
+  "couldNotConnectUrl": "Could not connect. Check the token and the URL.",
+  "couldNotConnectNet": "Could not connect. Check the token and your internet connection.",
+  "showToken": "Show token",
+  "hideToken": "Hide token",
+  "connecting": "Connecting…",
+  "connect": "Connect",
+  "createTokenOn": "Create a token on {provider}",
+  "@createTokenOn": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "needsScopes": "Needs: {scopes}",
+  "@needsScopes": {
+    "placeholders": {
+      "scopes": {
+        "type": "String"
+      }
+    }
+  },
+  "authTagline": "One inbox for all your Git work.",
+  "authSignInGithub": "Sign in with GitHub",
+  "authHideOther": "Hide other options",
+  "authOtherOptions": "GitLab, Azure DevOps or a token",
+  "deviceStep1": "1. Open this URL in your browser:",
+  "deviceStep2": "2. Enter this code:",
+  "codeCopied": "Code copied!",
+  "deviceWaiting": "Waiting for authorisation…",
+  "settingsTitle": "Settings",
+  "connectedAccounts": "Connected Accounts",
+  "addAccount": "Add account",
+  "connectAccountTitle": "Connect an account",
+  "noAccountsConnected": "No accounts connected. Tap \"Add account\" to connect.",
+  "removeProviderTitle": "Remove {provider}",
+  "@removeProviderTitle": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "disconnectBody": "Disconnect {account}? Its repos will be removed from the list.",
+  "@disconnectBody": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      }
+    }
+  },
+  "remove": "Remove",
+  "appearance": "Appearance",
+  "theme": "Theme",
+  "themeSystem": "System default",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "language": "Language",
+  "languageSystem": "System default",
+  "notificationsSection": "Notifications",
+  "alertsTitle": "Urgent inbox alerts",
+  "alertsBody": "Failing CI, requested changes, conflicts and review requests. Checked in the background about every 30 minutes; iOS may run it less often.",
+  "alertsCheckNow": "Check now",
+  "alertsPermissionDenied": "Notification permission was denied. Enable it in system settings.",
+  "alertsCouldNotChange": "Could not change alerts: {error}",
+  "@alertsCouldNotChange": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "checkedNothing": "Checked — nothing new.",
+  "checkedNew": "Checked — {count, plural, one{1 new item} other{{count} new items}}.",
+  "@checkedNew": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkFailed": "Check failed: {error}",
+  "@checkFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "about": "About",
+  "aboutApp": "App",
+  "aboutVersion": "Version",
+  "aboutProviders": "Providers",
+  "alertTitleMany": "{count, plural, one{1 item needs your attention} other{{count} items need your attention}}",
+  "@alertTitleMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "alertAndMore": "and {count} more",
+  "@alertAndMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "alertChannelName": "Inbox alerts",
+  "alertChannelDescription": "Failing CI, review requests and other urgent items"
+}

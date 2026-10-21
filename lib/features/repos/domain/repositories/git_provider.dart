@@ -9,6 +9,7 @@ import '../entities/gist_entity.dart';
 import '../entities/inbox_item_entity.dart';
 import '../entities/issue_comment_entity.dart';
 import '../entities/issue_entity.dart';
+import '../entities/item_detail_entity.dart';
 import '../entities/notification_entity.dart';
 import '../entities/pull_request_entity.dart';
 import '../entities/release_entity.dart';
@@ -54,6 +55,9 @@ class ProviderCapabilities {
   /// Can answer "what needs my attention?" via [GitProvider.getInboxItems].
   final bool inbox;
 
+  /// Can show an inbox item's description, diff and comments in-app.
+  final bool itemDetail;
+
   /// Inbox quick actions on a PR/MR (merge uses [mergePullRequests]).
   final bool approvePullRequests;
   final bool requestChanges;
@@ -77,6 +81,7 @@ class ProviderCapabilities {
     this.editIssueState = false,
     this.createIssues = false,
     this.inbox = false,
+    this.itemDetail = false,
     this.approvePullRequests = false,
     this.requestChanges = false,
     this.rerunCi = false,
@@ -149,7 +154,11 @@ abstract class GitProvider {
 
   /// Open PRs/issues across all repos of this account that need the user's
   /// attention (review requests, failing CI, assignments, mentions).
-  Future<List<InboxItem>> getInboxItems();
+  Future<InboxBatch> getInboxItems();
+
+  /// Description, changed files (PRs/MRs only) and comments for an inbox
+  /// [item]. Throws [UnsupportedProviderOperation] when not available.
+  Future<ItemDetail> getItemDetail(InboxItem item);
 
   /// Runs a one-tap [action] on an inbox PR/MR. [comment] is the review body
   /// (required by GitHub for [PrAction.requestChanges]). Throws

@@ -9,6 +9,7 @@ import '../../data/github_device_auth.dart';
 import '../../domain/git_connection.dart';
 import '../providers/auth_provider.dart';
 import '../providers/connections_provider.dart';
+import '../../../../l10n/l10n.dart';
 import '../widgets/account_connect_form.dart';
 
 // Auth priority:
@@ -106,9 +107,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
           final theme = Theme.of(ctx);
           final cs = theme.colorScheme;
+          final l = ctx.l10n;
 
           return AlertDialog(
-            title: const Text('Sign in with GitHub'),
+            title: Text(l.authSignInGithub),
             content: SizedBox(
               width: 360,
               child: Column(
@@ -129,14 +131,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(oauthError!,
-                                style:
-                                    TextStyle(color: cs.onErrorContainer)),
+                                style: TextStyle(color: cs.onErrorContainer)),
                           ),
                         ],
                       ),
                     ),
                   ] else ...[
-                    Text('1. Open this URL in your browser:',
+                    Text(l.deviceStep1,
                         style: theme.textTheme.bodySmall
                             ?.copyWith(color: cs.onSurfaceVariant)),
                     const SizedBox(height: 8),
@@ -152,19 +153,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           visualDensity: VisualDensity.compact),
                     ),
                     const SizedBox(height: 20),
-                    Text('2. Enter this code:',
+                    Text(l.deviceStep2,
                         style: theme.textTheme.bodySmall
                             ?.copyWith(color: cs.onSurfaceVariant)),
                     const SizedBox(height: 10),
                     Center(
                       child: GestureDetector(
                         onTap: () {
-                          Clipboard.setData(
-                              ClipboardData(text: code.userCode));
+                          Clipboard.setData(ClipboardData(text: code.userCode));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Code copied!'),
-                              duration: Duration(seconds: 2),
+                            SnackBar(
+                              content: Text(l.codeCopied),
+                              duration: const Duration(seconds: 2),
                             ),
                           );
                         },
@@ -174,8 +174,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           decoration: BoxDecoration(
                             color: cs.primaryContainer,
                             borderRadius: BorderRadius.circular(10),
-                            border:
-                                Border.all(color: cs.primary.withAlpha(80)),
+                            border: Border.all(color: cs.primary.withAlpha(80)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -210,7 +209,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Text('Waiting for authorisation…',
+                        Text(l.deviceWaiting,
                             style: theme.textTheme.bodySmall
                                 ?.copyWith(color: cs.onSurfaceVariant)),
                       ],
@@ -225,7 +224,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   sub?.cancel();
                   Navigator.of(ctx).pop();
                 },
-                child: const Text('Cancel'),
+                child: Text(l.cancel),
               ),
             ],
           );
@@ -238,6 +237,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l = context.l10n;
     final hasOAuth = AppConfig.hasGitHubOAuth;
 
     return Scaffold(
@@ -261,12 +261,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 Text(
                   'RepoSphere',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold),
+                  style: theme.textTheme.headlineMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.2),
                 const SizedBox(height: 6),
                 Text(
-                  'One inbox for all your Git work.',
+                  l.authTagline,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium
                       ?.copyWith(color: cs.onSurfaceVariant),
@@ -294,8 +294,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.login_rounded),
-                    label: const Text('Sign in with GitHub',
-                        style: TextStyle(
+                    label: Text(l.authSignInGithub,
+                        style: const TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 15)),
                   ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.1),
                   const SizedBox(height: 16),
@@ -307,9 +307,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     onPressed: () =>
                         setState(() => _showOtherOptions = !_showOtherOptions),
                     child: Text(
-                      _showOtherOptions
-                          ? 'Hide other options'
-                          : 'GitLab, Azure DevOps or a token',
+                      _showOtherOptions ? l.authHideOther : l.authOtherOptions,
                       style: theme.textTheme.bodySmall
                           ?.copyWith(color: cs.onSurfaceVariant),
                     ),
@@ -321,8 +319,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         ? Card(
                             child: Padding(
                               padding: const EdgeInsets.all(20),
-                              child: AccountConnectForm(
-                                  onConnect: _addConnection),
+                              child:
+                                  AccountConnectForm(onConnect: _addConnection),
                             ),
                           )
                         : const SizedBox.shrink(),
@@ -365,8 +363,7 @@ class _ErrorBanner extends StatelessWidget {
               color: cs.onErrorContainer, size: 18),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(message,
-                style: TextStyle(color: cs.onErrorContainer)),
+            child: Text(message, style: TextStyle(color: cs.onErrorContainer)),
           ),
         ],
       ),

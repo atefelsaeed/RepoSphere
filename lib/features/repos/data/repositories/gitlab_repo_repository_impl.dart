@@ -9,6 +9,7 @@ import '../../domain/entities/contributor_entity.dart';
 import '../../domain/entities/gist_entity.dart';
 import '../../../../core/utils/exceptions.dart';
 import '../../domain/entities/inbox_item_entity.dart';
+import '../../domain/entities/item_detail_entity.dart';
 import '../../domain/entities/issue_comment_entity.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/notification_entity.dart';
@@ -45,6 +46,7 @@ class GitLabRepoRepositoryImpl implements GitProvider {
         languages: true,
         search: true,
         inbox: true,
+        itemDetail: true,
         approvePullRequests: true,
         mergePullRequests: true,
         rerunCi: true,
@@ -490,11 +492,11 @@ class GitLabRepoRepositoryImpl implements GitProvider {
         .toList();
   }
 
-  /// Reason for one of my own open MRs, from GitLab's merge-status summary.
+  /// Reasons for one of my own open MRs from GitLab's merge-status summary.
+  /// `ci_must_pass` also covers "pipeline hasn't started/finished", so it is
+  /// resolved separately in [_myMergeRequests].
   static InboxReason? _myMrReason(Map<String, dynamic> m) {
     switch (m['detailed_merge_status']) {
-      case 'ci_must_pass':
-        return InboxReason.ciFailed;
       case 'conflict':
       case 'need_rebase':
         return InboxReason.conflicts;
@@ -503,6 +505,40 @@ class GitLabRepoRepositoryImpl implements GitProvider {
       default:
         return null;
     }
+  }
+
+  /// My open MRs that need work. For `ci_must_pass` the head pipeline is
+  /// checked so a pipeline that is merely running or not started isn't
+  /// reported as failed.
+  Future<List<InboxItem>> _myMergeRequests() async {
+    final list = (await _ds.getAccountList(
+            '/merge_requests?scope=created_by_me&state=opened&per_page=100'))
+        .cast<Map<String, dynamic>>();
+    final out = <InboxItem>[];
+    var pipelineChecks = 0;
+    for (final m in list) {
+      var reason = _myMrReason(m);
+      if (m['detailed_merge_status'] == 'ci_must_pass') {
+        var failed = true; // if we can't tell, assume the worse case
+        if (pipelineChecks < 15 && m['project_id'] != null) {
+          pipelineChecks++;
+          try {
+            final full = await _ds.send('GET',
+                    '/projects/${m['project_id']}/merge_requests/${m['iid']}')
+                as Map<String, dynamic>;
+            final status = (full['head_pipeline'] as Map?)?['status'];
+            failed = status == 'failed' || status == 'canceled';
+          } on Exception {
+            // keep the assumption
+          }
+        }
+        if (failed) reason = InboxReason.ciFailed;
+      }
+      if (reason == null) continue;
+      final item = _item(m, InboxItemKind.pullRequest, [reason]);
+      if (item != null) out.add(item);
+    }
+    return out;
   }
 
   Future<List<InboxItem>> _mentions() async {
@@ -528,24 +564,19 @@ class GitLabRepoRepositoryImpl implements GitProvider {
   }
 
   @override
-  Future<List<InboxItem>> getInboxItems() {
+  Future<InboxBatch> getInboxItems() {
     final me = Uri.encodeQueryComponent(connection.accountLogin);
     const mr = InboxItemKind.pullRequest;
     return collectInbox([
       () => _list(
-          '/merge_requests?scope=all&state=opened&reviewer_username=$me&per_page=50',
+          '/merge_requests?scope=all&state=opened&reviewer_username=$me&per_page=100',
           mr,
           (_) => InboxReason.reviewRequested),
-      () => _list('/merge_requests?scope=assigned_to_me&state=opened&per_page=50',
+      () => _list('/merge_requests?scope=assigned_to_me&state=opened&per_page=100',
           mr, (_) => InboxReason.assigned),
-      () => _list('/issues?scope=assigned_to_me&state=opened&per_page=50',
+      () => _list('/issues?scope=assigned_to_me&state=opened&per_page=100',
           InboxItemKind.issue, (_) => InboxReason.assigned),
-      () async => (await _list(
-              '/merge_requests?scope=created_by_me&state=opened&per_page=50',
-              mr,
-              (m) => _myMrReason(m) ?? InboxReason.mentioned))
-          .where((i) => i.reasons.first != InboxReason.mentioned)
-          .toList(),
+      _myMergeRequests,
       _mentions,
     ]);
   }
@@ -571,5 +602,79 @@ class GitLabRepoRepositoryImpl implements GitProvider {
         throw const UnsupportedProviderOperation(
             GitProviderType.gitlab, 'request changes');
     }
+  }
+
+  @override
+  Future<ItemDetail> getItemDetail(InboxItem item) async {
+    final project = Uri.encodeComponent(item.repoFullName);
+    final isMr = item.kind == InboxItemKind.pullRequest;
+    final kind = isMr ? 'merge_requests' : 'issues';
+    final base = '/projects/$project/$kind/${item.number}';
+
+    final main = await _ds.send('GET', base) as Map<String, dynamic>;
+    final notes = await _ds.send('GET', '$base/notes?per_page=50&sort=asc')
+        as List<dynamic>;
+
+    var files = const <DiffFile>[];
+    if (isMr) {
+      List<dynamic> raw;
+      try {
+        raw = await _ds.send('GET', '$base/diffs?per_page=100') as List<dynamic>;
+      } on Exception {
+        // Older GitLab: only the (deprecated) /changes endpoint exists.
+        final changes = await _ds.send('GET', '$base/changes')
+            as Map<String, dynamic>;
+        raw = changes['changes'] as List<dynamic>? ?? const [];
+      }
+      files = raw.cast<Map<String, dynamic>>().map((f) {
+        final patch = f['diff'] as String?;
+        final counts = countDiff(patch);
+        return DiffFile(
+          path: f['new_path'] as String? ?? f['old_path'] as String? ?? '',
+          status: f['new_file'] == true
+              ? 'added'
+              : f['deleted_file'] == true
+                  ? 'removed'
+                  : f['renamed_file'] == true
+                      ? 'renamed'
+                      : 'modified',
+          additions: counts.additions,
+          deletions: counts.deletions,
+          patch: (patch == null || patch.isEmpty) ? null : patch,
+        );
+      }).toList();
+    }
+
+    final author = main['author'] as Map<String, dynamic>? ?? const {};
+    final state = switch (main['state']) {
+      'merged' => 'merged',
+      'closed' => 'closed',
+      _ => main['draft'] == true || main['work_in_progress'] == true
+          ? 'draft'
+          : 'open',
+    };
+    return ItemDetail(
+      title: main['title'] as String? ?? item.title,
+      body: main['description'] as String? ?? '',
+      authorLogin: author['username'] as String? ?? '',
+      authorAvatarUrl: author['avatar_url'] as String?,
+      state: state,
+      createdAt: _date(main['created_at']),
+      headBranch: main['source_branch'] as String?,
+      baseBranch: main['target_branch'] as String?,
+      files: files,
+      comments: notes
+          .cast<Map<String, dynamic>>()
+          .where((n) => n['system'] != true)
+          .map((n) {
+        final a = n['author'] as Map<String, dynamic>? ?? const {};
+        return DetailComment(
+          authorLogin: a['username'] as String? ?? '',
+          authorAvatarUrl: a['avatar_url'] as String?,
+          body: n['body'] as String? ?? '',
+          createdAt: _date(n['created_at']),
+        );
+      }).toList(),
+    );
   }
 }

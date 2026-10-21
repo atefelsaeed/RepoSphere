@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/domain/git_connection.dart';
 import '../../../auth/presentation/providers/connections_provider.dart';
 import '../../domain/entities/workspace_entity.dart';
+import '../../../../l10n/l10n.dart';
 import '../providers/inbox_provider.dart';
 import '../providers/workspaces_provider.dart';
 
@@ -25,16 +26,17 @@ class WorkspacesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final l = context.l10n;
     final workspaces = ref.watch(workspacesProvider);
     final connections = ref.watch(connectionsProvider).valueOrNull ?? const [];
     final byId = {for (final c in connections) c.id: c};
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Workspaces')),
+      appBar: AppBar(title: Text(l.workspacesTitle)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _edit(context, null),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('New workspace'),
+        label: Text(l.workspaceNew),
       ),
       body: workspaces.isEmpty
           ? Padding(
@@ -46,13 +48,11 @@ class WorkspacesScreen extends ConsumerWidget {
                     Icon(Icons.business_center_outlined,
                         size: 56, color: cs.onSurfaceVariant),
                     const SizedBox(height: 16),
-                    Text('Group your work by client',
+                    Text(l.workspaceEmptyTitle,
                         style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),
                     Text(
-                      'A workspace combines accounts and orgs from GitHub, '
-                      'GitLab or Azure DevOps under one client name, so your '
-                      'Inbox can show one client at a time.',
+                      l.workspaceEmptyBody,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: cs.onSurfaceVariant),
                     ),
@@ -81,10 +81,11 @@ class WorkspacesScreen extends ConsumerWidget {
                   title: Text(w.name),
                   subtitle: Text(
                     w.rules.isEmpty
-                        ? 'No accounts yet'
+                        ? l.workspaceNoAccounts
                         : w.rules.map((r) {
                             final c = byId[r.connectionId];
-                            final who = c?.displayName ?? 'Removed account';
+                            final who =
+                                c?.displayName ?? l.workspaceRemovedAccount;
                             return r.isSpecific ? '$who / ${r.namespace}' : who;
                           }).join('  ·  '),
                     maxLines: 2,
@@ -103,7 +104,8 @@ class WorkspacesScreen extends ConsumerWidget {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (_) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: _WorkspaceEditor(existing: existing),
       ),
     );
@@ -170,8 +172,7 @@ class _WorkspaceEditorState extends ConsumerState<_WorkspaceEditor> {
     final rules = <WorkspaceRule>[
       for (final r in _rules)
         if (r.connectionId != null)
-          WorkspaceRule(
-              r.connectionId!,
+          WorkspaceRule(r.connectionId!,
               r.namespace.text.trim().isEmpty ? null : r.namespace.text.trim()),
     ];
     final w = Workspace(
@@ -189,6 +190,7 @@ class _WorkspaceEditorState extends ConsumerState<_WorkspaceEditor> {
   Widget build(BuildContext context) {
     final connections = ref.watch(connectionsProvider).valueOrNull ?? const [];
     final cs = Theme.of(context).colorScheme;
+    final l = context.l10n;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -201,8 +203,7 @@ class _WorkspaceEditorState extends ConsumerState<_WorkspaceEditor> {
               controller: _name,
               autofocus: widget.existing == null,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                  labelText: 'Client / workspace name'),
+              decoration: InputDecoration(labelText: l.workspaceNameLabel),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
@@ -216,18 +217,19 @@ class _WorkspaceEditorState extends ConsumerState<_WorkspaceEditor> {
                       radius: 14,
                       backgroundColor: Color(c),
                       child: _color == c
-                          ? const Icon(Icons.check, size: 16, color: Colors.white)
+                          ? const Icon(Icons.check,
+                              size: 16, color: Colors.white)
                           : null,
                     ),
                   ),
               ],
             ),
             const SizedBox(height: 20),
-            Text('Accounts & orgs',
+            Text(l.workspaceAccountsOrgs,
                 style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 4),
             Text(
-              'Leave the org field empty to include the whole account.',
+              l.workspaceOrgHelp,
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
@@ -242,12 +244,13 @@ class _WorkspaceEditorState extends ConsumerState<_WorkspaceEditor> {
                         Expanded(
                           flex: 3,
                           child: DropdownButtonFormField<String>(
-                            initialValue: connections.any((c) => c.id == r.connectionId)
-                                ? r.connectionId
-                                : null,
+                            initialValue:
+                                connections.any((c) => c.id == r.connectionId)
+                                    ? r.connectionId
+                                    : null,
                             isExpanded: true,
-                            decoration:
-                                const InputDecoration(labelText: 'Account'),
+                            decoration: InputDecoration(
+                                labelText: l.workspaceAccountLabel),
                             items: [
                               for (final GitConnection c in connections)
                                 DropdownMenuItem(
@@ -262,12 +265,12 @@ class _WorkspaceEditorState extends ConsumerState<_WorkspaceEditor> {
                           flex: 2,
                           child: TextField(
                             controller: r.namespace,
-                            decoration: const InputDecoration(
-                                labelText: 'Org / group (optional)'),
+                            decoration:
+                                InputDecoration(labelText: l.workspaceOrgLabel),
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Remove',
+                          tooltip: l.tooltipRemove,
                           icon: const Icon(Icons.close_rounded),
                           onPressed: () => setState(() {
                             _rules.removeAt(i).namespace.dispose();
@@ -297,7 +300,7 @@ class _WorkspaceEditorState extends ConsumerState<_WorkspaceEditor> {
                       connections.length == 1 ? connections.first.id : null,
                       null))),
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Add account or org'),
+              label: Text(l.workspaceAddRule),
             ),
             const SizedBox(height: 12),
             Row(
@@ -316,12 +319,12 @@ class _WorkspaceEditorState extends ConsumerState<_WorkspaceEditor> {
                       }
                       Navigator.pop(context);
                     },
-                    child: const Text('Delete'),
+                    child: Text(l.delete),
                   ),
                 const Spacer(),
                 FilledButton(
                   onPressed: _name.text.trim().isEmpty ? null : _save,
-                  child: const Text('Save'),
+                  child: Text(l.save),
                 ),
               ],
             ),

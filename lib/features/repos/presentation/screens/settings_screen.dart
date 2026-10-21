@@ -4,7 +4,9 @@ import '../../../notifications/background_inbox_check.dart';
 import '../../../notifications/notification_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/providers/locale_provider.dart';
 import '../../../../core/providers/theme_provider.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../auth/domain/git_connection.dart';
 import '../../../auth/presentation/providers/connections_provider.dart';
 import '../../../auth/presentation/widgets/account_connect_form.dart';
@@ -16,13 +18,15 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final l = context.l10n;
     final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
     final connections = ref.watch(connectionsProvider).valueOrNull ?? const [];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l.settingsTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -35,13 +39,12 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: _SectionHeader(
-                        label: 'Connected Accounts',
-                        icon: Icons.link_rounded),
+                        label: l.connectedAccounts, icon: Icons.link_rounded),
                   ),
                   FilledButton.icon(
                     onPressed: () => _showAddAccount(context, ref),
                     icon: const Icon(Icons.add_rounded, size: 16),
-                    label: const Text('Add account'),
+                    label: Text(l.addAccount),
                     style: FilledButton.styleFrom(
                         visualDensity: VisualDensity.compact),
                   ),
@@ -71,8 +74,7 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 32),
 
               // ── Appearance ───────────────────────────────────────────
-              _SectionHeader(
-                  label: 'Appearance', icon: Icons.palette_outlined),
+              _SectionHeader(label: l.appearance, icon: Icons.palette_outlined),
               const SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
@@ -82,8 +84,8 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 child: ListTile(
                   leading: Icon(_themeModeIcon(themeMode), color: cs.primary),
-                  title: const Text('Theme'),
-                  subtitle: Text(_themeModeLabel(themeMode),
+                  title: Text(l.theme),
+                  subtitle: Text(_themeModeLabel(l, themeMode),
                       style: TextStyle(color: cs.onSurfaceVariant)),
                   trailing: SegmentedButton<ThemeMode>(
                     segments: const [
@@ -113,12 +115,44 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
 
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: cs.outlineVariant),
+                  borderRadius: BorderRadius.circular(12),
+                  color: cs.surface,
+                ),
+                child: ListTile(
+                  leading: Icon(Icons.language_rounded, color: cs.primary),
+                  title: Text(l.language),
+                  trailing: DropdownButton<String>(
+                    value: localeToPref(locale),
+                    underline: const SizedBox.shrink(),
+                    items: [
+                      DropdownMenuItem(
+                          value: 'system', child: Text(l.languageSystem)),
+                      // Language names are always shown in their own language.
+                      const DropdownMenuItem(
+                          value: 'en', child: Text('English')),
+                      const DropdownMenuItem(
+                          value: 'ar', child: Text('العربية')),
+                    ],
+                    onChanged: (v) async {
+                      final next = localeFromPref(v);
+                      ref.read(localeProvider.notifier).state = next;
+                      final prefs = await SharedPreferences.getInstance();
+                      prefs.setString(localePrefKey, localeToPref(next));
+                    },
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 32),
 
               // ── Notifications (mobile only) ──────────────────────────
               if (NotificationService.supported) ...[
                 _SectionHeader(
-                    label: 'Notifications',
+                    label: l.notificationsSection,
                     icon: Icons.notifications_active_outlined),
                 const SizedBox(height: 12),
                 const _InboxAlertsCard(),
@@ -126,8 +160,7 @@ class SettingsScreen extends ConsumerWidget {
               ],
 
               // ── About ────────────────────────────────────────────────
-              _SectionHeader(
-                  label: 'About', icon: Icons.info_outline_rounded),
+              _SectionHeader(label: l.about, icon: Icons.info_outline_rounded),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -137,13 +170,13 @@ class SettingsScreen extends ConsumerWidget {
                   color: cs.surface,
                 ),
                 child: Column(
-                  children: const [
-                    _AboutRow(label: 'App', value: 'RepoSphere'),
-                    Divider(height: 20),
-                    _AboutRow(label: 'Version', value: appVersion),
-                    Divider(height: 20),
+                  children: [
+                    _AboutRow(label: l.aboutApp, value: 'RepoSphere'),
+                    const Divider(height: 20),
+                    _AboutRow(label: l.aboutVersion, value: appVersion),
+                    const Divider(height: 20),
                     _AboutRow(
-                        label: 'Providers',
+                        label: l.aboutProviders,
                         value: 'GitHub · GitLab · Azure DevOps'),
                   ],
                 ),
@@ -160,8 +193,8 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       builder: (_) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: SingleChildScrollView(
@@ -169,7 +202,7 @@ class SettingsScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Connect an account',
+                Text(context.l10n.connectAccountTitle,
                     style: Theme.of(context)
                         .textTheme
                         .titleMedium
@@ -194,16 +227,15 @@ class SettingsScreen extends ConsumerWidget {
     return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: Text('Remove ${c.type.label}'),
-            content: Text(
-                'Disconnect ${c.displayName}? Its repos will be removed from the list.'),
+            title: Text(ctx.l10n.removeProviderTitle(c.type.label)),
+            content: Text(ctx.l10n.disconnectBody(c.displayName)),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel')),
+                  child: Text(ctx.l10n.cancel)),
               FilledButton(
                   onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Remove')),
+                  child: Text(ctx.l10n.remove)),
             ],
           ),
         ) ??
@@ -216,10 +248,10 @@ class SettingsScreen extends ConsumerWidget {
         _ => Icons.brightness_auto_rounded,
       };
 
-  String _themeModeLabel(ThemeMode m) => switch (m) {
-        ThemeMode.light => 'Light',
-        ThemeMode.dark => 'Dark',
-        _ => 'System default',
+  String _themeModeLabel(AppLocalizations l, ThemeMode m) => switch (m) {
+        ThemeMode.light => l.themeLight,
+        ThemeMode.dark => l.themeDark,
+        _ => l.themeSystem,
       };
 }
 
@@ -262,20 +294,26 @@ class _ConnectionTile extends StatelessWidget {
                         .textTheme
                         .titleSmall
                         ?.copyWith(fontWeight: FontWeight.w600)),
-                Text('@${connection.accountLogin}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant)),
+                Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: Text('@${connection.accountLogin}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: cs.onSurfaceVariant))),
                 if (connection.baseUrl != null &&
                     connection.baseUrl!.isNotEmpty)
                   Text(connection.baseUrl!,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: cs.onSurfaceVariant),
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelSmall
+                          ?.copyWith(color: cs.onSurfaceVariant),
                       overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
           IconButton(
-            tooltip: 'Remove',
+            tooltip: context.l10n.tooltipRemove,
             onPressed: onRemove,
             icon: Icon(Icons.delete_outline_rounded, color: cs.error),
           ),
@@ -301,7 +339,7 @@ class _EmptyConnections extends StatelessWidget {
           Icon(Icons.cloud_off_rounded, color: cs.onSurfaceVariant),
           const SizedBox(width: 12),
           Expanded(
-            child: Text('No accounts connected. Tap "Add account" to connect.',
+            child: Text(context.l10n.noAccountsConnected,
                 style: TextStyle(color: cs.onSurfaceVariant)),
           ),
         ],
@@ -360,7 +398,6 @@ class _AboutRow extends StatelessWidget {
   }
 }
 
-
 /// Toggle + "check now" for background inbox alerts.
 class _InboxAlertsCard extends StatefulWidget {
   const _InboxAlertsCard();
@@ -381,6 +418,8 @@ class _InboxAlertsCardState extends State<_InboxAlertsCard> {
     });
   }
 
+  AppLocalizations get _l => context.l10n;
+
   void _toast(String msg) => ScaffoldMessenger.of(context)
     ..clearSnackBars()
     ..showSnackBar(SnackBar(content: Text(msg)));
@@ -391,12 +430,12 @@ class _InboxAlertsCardState extends State<_InboxAlertsCard> {
       final ok = await setInboxAlerts(on);
       if (!mounted) return;
       if (on && !ok) {
-        _toast('Notification permission was denied. Enable it in system settings.');
+        _toast(_l.alertsPermissionDenied);
       } else {
         setState(() => _enabled = on);
       }
     } on Object catch (e) {
-      if (mounted) _toast('Could not change alerts: $e');
+      if (mounted) _toast(_l.alertsCouldNotChange('$e'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -407,10 +446,10 @@ class _InboxAlertsCardState extends State<_InboxAlertsCard> {
     try {
       final n = await runInboxCheck(force: true);
       if (mounted) {
-        _toast(n == 0 ? 'Checked — nothing new.' : 'Checked — $n new item(s).');
+        _toast(n == 0 ? _l.checkedNothing : _l.checkedNew(n));
       }
     } on Object catch (e) {
-      if (mounted) _toast('Check failed: $e');
+      if (mounted) _toast(_l.checkFailed('$e'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -430,11 +469,9 @@ class _InboxAlertsCardState extends State<_InboxAlertsCard> {
           SwitchListTile(
             value: _enabled,
             onChanged: _busy ? null : _toggle,
-            title: const Text('Urgent inbox alerts'),
+            title: Text(_l.alertsTitle),
             subtitle: Text(
-              'Failing CI, requested changes, conflicts and review requests. '
-              'Checked in the background about every 30 minutes; iOS may '
-              'run it less often.',
+              _l.alertsBody,
               style: TextStyle(color: cs.onSurfaceVariant),
             ),
           ),
@@ -442,7 +479,7 @@ class _InboxAlertsCardState extends State<_InboxAlertsCard> {
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.refresh_rounded),
-              title: const Text('Check now'),
+              title: Text(_l.alertsCheckNow),
               enabled: !_busy,
               onTap: _checkNow,
             ),

@@ -7,21 +7,32 @@ import '../../../repos/data/datasources/azure_remote_datasource.dart';
 import '../../../repos/data/datasources/github_remote_datasource.dart';
 import '../../../repos/data/datasources/gitlab_remote_datasource.dart';
 import '../../data/secure_token_storage.dart';
+import '../../../../l10n/l10n.dart';
 import '../../domain/git_connection.dart';
 
 /// Brand colour and icon for a provider, shared by the account list and the
 /// connect form.
 ({Color color, IconData icon}) providerStyle(GitProviderType t) => switch (t) {
-      GitProviderType.github =>
-        (color: const Color(0xFF6E7681), icon: Icons.hub_rounded),
-      GitProviderType.gitlab =>
-        (color: const Color(0xFFFC6D26), icon: Icons.code_rounded),
-      GitProviderType.azureDevOps =>
-        (color: const Color(0xFF0078D4), icon: Icons.cloud_rounded),
-      GitProviderType.bitbucket =>
-        (color: const Color(0xFF2684FF), icon: Icons.merge_type_rounded),
-      GitProviderType.gitea =>
-        (color: const Color(0xFF609926), icon: Icons.coffee_rounded),
+      GitProviderType.github => (
+          color: const Color(0xFF6E7681),
+          icon: Icons.hub_rounded
+        ),
+      GitProviderType.gitlab => (
+          color: const Color(0xFFFC6D26),
+          icon: Icons.code_rounded
+        ),
+      GitProviderType.azureDevOps => (
+          color: const Color(0xFF0078D4),
+          icon: Icons.cloud_rounded
+        ),
+      GitProviderType.bitbucket => (
+          color: const Color(0xFF2684FF),
+          icon: Icons.merge_type_rounded
+        ),
+      GitProviderType.gitea => (
+          color: const Color(0xFF609926),
+          icon: Icons.coffee_rounded
+        ),
     };
 
 /// Cleans a user-typed instance/organisation URL: trims, adds `https://` when
@@ -106,26 +117,27 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
   bool get _urlVisible =>
       _type == GitProviderType.gitlab || _type == GitProviderType.azureDevOps;
 
-  String get _urlLabel => _type == GitProviderType.azureDevOps
-      ? 'Organisation URL (https://dev.azure.com/your-org)'
-      : 'Self-hosted GitLab URL (optional)';
+  String _urlLabel(AppLocalizations l) => _type == GitProviderType.azureDevOps
+      ? l.connectAzureUrlLabel
+      : l.connectGitlabUrlLabel;
 
-  String get _tokenHint => switch (_type) {
+  String _tokenHint(AppLocalizations l) => switch (_type) {
         GitProviderType.github => 'ghp_xxxxxxxx',
         GitProviderType.gitlab => 'glpat-xxxxxxxx',
         GitProviderType.azureDevOps => 'Azure DevOps PAT',
-        _ => 'Personal Access Token',
+        _ => l.tokenLabel,
       };
 
   Future<void> _connect() async {
+    final l = context.l10n;
     final token = _tokenCtrl.text.trim();
     final url = _urlVisible ? normalizeInstanceUrl(_urlCtrl.text) : '';
     if (token.isEmpty) {
-      setState(() => _error = 'Enter a token.');
+      setState(() => _error = l.enterToken);
       return;
     }
     if (_urlRequired && url.isEmpty) {
-      setState(() => _error = 'Azure DevOps needs an organisation URL.');
+      setState(() => _error = l.azureNeedsOrg);
       return;
     }
     setState(() {
@@ -138,7 +150,7 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
       await widget.onConnect(connection);
       if (mounted) widget.onConnected?.call();
     } catch (e) {
-      if (mounted) setState(() => _error = _friendly(e));
+      if (mounted) setState(() => _error = _friendly(e, l));
     } finally {
       client.close();
       if (mounted) setState(() => _busy = false);
@@ -150,10 +162,9 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
     final id = SecureTokenStorage.newConnectionId();
     switch (_type) {
       case GitProviderType.github:
-        final user =
-            (await GitHubRemoteDatasource(client: client, token: token)
-                    .getUser())
-                .toEntity();
+        final user = (await GitHubRemoteDatasource(client: client, token: token)
+                .getUser())
+            .toEntity();
         return GitConnection(
           id: id,
           type: GitProviderType.github,
@@ -178,7 +189,8 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
         final data = await AzureRemoteDatasource(
                 client: client, pat: token, orgUrl: baseUrl)
             .getConnectionData();
-        final u = data['authenticatedUser'] as Map<String, dynamic>? ?? const {};
+        final u =
+            data['authenticatedUser'] as Map<String, dynamic>? ?? const {};
         return GitConnection(
           id: id,
           type: GitProviderType.azureDevOps,
@@ -191,23 +203,18 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
     }
   }
 
-  String _friendly(Object e) {
-    if (e is GitHubAuthException) {
-      return 'Invalid token. Check the value and its scopes.';
-    }
+  String _friendly(Object e, AppLocalizations l) {
+    if (e is GitHubAuthException) return l.invalidToken;
     if (e is GitHubRateLimitException) return e.message;
     final s = e.toString();
-    if (s.contains('401') || s.contains('Invalid')) {
-      return 'Invalid token. Check the value and its scopes.';
-    }
-    return _urlVisible
-        ? 'Could not connect. Check the token and the URL.'
-        : 'Could not connect. Check the token and your internet connection.';
+    if (s.contains('401') || s.contains('Invalid')) return l.invalidToken;
+    return _urlVisible ? l.couldNotConnectUrl : l.couldNotConnectNet;
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l = context.l10n;
     final help = tokenHelp(
         _type, _urlVisible ? normalizeInstanceUrl(_urlCtrl.text) : '');
 
@@ -247,9 +254,9 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
             autocorrect: false,
             onChanged: (_) => setState(() {}), // refresh the token link
             decoration: InputDecoration(
-              labelText: _urlLabel,
+              labelText: _urlLabel(l),
               hintText: _type == GitProviderType.gitlab
-                  ? 'Empty = gitlab.com'
+                  ? l.connectGitlabUrlHint
                   : 'https://dev.azure.com/your-org',
               prefixIcon: const Icon(Icons.link_rounded),
             ),
@@ -262,11 +269,11 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
           autocorrect: false,
           enableSuggestions: false,
           decoration: InputDecoration(
-            labelText: 'Personal Access Token',
-            hintText: _tokenHint,
+            labelText: l.tokenLabel,
+            hintText: _tokenHint(l),
             prefixIcon: const Icon(Icons.key_rounded),
             suffixIcon: IconButton(
-              tooltip: _obscure ? 'Show token' : 'Hide token',
+              tooltip: _obscure ? l.showToken : l.hideToken,
               icon: Icon(_obscure
                   ? Icons.visibility_outlined
                   : Icons.visibility_off_outlined),
@@ -297,17 +304,17 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.white))
               : const Icon(Icons.link_rounded, size: 16),
-          label: Text(_busy ? 'Connecting…' : 'Connect'),
+          label: Text(_busy ? l.connecting : l.connect),
         ),
         const SizedBox(height: 8),
         TextButton.icon(
           onPressed: () =>
               launchUrl(help.url, mode: LaunchMode.externalApplication),
           icon: const Icon(Icons.open_in_new_rounded, size: 16),
-          label: Text('Create a token on ${_type.label}'),
+          label: Text(l.createTokenOn(_type.label)),
         ),
         Text(
-          'Needs: ${help.scopes}',
+          l.needsScopes(help.scopes),
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
         ),
