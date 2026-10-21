@@ -2,33 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/repos_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final userAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile',
+        title: Text(l.tooltipProfile,
             style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
-            tooltip: 'Gists',
+            tooltip: l.tooltipGists,
             icon: const Icon(Icons.code_rounded),
             onPressed: () => context.goNamed('gists'),
           ),
           IconButton(
-            tooltip: 'Settings',
+            tooltip: l.tooltipSettings,
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => context.goNamed('settings'),
           ),
@@ -37,7 +38,7 @@ class ProfileScreen extends ConsumerWidget {
       body: userAsync.when(
         data: (user) {
           if (user == null) {
-            return const Center(child: Text('No profile data'));
+            return Center(child: Text(l.noProfileData));
           }
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(currentUserProvider),
@@ -84,11 +85,11 @@ class ProfileScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _StatBadge(value: user.publicRepos, label: 'Repos'),
+                  _StatBadge(value: user.publicRepos, label: l.reposLabel),
                   _Divider(),
-                  _StatBadge(value: user.followers, label: 'Followers'),
+                  _StatBadge(value: user.followers, label: l.followers),
                   _Divider(),
-                  _StatBadge(value: user.following, label: 'Following'),
+                  _StatBadge(value: user.following, label: l.following),
                 ],
               )
                   .animate(delay: 80.ms)
@@ -130,7 +131,7 @@ class ProfileScreen extends ConsumerWidget {
                 if (user.createdAt != null)
                   _InfoRow(
                       icon: Icons.calendar_today_outlined,
-                      text: 'Joined ${timeago.format(user.createdAt!)}'),
+                      text: l.joinedAgo(ago(context, user.createdAt!))),
               ]
                   .asMap()
                   .entries

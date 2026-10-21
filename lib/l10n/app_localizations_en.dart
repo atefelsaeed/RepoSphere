@@ -456,4 +456,471 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get alertChannelDescription =>
       'Failing CI, review requests and other urgent items';
+
+  @override
+  String get tooltipActivity => 'Activity';
+
+  @override
+  String get tooltipGists => 'Gists';
+
+  @override
+  String get tooltipExplore => 'Explore GitHub';
+
+  @override
+  String get tooltipSort => 'Sort';
+
+  @override
+  String get sortUpdated => 'Last updated';
+
+  @override
+  String get sortStars => 'Stars';
+
+  @override
+  String get sortName => 'Name';
+
+  @override
+  String get sortCreated => 'Created';
+
+  @override
+  String get tooltipToggleTheme => 'Toggle theme';
+
+  @override
+  String get tooltipProfile => 'Profile';
+
+  @override
+  String get tooltipLogout => 'Logout';
+
+  @override
+  String get disconnectAllTitle => 'Disconnect all';
+
+  @override
+  String get disconnectAllBody =>
+      'Remove all connected accounts from this device?';
+
+  @override
+  String get disconnect => 'Disconnect';
+
+  @override
+  String get searchReposHint => 'Search repositories…';
+
+  @override
+  String get pinned => 'Pinned';
+
+  @override
+  String get noReposFound => 'No repositories found';
+
+  @override
+  String get filterOwned => 'Owned';
+
+  @override
+  String get filterForked => 'Forked';
+
+  @override
+  String get filterStarred => 'Starred';
+
+  @override
+  String get filterPublic => 'Public';
+
+  @override
+  String get filterPrivate => 'Private';
+
+  @override
+  String get shortcutSearch => 'Focus search bar';
+
+  @override
+  String get shortcutRefresh => 'Refresh repositories';
+
+  @override
+  String get shortcutHelp => 'Show this dialog';
+
+  @override
+  String get shortcutsTitle => 'Keyboard Shortcuts';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String repoCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count repositories',
+      one: '1 repository',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get unpin => 'Unpin';
+
+  @override
+  String get pin => 'Pin';
+
+  @override
+  String get browseCode => 'Browse code';
+
+  @override
+  String get unstar => 'Unstar';
+
+  @override
+  String get star => 'Star';
+
+  @override
+  String get copied => 'Copied!';
+
+  @override
+  String get copyLink => 'Copy link';
+
+  @override
+  String get pullRequests => 'Pull requests';
+
+  @override
+  String get issues => 'Issues';
+
+  @override
+  String get commits => 'Commits';
+
+  @override
+  String get releases => 'Releases';
+
+  @override
+  String get forkLabel => 'Fork';
+
+  @override
+  String get topics => 'Topics';
+
+  @override
+  String get recentCommits => 'Recent commits';
+
+  @override
+  String get viewAll => 'View all';
+
+  @override
+  String get noCommitsFound => 'No commits found';
+
+  @override
+  String get forks => 'Forks';
+
+  @override
+  String get watchers => 'Watchers';
+
+  @override
+  String get languages => 'Languages';
+
+  @override
+  String get contributors => 'Contributors';
+
+  @override
+  String get clone => 'Clone';
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String openOnProvider(String provider) {
+    return 'Open on $provider';
+  }
+
+  @override
+  String contributorTooltip(String login, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count commits',
+      one: '1 commit',
+    );
+    return '$login · $_temp0';
+  }
+
+  @override
+  String get noProfileData => 'No profile data';
+
+  @override
+  String get reposLabel => 'Repos';
+
+  @override
+  String get followers => 'Followers';
+
+  @override
+  String get following => 'Following';
+
+  @override
+  String get searchAllHint => 'Search all GitHub repositories…';
+
+  @override
+  String get searchFailed => 'Search failed';
+
+  @override
+  String get searchAcrossTitle => 'Search across all of GitHub';
+
+  @override
+  String get searchAcrossBody => 'Find repos by name, topic, or description';
+
+  @override
+  String get recentSearches => 'Recent searches';
+
+  @override
+  String get clearAll => 'Clear all';
+
+  @override
+  String get markAllRead => 'Mark all read';
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get failedLoadNotifications => 'Failed to load notifications';
+
+  @override
+  String get allCaughtUp => 'All caught up!';
+
+  @override
+  String get noNotifications => 'No notifications';
+
+  @override
+  String get reasonSubscribed => 'Subscribed';
+
+  @override
+  String get reasonAssignedShort => 'Assigned';
+
+  @override
+  String get reasonAuthor => 'Author';
+
+  @override
+  String get reasonCommented => 'Commented';
+
+  @override
+  String get reasonTeamMention => 'Team mentioned';
+
+  @override
+  String get reasonStateChange => 'State changed';
+
+  @override
+  String get failedLoadActivity => 'Failed to load activity';
+
+  @override
+  String get noRecentActivity => 'No recent activity';
+
+  @override
+  String get yourGists => 'Your Gists';
+
+  @override
+  String get failedLoadGists => 'Failed to load gists';
+
+  @override
+  String get noGistsYet => 'No gists yet';
+
+  @override
+  String get gistSecret => 'Secret';
+
+  @override
+  String get newIssue => 'New issue';
+
+  @override
+  String get tabOpen => 'Open';
+
+  @override
+  String get tabClosed => 'Closed';
+
+  @override
+  String get loadMore => 'Load more';
+
+  @override
+  String get tabMerged => 'Merged';
+
+  @override
+  String joinedAgo(String time) {
+    return 'Joined $time';
+  }
+
+  @override
+  String noResultsFor(String query) {
+    return 'No results for \"$query\"';
+  }
+
+  @override
+  String reposForQuery(int count, String query) {
+    return '$count+ repositories for \"$query\"';
+  }
+
+  @override
+  String updatedAgo(String time) {
+    return 'Updated $time';
+  }
+
+  @override
+  String get noOpenIssues => 'No open issues';
+
+  @override
+  String get noClosedIssues => 'No closed issues';
+
+  @override
+  String get noOpenPrs => 'No open pull requests';
+
+  @override
+  String get noClosedPrs => 'No closed pull requests';
+
+  @override
+  String get noMergedPrs => 'No merged pull requests';
+
+  @override
+  String openedAgo(String time) {
+    return 'opened $time';
+  }
+
+  @override
+  String closedAgo(String time) {
+    return 'closed $time';
+  }
+
+  @override
+  String byAuthor(String author) {
+    return 'by $author';
+  }
+
+  @override
+  String get prOpen => 'Open';
+
+  @override
+  String get prMerged => 'Merged';
+
+  @override
+  String get prClosed => 'Closed';
+
+  @override
+  String get prDraft => 'Draft';
+
+  @override
+  String get noDescriptionProvided => 'No description provided.';
+
+  @override
+  String get noCommitsOnBranch => 'No commits on this branch';
+
+  @override
+  String get defaultBadge => 'default';
+
+  @override
+  String get noReleasesYet => 'No releases yet';
+
+  @override
+  String get viewOnGithub => 'View on GitHub';
+
+  @override
+  String get copyContent => 'Copy content';
+
+  @override
+  String get copiedToClipboard => 'Copied to clipboard';
+
+  @override
+  String get binaryFile => 'Binary file — cannot display';
+
+  @override
+  String get emptyDirectory => 'Empty directory';
+
+  @override
+  String get noReadmeFound => 'No README found';
+
+  @override
+  String get titleLabel => 'Title';
+
+  @override
+  String get titleRequired => 'Title is required';
+
+  @override
+  String get describeIssueHint => 'Describe the issue… (optional)';
+
+  @override
+  String get descriptionLabel => 'Description';
+
+  @override
+  String get submitIssue => 'Submit issue';
+
+  @override
+  String get comments => 'Comments';
+
+  @override
+  String get emptyComment => '(empty comment)';
+
+  @override
+  String prTitle(int number) {
+    return 'PR #$number';
+  }
+
+  @override
+  String issueTitle(int number) {
+    return 'Issue #$number';
+  }
+
+  @override
+  String releasedAgo(String time) {
+    return 'released $time';
+  }
+
+  @override
+  String committedAgo(String time) {
+    return 'committed $time';
+  }
+
+  @override
+  String commentedAgo(String time) {
+    return 'commented $time';
+  }
+
+  @override
+  String filesChangedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files changed',
+      one: '1 file changed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String commentCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count comments',
+      one: '1 comment',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get errInvalidToken => 'Invalid or expired token. Please reconnect.';
+
+  @override
+  String get errForbidden => 'Access forbidden. Check your token scopes.';
+
+  @override
+  String get errNotFound => 'Resource not found.';
+
+  @override
+  String get errTooMany => 'Too many requests. Try again in a moment.';
+
+  @override
+  String get errInvalidRequest =>
+      'Invalid request. Check the data and try again.';
+
+  @override
+  String get errServer => 'The server is having issues. Try again later.';
+
+  @override
+  String errUnexpected(String code) {
+    return 'Unexpected error ($code).';
+  }
+
+  @override
+  String get errCommentRequired => 'A comment is required to request changes.';
+
+  @override
+  String get errRateLimited =>
+      'GitHub is rate limiting requests. Try again in a minute.';
+
+  @override
+  String errRateLimitedIn(String seconds) {
+    return 'GitHub is rate limiting requests. Try again in ${seconds}s.';
+  }
 }

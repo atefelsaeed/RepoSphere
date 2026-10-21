@@ -267,5 +267,278 @@
     }
   },
   "alertChannelName": "Inbox alerts",
-  "alertChannelDescription": "Failing CI, review requests and other urgent items"
+  "alertChannelDescription": "Failing CI, review requests and other urgent items",
+  "tooltipActivity": "Activity",
+  "tooltipGists": "Gists",
+  "tooltipExplore": "Explore GitHub",
+  "tooltipSort": "Sort",
+  "sortUpdated": "Last updated",
+  "sortStars": "Stars",
+  "sortName": "Name",
+  "sortCreated": "Created",
+  "tooltipToggleTheme": "Toggle theme",
+  "tooltipProfile": "Profile",
+  "tooltipLogout": "Logout",
+  "disconnectAllTitle": "Disconnect all",
+  "disconnectAllBody": "Remove all connected accounts from this device?",
+  "disconnect": "Disconnect",
+  "searchReposHint": "Search repositories…",
+  "pinned": "Pinned",
+  "noReposFound": "No repositories found",
+  "filterOwned": "Owned",
+  "filterForked": "Forked",
+  "filterStarred": "Starred",
+  "filterPublic": "Public",
+  "filterPrivate": "Private",
+  "shortcutSearch": "Focus search bar",
+  "shortcutRefresh": "Refresh repositories",
+  "shortcutHelp": "Show this dialog",
+  "shortcutsTitle": "Keyboard Shortcuts",
+  "close": "Close",
+  "repoCount": "{count, plural, one{1 repository} other{{count} repositories}}",
+  "@repoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unpin": "Unpin",
+  "pin": "Pin",
+  "browseCode": "Browse code",
+  "unstar": "Unstar",
+  "star": "Star",
+  "copied": "Copied!",
+  "copyLink": "Copy link",
+  "pullRequests": "Pull requests",
+  "issues": "Issues",
+  "commits": "Commits",
+  "releases": "Releases",
+  "forkLabel": "Fork",
+  "topics": "Topics",
+  "recentCommits": "Recent commits",
+  "viewAll": "View all",
+  "noCommitsFound": "No commits found",
+  "forks": "Forks",
+  "watchers": "Watchers",
+  "languages": "Languages",
+  "contributors": "Contributors",
+  "clone": "Clone",
+  "copy": "Copy",
+  "openOnProvider": "Open on {provider}",
+  "@openOnProvider": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "contributorTooltip": "{login} · {count, plural, one{1 commit} other{{count} commits}}",
+  "@contributorTooltip": {
+    "placeholders": {
+      "login": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noProfileData": "No profile data",
+  "reposLabel": "Repos",
+  "followers": "Followers",
+  "following": "Following",
+  "searchAllHint": "Search all GitHub repositories…",
+  "searchFailed": "Search failed",
+  "searchAcrossTitle": "Search across all of GitHub",
+  "searchAcrossBody": "Find repos by name, topic, or description",
+  "recentSearches": "Recent searches",
+  "clearAll": "Clear all",
+  "markAllRead": "Mark all read",
+  "refresh": "Refresh",
+  "failedLoadNotifications": "Failed to load notifications",
+  "allCaughtUp": "All caught up!",
+  "noNotifications": "No notifications",
+  "reasonSubscribed": "Subscribed",
+  "reasonAssignedShort": "Assigned",
+  "reasonAuthor": "Author",
+  "reasonCommented": "Commented",
+  "reasonTeamMention": "Team mentioned",
+  "reasonStateChange": "State changed",
+  "failedLoadActivity": "Failed to load activity",
+  "noRecentActivity": "No recent activity",
+  "yourGists": "Your Gists",
+  "failedLoadGists": "Failed to load gists",
+  "noGistsYet": "No gists yet",
+  "gistSecret": "Secret",
+  "newIssue": "New issue",
+  "tabOpen": "Open",
+  "tabClosed": "Closed",
+  "loadMore": "Load more",
+  "tabMerged": "Merged",
+  "joinedAgo": "Joined {time}",
+  "@joinedAgo": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "noResultsFor": "No results for \"{query}\"",
+  "@noResultsFor": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "reposForQuery": "{count}+ repositories for \"{query}\"",
+  "@reposForQuery": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "updatedAgo": "Updated {time}",
+  "@updatedAgo": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "noOpenIssues": "No open issues",
+  "noClosedIssues": "No closed issues",
+  "noOpenPrs": "No open pull requests",
+  "noClosedPrs": "No closed pull requests",
+  "noMergedPrs": "No merged pull requests",
+  "openedAgo": "opened {time}",
+  "@openedAgo": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "closedAgo": "closed {time}",
+  "@closedAgo": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "byAuthor": "by {author}",
+  "@byAuthor": {
+    "placeholders": {
+      "author": {
+        "type": "String"
+      }
+    }
+  },
+  "prOpen": "Open",
+  "prMerged": "Merged",
+  "prClosed": "Closed",
+  "prDraft": "Draft",
+  "noDescriptionProvided": "No description provided.",
+  "noCommitsOnBranch": "No commits on this branch",
+  "defaultBadge": "default",
+  "noReleasesYet": "No releases yet",
+  "viewOnGithub": "View on GitHub",
+  "copyContent": "Copy content",
+  "copiedToClipboard": "Copied to clipboard",
+  "binaryFile": "Binary file — cannot display",
+  "emptyDirectory": "Empty directory",
+  "noReadmeFound": "No README found",
+  "titleLabel": "Title",
+  "titleRequired": "Title is required",
+  "describeIssueHint": "Describe the issue… (optional)",
+  "descriptionLabel": "Description",
+  "submitIssue": "Submit issue",
+  "comments": "Comments",
+  "emptyComment": "(empty comment)",
+  "prTitle": "PR #{number}",
+  "@prTitle": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "issueTitle": "Issue #{number}",
+  "@issueTitle": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "releasedAgo": "released {time}",
+  "@releasedAgo": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "committedAgo": "committed {time}",
+  "@committedAgo": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "commentedAgo": "commented {time}",
+  "@commentedAgo": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "filesChangedCount": "{count, plural, one{1 file changed} other{{count} files changed}}",
+  "@filesChangedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "commentCount": "{count, plural, one{1 comment} other{{count} comments}}",
+  "@commentCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "errInvalidToken": "Invalid or expired token. Please reconnect.",
+  "errForbidden": "Access forbidden. Check your token scopes.",
+  "errNotFound": "Resource not found.",
+  "errTooMany": "Too many requests. Try again in a moment.",
+  "errInvalidRequest": "Invalid request. Check the data and try again.",
+  "errServer": "The server is having issues. Try again later.",
+  "errUnexpected": "Unexpected error ({code}).",
+  "@errUnexpected": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "errCommentRequired": "A comment is required to request changes.",
+  "errRateLimited": "GitHub is rate limiting requests. Try again in a minute.",
+  "errRateLimitedIn": "GitHub is rate limiting requests. Try again in {seconds}s.",
+  "@errRateLimitedIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  }
 }

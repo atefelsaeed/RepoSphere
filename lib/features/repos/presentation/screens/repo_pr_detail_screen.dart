@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/pull_request_entity.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/issue_comments_provider.dart';
 import '../widgets/comment_thread.dart';
 import '../widgets/label_chip.dart';
+import '../../../../l10n/l10n.dart';
 
 class RepoPrDetailScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -18,6 +18,7 @@ class RepoPrDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -33,10 +34,10 @@ class RepoPrDetailScreen extends ConsumerWidget {
     };
 
     final stateLabel = switch (pr.state) {
-      PrState.open => 'Open',
-      PrState.merged => 'Merged',
-      PrState.closed => 'Closed',
-      PrState.draft => 'Draft',
+      PrState.open => l.prOpen,
+      PrState.merged => l.prMerged,
+      PrState.closed => l.prClosed,
+      PrState.draft => l.prDraft,
     };
 
     final stateIcon = switch (pr.state) {
@@ -51,7 +52,7 @@ class RepoPrDetailScreen extends ConsumerWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('PR #${pr.number}',
+            Text(l.prTitle(pr.number),
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             Text(repo.fullName,
                 style: theme.textTheme.labelSmall
@@ -60,7 +61,7 @@ class RepoPrDetailScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Open on GitHub',
+            tooltip: l.openOnProvider('GitHub'),
             icon: const Icon(Icons.open_in_new_rounded),
             onPressed: () => launchUrl(Uri.parse(pr.htmlUrl),
                 mode: LaunchMode.externalApplication),
@@ -127,7 +128,7 @@ class RepoPrDetailScreen extends ConsumerWidget {
                   style: theme.textTheme.labelMedium
                       ?.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(width: 6),
-              Text('opened ${timeago.format(pr.createdAt)}',
+              Text(l.openedAgo(ago(context, pr.createdAt)),
                   style: theme.textTheme.labelSmall
                       ?.copyWith(color: cs.onSurfaceVariant)),
             ],
@@ -205,7 +206,7 @@ class RepoPrDetailScreen extends ConsumerWidget {
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Text('No description provided.',
+                child: Text(l.noDescriptionProvided,
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(color: cs.onSurfaceVariant)),
               ),

@@ -8,6 +8,7 @@ import '../providers/global_search_provider.dart';
 import '../providers/recent_searches_provider.dart';
 import '../widgets/repo_card.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -44,6 +45,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final recent = ref.watch(recentSearchesProvider);
@@ -57,7 +59,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           controller: _controller,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: 'Search all GitHub repositories…',
+            hintText: l.searchAllHint,
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -89,6 +91,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     List<String> recent,
     AsyncValue<List<RepoEntity>>? resultsAsync,
   ) {
+    final l = context.l10n;
     if (resultsAsync == null) {
       return _EmptyState(
         recent: recent,
@@ -115,7 +118,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           children: [
             Icon(Icons.error_outline_rounded, size: 48, color: cs.error),
             const SizedBox(height: 12),
-            Text('Search failed', style: theme.textTheme.titleMedium),
+            Text(l.searchFailed, style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(e.toString(),
                 style: theme.textTheme.bodySmall
@@ -139,7 +142,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 Icon(Icons.search_off_rounded,
                     size: 48, color: cs.onSurfaceVariant),
                 const SizedBox(height: 12),
-                Text('No results for "$_query"',
+                Text(l.noResultsFor(_query),
                     style: theme.textTheme.bodyLarge
                         ?.copyWith(color: cs.onSurfaceVariant)),
               ],
@@ -153,7 +156,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: Text(
-                  '${repos.length}+ repositories for "$_query"',
+                  l.reposForQuery(repos.length, _query),
                   style: theme.textTheme.labelMedium
                       ?.copyWith(color: cs.onSurfaceVariant),
                 ),
@@ -203,6 +206,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     if (recent.isEmpty) {
       return Center(
         child: Column(
@@ -211,11 +215,11 @@ class _EmptyState extends StatelessWidget {
             Icon(Icons.travel_explore_rounded,
                 size: 56, color: cs.onSurfaceVariant),
             const SizedBox(height: 16),
-            Text('Search across all of GitHub',
+            Text(l.searchAcrossTitle,
                 style: theme.textTheme.titleMedium
                     ?.copyWith(color: cs.onSurfaceVariant)),
             const SizedBox(height: 6),
-            Text('Find repos by name, topic, or description',
+            Text(l.searchAcrossBody,
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: cs.onSurfaceVariant)),
           ],
@@ -233,7 +237,7 @@ class _EmptyState extends StatelessWidget {
               Icon(Icons.history_rounded,
                   size: 16, color: cs.onSurfaceVariant),
               const SizedBox(width: 6),
-              Text('Recent searches',
+              Text(l.recentSearches,
                   style: theme.textTheme.labelMedium
                       ?.copyWith(color: cs.onSurfaceVariant)),
               const Spacer(),
@@ -241,7 +245,7 @@ class _EmptyState extends StatelessWidget {
                 onPressed: onClearAll,
                 style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact),
-                child: const Text('Clear all'),
+                child: Text(l.clearAll),
               ),
             ],
           ),

@@ -14,6 +14,7 @@ import '../widgets/repo_card.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class ReposScreen extends ConsumerStatefulWidget {
   const ReposScreen({super.key});
@@ -82,6 +83,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final user = ref.watch(currentUserProvider).valueOrNull;
@@ -109,13 +111,13 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
         actions: [
           // Inbox (home)
           IconButton(
-            tooltip: 'Inbox',
+            tooltip: l.inboxTitle,
             icon: const Icon(Icons.inbox_outlined),
             onPressed: () => context.goNamed('inbox'),
           ),
           // Settings
           IconButton(
-            tooltip: 'Settings',
+            tooltip: l.tooltipSettings,
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => context.goNamed('settings'),
           ),
@@ -125,7 +127,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                 ref.watch(notificationsProvider).valueOrNull ?? [];
             final unread = notifs.where((n) => n.unread).length;
             return IconButton(
-              tooltip: 'Notifications',
+              tooltip: l.notificationsSection,
               icon: Badge(
                 isLabelVisible: unread > 0,
                 label: Text(unread > 99 ? '99+' : '$unread',
@@ -137,40 +139,40 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
           }),
           // Activity feed
           IconButton(
-            tooltip: 'Activity',
+            tooltip: l.tooltipActivity,
             icon: const Icon(Icons.timeline_rounded),
             onPressed: () => context.goNamed('activity'),
           ),
           // Gists
           IconButton(
-            tooltip: 'Gists',
+            tooltip: l.tooltipGists,
             icon: const Icon(Icons.code_rounded),
             onPressed: () => context.goNamed('gists'),
           ),
           // Global search
           IconButton(
-            tooltip: 'Explore GitHub',
+            tooltip: l.tooltipExplore,
             icon: const Icon(Icons.travel_explore_rounded),
             onPressed: () => context.goNamed('search'),
           ),
           // Sort dropdown
           PopupMenuButton<RepoSort>(
-            tooltip: 'Sort',
-            icon: const Icon(Icons.sort_rounded),
+            tooltip: l.tooltipSort,
+            icon: Icon(Icons.sort_rounded),
             initialValue: ref.watch(repoSortProvider),
             onSelected: (s) =>
                 ref.read(repoSortProvider.notifier).state = s,
-            itemBuilder: (_) => const [
+            itemBuilder: (_) => [
               PopupMenuItem(
-                  value: RepoSort.updated, child: Text('Last updated')),
-              PopupMenuItem(value: RepoSort.stars, child: Text('Stars')),
-              PopupMenuItem(value: RepoSort.name, child: Text('Name')),
-              PopupMenuItem(value: RepoSort.created, child: Text('Created')),
+                  value: RepoSort.updated, child: Text(l.sortUpdated)),
+              PopupMenuItem(value: RepoSort.stars, child: Text(l.sortStars)),
+              PopupMenuItem(value: RepoSort.name, child: Text(l.sortName)),
+              PopupMenuItem(value: RepoSort.created, child: Text(l.sortCreated)),
             ],
           ),
           // Theme toggle
           IconButton(
-            tooltip: 'Toggle theme',
+            tooltip: l.tooltipToggleTheme,
             icon: Icon(
               ref.watch(themeModeProvider) == ThemeMode.dark
                   ? Icons.light_mode_rounded
@@ -197,7 +199,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
               child: GestureDetector(
                 onTap: () => context.goNamed('profile'),
                 child: Tooltip(
-                  message: 'Profile',
+                  message: l.tooltipProfile,
                   child: CircleAvatar(
                     radius: 14,
                     backgroundImage: NetworkImage(user.avatarUrl),
@@ -206,23 +208,23 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
               ),
             ),
           IconButton(
-            tooltip: 'Logout',
+            tooltip: l.tooltipLogout,
             icon: const Icon(Icons.logout_rounded),
             onPressed: () async {
               final confirmed = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Disconnect all'),
-                  content: const Text(
-                      'Remove all connected accounts from this device?'),
+                  title: Text(l.disconnectAllTitle),
+                  content: Text(
+                      l.disconnectAllBody),
                   actions: [
                     TextButton(
                       onPressed: () => ctx.pop(false),
-                      child: const Text('Cancel'),
+                      child: Text(l.cancel),
                     ),
                     FilledButton(
                       onPressed: () => ctx.pop(true),
-                      child: const Text('Disconnect'),
+                      child: Text(l.disconnect),
                     ),
                   ],
                 ),
@@ -247,7 +249,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                   controller: _searchController,
                   focusNode: _searchFocus,
                   decoration: InputDecoration(
-                    hintText: 'Search repositories…',
+                    hintText: l.searchReposHint,
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
@@ -283,7 +285,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                         duration: const Duration(milliseconds: 200),
                         curve: Curves.elasticOut,
                         child: FilterChip(
-                          label: Text(_filterLabel(f)),
+                          label: Text(_filterLabel(l, f)),
                           selected: isSelected,
                           onSelected: (_) =>
                               ref.read(repoFilterProvider.notifier).state = f,
@@ -311,7 +313,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                               size: 14, color: cs.primary),
                           const SizedBox(width: 6),
                           Text(
-                            'Pinned',
+                            l.pinned,
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: cs.primary,
                               fontWeight: FontWeight.w600,
@@ -354,7 +356,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: Text(
-                    '${repos.length} repositor${repos.length == 1 ? 'y' : 'ies'}',
+                    l.repoCount(repos.length),
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: cs.onSurfaceVariant,
                     ),
@@ -378,7 +380,7 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
                               size: 56, color: cs.onSurfaceVariant),
                           const SizedBox(height: 12),
                           Text(
-                            'No repositories found',
+                            l.noReposFound,
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color: cs.onSurfaceVariant,
                             ),
@@ -416,13 +418,13 @@ class _ReposScreenState extends ConsumerState<ReposScreen> {
     );
   }
 
-  String _filterLabel(RepoFilter f) => switch (f) {
-        RepoFilter.all => 'All',
-        RepoFilter.owned => 'Owned',
-        RepoFilter.forked => 'Forked',
-        RepoFilter.starred => 'Starred',
-        RepoFilter.publicOnly => 'Public',
-        RepoFilter.privateOnly => 'Private',
+  String _filterLabel(AppLocalizations l, RepoFilter f) => switch (f) {
+        RepoFilter.all => l.filterAll,
+        RepoFilter.owned => l.filterOwned,
+        RepoFilter.forked => l.filterForked,
+        RepoFilter.starred => l.filterStarred,
+        RepoFilter.publicOnly => l.filterPublic,
+        RepoFilter.privateOnly => l.filterPrivate,
       };
 }
 
@@ -598,13 +600,14 @@ class _ShortcutsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    const shortcuts = [
-      ('/','Focus search bar'),
-      ('R', 'Refresh repositories'),
-      ('?', 'Show this dialog'),
+    final shortcuts = [
+      ('/', l.shortcutSearch),
+      ('R', l.shortcutRefresh),
+      ('?', l.shortcutHelp),
     ];
 
     return AlertDialog(
@@ -612,7 +615,7 @@ class _ShortcutsDialog extends StatelessWidget {
         children: [
           Icon(Icons.keyboard_rounded, size: 20, color: cs.primary),
           const SizedBox(width: 10),
-          const Text('Keyboard Shortcuts'),
+          Text(l.shortcutsTitle),
         ],
       ),
       content: Column(
@@ -649,7 +652,7 @@ class _ShortcutsDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text(l.close),
         ),
       ],
     );

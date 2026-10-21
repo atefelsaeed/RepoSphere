@@ -152,6 +152,11 @@ S = {
   "alertChannelDescription": ("Failing CI, review requests and other urgent items", "فشل CI وطلبات المراجعة وعناصر عاجلة أخرى", []),
 }
 
+# Strings of the repository-browser screens live in their own table.
+from strings_legacy import LEGACY  # noqa: E402
+S.update(LEGACY)
+
+
 def arb(idx):
     d = {"@@locale": ["en", "ar"][idx]}
     for k, v in S.items():

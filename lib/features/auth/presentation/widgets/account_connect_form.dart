@@ -231,7 +231,7 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
 
   String _friendly(Object e, AppLocalizations l) {
     if (e is GitHubAuthException) return l.invalidToken;
-    if (e is GitHubRateLimitException) return e.message;
+    if (e is GitHubRateLimitException) return translateErrorMessage(l, e.message);
     final s = e.toString();
     if (s.contains('401') || s.contains('Invalid')) return l.invalidToken;
     return _urlVisible ? l.couldNotConnectUrl : l.couldNotConnectNet;

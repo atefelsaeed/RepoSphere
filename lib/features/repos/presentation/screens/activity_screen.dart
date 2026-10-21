@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import '../../domain/entities/activity_event_entity.dart';
 import '../providers/activity_provider.dart';
 import '../providers/repos_provider.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class ActivityScreen extends ConsumerWidget {
   const ActivityScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final user = ref.watch(currentUserProvider).valueOrNull;
@@ -23,7 +24,7 @@ class ActivityScreen extends ConsumerWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Activity',
+            Text(l.tooltipActivity,
                 style: TextStyle(fontWeight: FontWeight.bold)),
             if (user != null)
               Text('@${user.login}',
@@ -33,7 +34,7 @@ class ActivityScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l.refresh,
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => ref.invalidate(activityProvider),
           ),
@@ -61,7 +62,7 @@ class ActivityScreen extends ConsumerWidget {
             children: [
               Icon(Icons.error_outline_rounded, size: 48, color: cs.error),
               const SizedBox(height: 12),
-              Text('Failed to load activity',
+              Text(l.failedLoadActivity,
                   style: theme.textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(e.toString(),
@@ -80,7 +81,7 @@ class ActivityScreen extends ConsumerWidget {
                   Icon(Icons.timeline_rounded,
                       size: 48, color: cs.onSurfaceVariant),
                   const SizedBox(height: 12),
-                  Text('No recent activity',
+                  Text(l.noRecentActivity,
                       style: theme.textTheme.bodyLarge
                           ?.copyWith(color: cs.onSurfaceVariant)),
                 ],
@@ -171,7 +172,7 @@ class _EventTile extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      timeago.format(event.createdAt),
+                      ago(context, event.createdAt),
                       style: theme.textTheme.labelSmall
                           ?.copyWith(color: cs.onSurfaceVariant),
                     ),

@@ -29,7 +29,7 @@ It is built for people who work across many accounts — freelancers and agencie
 - **Workspaces per client** — group whole accounts *and/or* specific orgs or groups under a client name and colour. One GitHub login can serve several clients; filter the Inbox to one client at a time.
 - **Multi-account, multi-provider** — connect any number of GitHub, GitLab, Azure DevOps and Forgejo / Gitea accounts (including **self-hosted** servers) at once.
 - **Urgent alerts on mobile** — optional background check that notifies you about *newly* urgent items only. No server involved.
-- **Arabic and English** — full right-to-left layout and Arabic notifications; switch in Settings. (The older repository-browser screens are English only for now.)
+- **Arabic and English** — full right-to-left layout and Arabic notifications; switch in Settings. The repository browser is translated too.
 - **Fast and tolerant** — opens instantly from the last snapshot. If one account fails (expired token, offline) you get a banner naming it, not a false "all clear".
 - **Also a repo browser** — repos, file tree with syntax highlighting, commits and diffs, PRs/MRs, issues/work items, releases, activity.
 
@@ -153,7 +153,7 @@ GitHub Actions runs analysis, tests and builds for web, macOS, Windows, Linux an
 - Bitbucket; repository browser for Forgejo / Gitea; Azure DevOps mentions and CI status
 - Home-screen widget with the urgent count
 - Inline review comments and file-level review in the in-app PR view
-- Translate the remaining repository-browser screens; more languages
+- More languages
 - Signed and notarised desktop builds, App Store / Play Store releases
 
 ## License

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import '../../../../core/git/git_provider_type.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/repo_entity.dart';
@@ -11,6 +10,7 @@ import '../widgets/create_issue_sheet.dart';
 import '../widgets/label_chip.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class RepoIssuesScreen extends ConsumerStatefulWidget {
   final RepoEntity repo;
@@ -51,6 +51,7 @@ class _RepoIssuesScreenState extends ConsumerState<RepoIssuesScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final state = ref.watch(repoIssuesProvider(_args));
@@ -69,14 +70,14 @@ class _RepoIssuesScreenState extends ConsumerState<RepoIssuesScreen>
                 ),
               ),
               icon: const Icon(Icons.add_rounded),
-              label: const Text('New Issue'),
+              label: Text(l.newIssue),
             )
           : null,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Issues',
+            Text(l.issues,
                 style: TextStyle(fontWeight: FontWeight.bold)),
             Text(widget.repo.fullName,
                 style: theme.textTheme.labelSmall
@@ -87,9 +88,9 @@ class _RepoIssuesScreenState extends ConsumerState<RepoIssuesScreen>
           controller: _tabController,
           onTap: (i) =>
               notifier.changeFilter(i == 0 ? 'open' : 'closed'),
-          tabs: const [
-            Tab(text: 'Open'),
-            Tab(text: 'Closed'),
+          tabs: [
+            Tab(text: l.tabOpen),
+            Tab(text: l.tabClosed),
           ],
         ),
       ),
@@ -114,7 +115,7 @@ class _RepoIssuesScreenState extends ConsumerState<RepoIssuesScreen>
                 Icon(Icons.circle_outlined,
                     size: 48, color: cs.onSurfaceVariant),
                 const SizedBox(height: 12),
-                Text('No ${state.filter} issues',
+                Text(state.filter == 'open' ? l.noOpenIssues : l.noClosedIssues,
                     style: theme.textTheme.bodyLarge
                         ?.copyWith(color: cs.onSurfaceVariant)),
               ],
@@ -139,7 +140,7 @@ class _RepoIssuesScreenState extends ConsumerState<RepoIssuesScreen>
                       : Center(
                           child: TextButton(
                             onPressed: notifier.loadMore,
-                            child: const Text('Load more'),
+                            child: Text(l.loadMore),
                           ),
                         ),
                 );
@@ -163,6 +164,7 @@ class _IssueTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final isOpen = issue.state == IssueState.open;
@@ -210,14 +212,14 @@ class _IssueTile extends StatelessWidget {
                           style: TextStyle(color: cs.onSurfaceVariant)),
                       Text(
                         isOpen
-                            ? 'opened ${timeago.format(issue.createdAt)}'
-                            : 'closed ${timeago.format(issue.closedAt ?? issue.updatedAt)}',
+                            ? l.openedAgo(ago(context, issue.createdAt))
+                            : l.closedAgo(ago(context, issue.closedAt ?? issue.updatedAt)),
                         style: theme.textTheme.labelSmall
                             ?.copyWith(color: cs.onSurfaceVariant),
                       ),
                       Text('·',
                           style: TextStyle(color: cs.onSurfaceVariant)),
-                      Text('by ${issue.authorLogin}',
+                      Text(l.byAuthor(issue.authorLogin),
                           style: theme.textTheme.labelSmall
                               ?.copyWith(color: cs.onSurfaceVariant)),
                     ],

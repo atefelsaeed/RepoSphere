@@ -7,6 +7,7 @@ import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_readme_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
+import '../../../../l10n/l10n.dart';
 
 class RepoReadmeScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -14,6 +15,7 @@ class RepoReadmeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final readmeAsync = ref.watch(
@@ -43,7 +45,7 @@ class RepoReadmeScreen extends ConsumerWidget {
                   Icon(Icons.article_outlined,
                       size: 48, color: cs.onSurfaceVariant),
                   const SizedBox(height: 12),
-                  Text('No README found',
+                  Text(l.noReadmeFound,
                       style: theme.textTheme.bodyLarge
                           ?.copyWith(color: cs.onSurfaceVariant)),
                 ],
