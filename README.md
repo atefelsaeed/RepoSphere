@@ -27,7 +27,7 @@ It is built for people who work across many accounts — freelancers and agencie
 - **Read and act in place** — open an item to see its description, changed files with a coloured diff and the discussion (GitHub and GitLab), then approve, request changes, merge, or re-run failed CI without leaving the app.
 - **Clear it out** — swipe to mark done (it comes back only if there's new activity) or snooze until later today, tomorrow or next week.
 - **Workspaces per client** — group whole accounts *and/or* specific orgs or groups under a client name and colour. One GitHub login can serve several clients; filter the Inbox to one client at a time.
-- **Multi-account, multi-provider** — connect any number of GitHub, GitLab (including **self-hosted**) and Azure DevOps accounts at once.
+- **Multi-account, multi-provider** — connect any number of GitHub, GitLab, Azure DevOps and Forgejo / Gitea accounts (including **self-hosted** servers) at once.
 - **Urgent alerts on mobile** — optional background check that notifies you about *newly* urgent items only. No server involved.
 - **Arabic and English** — full right-to-left layout and Arabic notifications; switch in Settings. (The older repository-browser screens are English only for now.)
 - **Fast and tolerant** — opens instantly from the last snapshot. If one account fails (expired token, offline) you get a banner naming it, not a false "all clear".
@@ -35,17 +35,18 @@ It is built for people who work across many accounts — freelancers and agencie
 
 ### What each provider supports
 
-| | GitHub | GitLab | Azure DevOps |
-|---|:-:|:-:|:-:|
-| Inbox (review requests, assignments, mentions) | ✅ | ✅ | ✅ (PRs and work items; no mentions) |
-| CI failed / changes requested / conflicts on **your** PRs | ✅ | ✅ | changes requested + conflicts (no CI status) |
-| Approve | ✅ | ✅ | — |
-| Request changes | ✅ | — | — |
-| Merge | ✅ | ✅ | — |
-| Re-run failed CI | ✅ | ✅ | — |
-| Repo browser | ✅ | ✅ | ✅ |
+| | GitHub | GitLab | Azure DevOps | Forgejo / Gitea |
+|---|:-:|:-:|:-:|:-:|
+| Inbox: review requests, assignments, mentions | ✅ | ✅ | PRs and work items (no mentions) | ✅ |
+| CI failed / changes requested / conflicts on **your** PRs | ✅ | ✅ | changes requested (no CI status) | ✅ |
+| Open an item in-app (description, diff, discussion) | ✅ | ✅ | ✅ (changed files, no line diff) | ✅ |
+| Approve | ✅ | ✅ | ✅ | ✅ |
+| Request changes | ✅ | — | ✅ | ✅ |
+| Merge | ✅ | ✅ | ✅ | ✅ |
+| Re-run failed CI | ✅ | ✅ | — | — |
+| Repo browser | ✅ | ✅ | ✅ | — |
 
-GitLab has no request-changes call in its REST API, and Azure DevOps actions are not implemented yet. Bitbucket and Gitea/Forgejo are planned.
+GitLab has no request-changes call in its REST API. Azure DevOps exposes changed files but not a ready-made line diff, so its detail view lists files without hunks. Forgejo / Gitea (including Codeberg and self-hosted servers) covers the Inbox only for now. Bitbucket is planned.
 
 ## Privacy
 
@@ -148,8 +149,8 @@ GitHub Actions runs analysis, tests and builds for web, macOS, Windows, Linux an
 
 ## Roadmap
 
-- Real-account hardening of the Inbox, and approve/merge/CI actions for Azure DevOps
-- Bitbucket and Gitea/Forgejo
+- Real-account hardening of the Inbox
+- Bitbucket; repository browser for Forgejo / Gitea; Azure DevOps mentions and CI status
 - Home-screen widget with the urgent count
 - Inline review comments and file-level review in the in-app PR view
 - Translate the remaining repository-browser screens; more languages

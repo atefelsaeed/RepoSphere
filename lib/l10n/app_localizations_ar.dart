@@ -256,6 +256,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get connectGitlabUrlLabel => 'رابط GitLab المستضاف ذاتيًا (اختياري)';
 
   @override
+  String get connectGiteaUrlLabel =>
+      'رابط Forgejo / Gitea (مثل https://codeberg.org)';
+
+  @override
+  String get giteaNeedsUrl => 'يحتاج Forgejo / Gitea إلى رابط الخادم.';
+
+  @override
   String get connectGitlabUrlHint => 'فارغ = gitlab.com';
 
   @override

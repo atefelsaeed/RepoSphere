@@ -75,6 +75,8 @@
   "save": "حفظ",
   "connectAzureUrlLabel": "رابط المؤسسة (https://dev.azure.com/your-org)",
   "connectGitlabUrlLabel": "رابط GitLab المستضاف ذاتيًا (اختياري)",
+  "connectGiteaUrlLabel": "رابط Forgejo / Gitea (مثل https://codeberg.org)",
+  "giteaNeedsUrl": "يحتاج Forgejo / Gitea إلى رابط الخادم.",
   "connectGitlabUrlHint": "فارغ = gitlab.com",
   "tokenLabel": "رمز الوصول الشخصي",
   "enterToken": "أدخل الرمز.",

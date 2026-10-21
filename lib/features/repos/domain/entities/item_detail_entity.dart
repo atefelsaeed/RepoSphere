@@ -91,3 +91,43 @@ DiffLineKind classifyDiffLine(String line) {
   }
   return (additions: a, deletions: d);
 }
+
+/// Splits a multi-file `git diff` (as served by Gitea/Forgejo `.diff`) into
+/// per-file [DiffFile]s with status, line counts and the hunks as the patch.
+List<DiffFile> parseGitDiff(String diff) {
+  final files = <DiffFile>[];
+  final blocks = diff.split(RegExp(r'^diff --git ', multiLine: true));
+  for (final block in blocks) {
+    if (block.trim().isEmpty) continue;
+    final lines = block.split('\n');
+    // First line: "a/old/path b/new/path"
+    final header = RegExp(r'^a/(.+?) b/(.+)$').firstMatch(lines.first);
+    var path = header?.group(2) ?? lines.first;
+    var status = 'modified';
+    var firstHunk = -1;
+    for (var i = 1; i < lines.length; i++) {
+      final l = lines[i];
+      if (l.startsWith('new file mode')) status = 'added';
+      if (l.startsWith('deleted file mode')) status = 'removed';
+      if (l.startsWith('rename to ')) {
+        status = 'renamed';
+        path = l.substring('rename to '.length);
+      }
+      if (l.startsWith('@@')) {
+        firstHunk = i;
+        break;
+      }
+    }
+    final patch =
+        firstHunk < 0 ? null : lines.sublist(firstHunk).join('\n').trimRight();
+    final c = countDiff(patch);
+    files.add(DiffFile(
+      path: path,
+      status: status,
+      additions: c.additions,
+      deletions: c.deletions,
+      patch: patch,
+    ));
+  }
+  return files;
+}

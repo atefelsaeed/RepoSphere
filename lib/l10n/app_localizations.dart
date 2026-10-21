@@ -548,6 +548,18 @@ abstract class AppLocalizations {
   /// **'Self-hosted GitLab URL (optional)'**
   String get connectGitlabUrlLabel;
 
+  /// No description provided for @connectGiteaUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgejo / Gitea URL (e.g. https://codeberg.org)'**
+  String get connectGiteaUrlLabel;
+
+  /// No description provided for @giteaNeedsUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgejo / Gitea needs the server URL.'**
+  String get giteaNeedsUrl;
+
   /// No description provided for @connectGitlabUrlHint.
   ///
   /// In en, this message translates to:

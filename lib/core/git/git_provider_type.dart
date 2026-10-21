@@ -15,7 +15,7 @@ enum GitProviderType {
         GitProviderType.gitlab => 'GitLab',
         GitProviderType.azureDevOps => 'Azure DevOps',
         GitProviderType.bitbucket => 'Bitbucket',
-        GitProviderType.gitea => 'Gitea',
+        GitProviderType.gitea => 'Gitea / Forgejo',
       };
 
   /// Stable string id used in JSON persistence (never localise this).

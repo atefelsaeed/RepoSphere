@@ -256,6 +256,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connectGitlabUrlLabel => 'Self-hosted GitLab URL (optional)';
 
   @override
+  String get connectGiteaUrlLabel =>
+      'Forgejo / Gitea URL (e.g. https://codeberg.org)';
+
+  @override
+  String get giteaNeedsUrl => 'Forgejo / Gitea needs the server URL.';
+
+  @override
   String get connectGitlabUrlHint => 'Empty = gitlab.com';
 
   @override

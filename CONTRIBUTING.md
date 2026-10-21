@@ -52,7 +52,7 @@ To add a language, add it to `tool/gen_arb.py` and `supportedLanguageCodes` in `
 ## Adding or extending a provider
 
 1. Add the REST client in `data/datasources/` (thin: returns decoded JSON or models).
-2. Implement `GitProvider` in `data/repositories/`, mapping into the shared entities and declaring honest `ProviderCapabilities`. Operations you can't support throw `UnsupportedProviderOperation`.
+2. Implement `GitProvider` in `data/repositories/` — or, for a provider that only does the Inbox at first, extend `InboxOnlyProvider` (see the Forgejo / Gitea adapter) and implement just `getUser`, `getInboxItems`, `getItemDetail` and `performPrAction`;, mapping into the shared entities and declaring honest `ProviderCapabilities`. Operations you can't support throw `UnsupportedProviderOperation`.
 3. Register it in `buildGitProvider` (`data/git_provider_factory.dart`) and in the add-account sheet in Settings.
 4. For the Inbox, implement `getInboxItems()` with `collectInbox([...])`: it tolerates a failing query but rethrows when *every* query fails, so the UI never shows a false "all clear".
 5. Add tests with `MockClient` covering the request you send and the mapping you return.

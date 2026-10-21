@@ -5,6 +5,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+### Added
+- **Forgejo / Gitea** (including Codeberg and self-hosted servers): Inbox, in-app detail with diff, approve, request changes and merge. Choose it on the login screen or in Settings.
+- **Azure DevOps**: approve, request changes, merge, and in-app detail (changed files and discussion for PRs; description and comments for work items).
+
+### Changed
+- The in-app detail hides the `+0 −0` counter for providers that list changed files without line counts.
+
 ## [0.3.0] — 2026-10-21
 
 **First published release.** RepoSphere answers "what needs me today?" across all your Git accounts: one prioritised Inbox for GitHub, GitLab (including self-hosted) and Azure DevOps with failing CI, requested changes, conflicts, review requests, assignments and mentions; approve / request changes / merge / re-run CI from the item; client workspaces; urgent alerts on mobile; Arabic and English. Builds for web, macOS, Windows, Linux and Android. Version 0.2.0 was prepared but never tagged, so its changes are included here (see CHANGELOG.md).

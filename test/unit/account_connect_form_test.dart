@@ -24,6 +24,13 @@ void main() {
   });
 
   group('tokenHelp', () {
+    test('Gitea points at the instance settings (Codeberg by default)', () {
+      expect(tokenHelp(GitProviderType.gitea, '').url.host, 'codeberg.org');
+      final own = tokenHelp(GitProviderType.gitea, 'https://git.acme.io');
+      expect(own.url.path, '/user/settings/applications');
+      expect(own.url.host, 'git.acme.io');
+    });
+
     test('GitLab points at the self-hosted instance, else gitlab.com', () {
       expect(tokenHelp(GitProviderType.gitlab, '').url.host, 'gitlab.com');
       final own = tokenHelp(GitProviderType.gitlab, 'https://git.acme.io');
@@ -76,6 +83,18 @@ void main() {
       await t.pump();
       expect(
           find.text('Azure DevOps needs an organisation URL.'), findsOneWidget);
+    });
+
+    testWidgets('Forgejo / Gitea needs a server URL', (t) async {
+      await pump(t);
+      expect(find.text('Gitea / Forgejo'), findsOneWidget);
+      await t.tap(find.text('Gitea / Forgejo'));
+      await t.pump();
+      expect(find.textContaining('Forgejo / Gitea URL'), findsOneWidget);
+      await t.enterText(find.byType(TextField).last, 'a-token');
+      await t.tap(find.text('Connect'));
+      await t.pump();
+      expect(find.text('Forgejo / Gitea needs the server URL.'), findsOneWidget);
     });
 
     testWidgets('empty token is rejected', (t) async {

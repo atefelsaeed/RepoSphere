@@ -150,6 +150,8 @@
   "save": "Save",
   "connectAzureUrlLabel": "Organisation URL (https://dev.azure.com/your-org)",
   "connectGitlabUrlLabel": "Self-hosted GitLab URL (optional)",
+  "connectGiteaUrlLabel": "Forgejo / Gitea URL (e.g. https://codeberg.org)",
+  "giteaNeedsUrl": "Forgejo / Gitea needs the server URL.",
   "connectGitlabUrlHint": "Empty = gitlab.com",
   "tokenLabel": "Personal Access Token",
   "enterToken": "Enter a token.",
