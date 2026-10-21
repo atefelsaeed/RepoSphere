@@ -1,3 +1,5 @@
+> **Historical document.** This is the original product and architecture spec (April–June 2026). The app has moved on (Inbox, workspaces, alerts, Forgejo / Gitea, Arabic…). For the current state see the [README](../README.md), the [user guide](user-guide.md) and [architecture](architecture.md).
+
 # RepoSphere — Product & Architecture Spec
 > Version 5.0 | Last updated: June 2026
 >
