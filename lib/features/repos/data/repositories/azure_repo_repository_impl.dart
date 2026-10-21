@@ -7,6 +7,7 @@ import '../../domain/entities/commit_entity.dart';
 import '../../domain/entities/contributor_entity.dart';
 import '../../domain/entities/gist_entity.dart';
 import '../../domain/entities/inbox_item_entity.dart';
+import '../../domain/entities/item_detail_entity.dart';
 import '../../domain/entities/issue_comment_entity.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/notification_entity.dart';
@@ -518,4 +519,8 @@ class AzureRepoRepositoryImpl implements GitProvider {
           {String? comment}) =>
       throw const UnsupportedProviderOperation(
           GitProviderType.azureDevOps, 'pull request actions');
+
+  @override
+  Future<ItemDetail> getItemDetail(InboxItem item) => throw const UnsupportedProviderOperation(
+      GitProviderType.azureDevOps, 'item detail');
 }

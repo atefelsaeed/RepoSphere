@@ -9,6 +9,7 @@ import '../../domain/entities/contributor_entity.dart';
 import '../../domain/entities/gist_entity.dart';
 import '../../../../core/utils/exceptions.dart';
 import '../../domain/entities/inbox_item_entity.dart';
+import '../../domain/entities/item_detail_entity.dart';
 import '../../domain/entities/issue_comment_entity.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/notification_entity.dart';
@@ -45,6 +46,7 @@ class GitLabRepoRepositoryImpl implements GitProvider {
         languages: true,
         search: true,
         inbox: true,
+        itemDetail: true,
         approvePullRequests: true,
         mergePullRequests: true,
         rerunCi: true,
@@ -600,5 +602,79 @@ class GitLabRepoRepositoryImpl implements GitProvider {
         throw const UnsupportedProviderOperation(
             GitProviderType.gitlab, 'request changes');
     }
+  }
+
+  @override
+  Future<ItemDetail> getItemDetail(InboxItem item) async {
+    final project = Uri.encodeComponent(item.repoFullName);
+    final isMr = item.kind == InboxItemKind.pullRequest;
+    final kind = isMr ? 'merge_requests' : 'issues';
+    final base = '/projects/$project/$kind/${item.number}';
+
+    final main = await _ds.send('GET', base) as Map<String, dynamic>;
+    final notes = await _ds.send('GET', '$base/notes?per_page=50&sort=asc')
+        as List<dynamic>;
+
+    var files = const <DiffFile>[];
+    if (isMr) {
+      List<dynamic> raw;
+      try {
+        raw = await _ds.send('GET', '$base/diffs?per_page=100') as List<dynamic>;
+      } on Exception {
+        // Older GitLab: only the (deprecated) /changes endpoint exists.
+        final changes = await _ds.send('GET', '$base/changes')
+            as Map<String, dynamic>;
+        raw = changes['changes'] as List<dynamic>? ?? const [];
+      }
+      files = raw.cast<Map<String, dynamic>>().map((f) {
+        final patch = f['diff'] as String?;
+        final counts = countDiff(patch);
+        return DiffFile(
+          path: f['new_path'] as String? ?? f['old_path'] as String? ?? '',
+          status: f['new_file'] == true
+              ? 'added'
+              : f['deleted_file'] == true
+                  ? 'removed'
+                  : f['renamed_file'] == true
+                      ? 'renamed'
+                      : 'modified',
+          additions: counts.additions,
+          deletions: counts.deletions,
+          patch: (patch == null || patch.isEmpty) ? null : patch,
+        );
+      }).toList();
+    }
+
+    final author = main['author'] as Map<String, dynamic>? ?? const {};
+    final state = switch (main['state']) {
+      'merged' => 'merged',
+      'closed' => 'closed',
+      _ => main['draft'] == true || main['work_in_progress'] == true
+          ? 'draft'
+          : 'open',
+    };
+    return ItemDetail(
+      title: main['title'] as String? ?? item.title,
+      body: main['description'] as String? ?? '',
+      authorLogin: author['username'] as String? ?? '',
+      authorAvatarUrl: author['avatar_url'] as String?,
+      state: state,
+      createdAt: _date(main['created_at']),
+      headBranch: main['source_branch'] as String?,
+      baseBranch: main['target_branch'] as String?,
+      files: files,
+      comments: notes
+          .cast<Map<String, dynamic>>()
+          .where((n) => n['system'] != true)
+          .map((n) {
+        final a = n['author'] as Map<String, dynamic>? ?? const {};
+        return DetailComment(
+          authorLogin: a['username'] as String? ?? '',
+          authorAvatarUrl: a['avatar_url'] as String?,
+          body: n['body'] as String? ?? '',
+          createdAt: _date(n['created_at']),
+        );
+      }).toList(),
+    );
   }
 }

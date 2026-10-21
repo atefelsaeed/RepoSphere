@@ -125,6 +125,14 @@ class InboxItem {
   /// Identity used to merge the same PR/issue found by several queries.
   String get key => '$connectionId|${kind.name}|$repoFullName|$number';
 
+  /// Two items are the same PR/issue when their [key] matches, so UI state
+  /// and detail lookups survive a refresh that rebuilds the objects.
+  @override
+  bool operator ==(Object other) => other is InboxItem && other.key == key;
+
+  @override
+  int get hashCode => key.hashCode;
+
   InboxItem withReasons(List<InboxReason> r) => InboxItem(
         connectionId: connectionId,
         provider: provider,

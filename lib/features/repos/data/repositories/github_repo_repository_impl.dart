@@ -8,6 +8,7 @@ import '../../domain/entities/contributor_entity.dart';
 import '../../domain/entities/gist_entity.dart';
 import '../../../../core/utils/exceptions.dart';
 import '../../domain/entities/inbox_item_entity.dart';
+import '../../domain/entities/item_detail_entity.dart';
 import '../../domain/entities/issue_comment_entity.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/notification_entity.dart';
@@ -49,6 +50,7 @@ class GitHubRepoRepositoryImpl implements GitProvider {
         editIssueState: true,
         createIssues: true,
         inbox: true,
+        itemDetail: true,
         approvePullRequests: true,
         requestChanges: true,
         rerunCi: true,
@@ -347,5 +349,65 @@ query {
               '/repos/${item.repoFullName}/actions/runs/${r['id']}/rerun-failed-jobs');
         }
     }
+  }
+
+  @override
+  Future<ItemDetail> getItemDetail(InboxItem item) async {
+    final repo = '/repos/${item.repoFullName}';
+    final isPr = item.kind == InboxItemKind.pullRequest;
+    final main = await _ds.send(
+            'GET', isPr ? '$repo/pulls/${item.number}' : '$repo/issues/${item.number}')
+        as Map<String, dynamic>;
+
+    final commentsRaw = await _ds.send(
+            'GET', '$repo/issues/${item.number}/comments?per_page=50')
+        as List<dynamic>;
+
+    var files = const <DiffFile>[];
+    if (isPr) {
+      final raw = await _ds.send(
+          'GET', '$repo/pulls/${item.number}/files?per_page=100') as List<dynamic>;
+      files = raw.cast<Map<String, dynamic>>().map((f) {
+        return DiffFile(
+          path: f['filename'] as String? ?? '',
+          status: switch (f['status']) {
+            'added' => 'added',
+            'removed' => 'removed',
+            'renamed' => 'renamed',
+            _ => 'modified',
+          },
+          additions: f['additions'] as int? ?? 0,
+          deletions: f['deletions'] as int? ?? 0,
+          patch: f['patch'] as String?,
+        );
+      }).toList();
+    }
+
+    final user = main['user'] as Map<String, dynamic>? ?? const {};
+    final merged = main['merged'] == true || main['merged_at'] != null;
+    return ItemDetail(
+      title: main['title'] as String? ?? item.title,
+      body: main['body'] as String? ?? '',
+      authorLogin: user['login'] as String? ?? '',
+      authorAvatarUrl: user['avatar_url'] as String?,
+      state: merged
+          ? 'merged'
+          : main['draft'] == true
+              ? 'draft'
+              : (main['state'] as String? ?? 'open'),
+      createdAt: DateTime.parse(main['created_at'] as String),
+      headBranch: (main['head'] as Map?)?['ref'] as String?,
+      baseBranch: (main['base'] as Map?)?['ref'] as String?,
+      files: files,
+      comments: commentsRaw.cast<Map<String, dynamic>>().map((c) {
+        final u = c['user'] as Map<String, dynamic>? ?? const {};
+        return DetailComment(
+          authorLogin: u['login'] as String? ?? '',
+          authorAvatarUrl: u['avatar_url'] as String?,
+          body: c['body'] as String? ?? '',
+          createdAt: DateTime.parse(c['created_at'] as String),
+        );
+      }).toList(),
+    );
   }
 }
