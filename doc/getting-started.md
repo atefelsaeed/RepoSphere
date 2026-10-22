@@ -33,7 +33,7 @@ Create one for each host you use, then paste it into the app. The in-app form ha
 2. Add a token with scopes **`api`** and **`read_user`**.
 3. Copy it (starts with `glpat-`).
 
-For a **self-hosted** GitLab you will also type your instance URL, for example `https://gitlab.example.com`.
+For a **self-hosted** GitLab you will also type your instance URL, for example `https://gitlab.example.com`. Use `https://`: plain `http://` is accepted only for `localhost` and private-network addresses.
 
 ### Azure DevOps
 1. Open `https://dev.azure.com/<your-org>/_usersSettings/tokens`.

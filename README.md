@@ -133,6 +133,7 @@ More in the [FAQ](doc/faq.md#privacy-and-security).
 | [FAQ and troubleshooting](doc/faq.md) | Privacy, "my Inbox is empty", notifications, install warnings. |
 | [Architecture](doc/architecture.md) | How the code is organised and how the Inbox works. |
 | [CONTRIBUTING](CONTRIBUTING.md) | Setup, tests, conventions, adding a provider or a language. |
+| [Follow-ups](doc/follow-ups.md) | Open work to pick up later: signing, security leftovers, tests. |
 | [CHANGELOG](CHANGELOG.md) | What changed in each release. |
 
 ## How it works

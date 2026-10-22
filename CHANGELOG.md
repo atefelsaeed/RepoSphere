@@ -14,6 +14,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 - Release workflow: read-only permissions by default; only the publish job can write. Added Dependabot for pub packages and GitHub Actions.
 
 ### Documentation
+- FAQ, getting started and CONTRIBUTING describe the new link, image and `http://` behaviour and release signing; new [follow-ups](doc/follow-ups.md) page lists open work.
 - Rewritten README for newcomers (what it is, why, install, quick start, provider table, privacy), an Arabic README, and new guides in `doc/`: getting started (tokens per provider), user guide, FAQ / troubleshooting and architecture. More screenshots. The old spec and backlog are marked as historical.
 
 ## [0.3.0] — 2026-10-21
