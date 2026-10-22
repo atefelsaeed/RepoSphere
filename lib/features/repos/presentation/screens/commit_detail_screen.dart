@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/commit_entity.dart';
 import '../../domain/entities/commit_detail_entity.dart';
 import '../../domain/entities/repo_entity.dart';
@@ -9,6 +8,7 @@ import '../providers/commit_detail_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 import '../../../../l10n/l10n.dart';
+import '../../../../core/utils/external_link.dart';
 
 class CommitDetailScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -46,8 +46,7 @@ class CommitDetailScreen extends ConsumerWidget {
           IconButton(
             tooltip: l.openOnProvider('GitHub'),
             icon: const Icon(Icons.open_in_new_rounded),
-            onPressed: () => launchUrl(Uri.parse(commit.htmlUrl),
-                mode: LaunchMode.externalApplication),
+            onPressed: () => openExternalLink(commit.htmlUrl),
           ),
         ],
       ),

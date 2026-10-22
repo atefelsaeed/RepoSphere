@@ -120,9 +120,10 @@ GitLab's REST API has no "request changes" call. Azure DevOps has no ready-made 
 
 - Tokens live **on your device** in the platform's secure store (Keychain, Keystore-backed storage, Credential Manager, the system secret service). On the web build they are in the browser's local storage, so use the desktop or mobile app for long-lived tokens.
 - The app talks **directly** to your Git hosts. There is **no RepoSphere server** and nothing is collected. Crash reporting is off unless *you* build with your own Sentry DSN.
-- Workspaces, snoozes and the Inbox snapshot are stored locally and are not synced.
+- Workspaces, snoozes and the Inbox snapshot are stored locally and are not synced. **Disconnecting your last account deletes them** along with the tokens, and Android backup is off for the app.
+- Links in PRs and issues open only as `http`, `https` or `mailto`; images in other people's text load only when you tap them.
 
-More in the [FAQ](doc/faq.md#privacy-and-security).
+More in the [FAQ](doc/faq.md#privacy-and-security). Found a vulnerability? See [SECURITY.md](SECURITY.md) and report it privately.
 
 ## Documentation
 
@@ -133,6 +134,7 @@ More in the [FAQ](doc/faq.md#privacy-and-security).
 | [FAQ and troubleshooting](doc/faq.md) | Privacy, "my Inbox is empty", notifications, install warnings. |
 | [Architecture](doc/architecture.md) | How the code is organised and how the Inbox works. |
 | [CONTRIBUTING](CONTRIBUTING.md) | Setup, tests, conventions, adding a provider or a language. |
+| [Security policy](SECURITY.md) | How to report a vulnerability, how tokens and links are handled, known limitations. |
 | [Follow-ups](doc/follow-ups.md) | Open work to pick up later: signing, security leftovers, tests. |
 | [CHANGELOG](CHANGELOG.md) | What changed in each release. |
 

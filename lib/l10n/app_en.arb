@@ -151,14 +151,6 @@
   "connectAzureUrlLabel": "Organisation URL (https://dev.azure.com/your-org)",
   "connectGitlabUrlLabel": "Self-hosted GitLab URL (optional)",
   "connectGiteaUrlLabel": "Forgejo / Gitea URL (e.g. https://codeberg.org)",
-  "insecureInstanceUrl": "This server URL uses plain http, so your token would travel unencrypted. Use https (http is allowed only for localhost and private-network addresses).",
-  "loadRemoteImage": "Load image from {host}",
-  "@loadRemoteImage": {
-    "placeholders": {
-      "host": { "type": "String" }
-    }
-  },
-  "remoteImageBlocked": "Image blocked",
   "giteaNeedsUrl": "Forgejo / Gitea needs the server URL.",
   "connectGitlabUrlHint": "Empty = gitlab.com",
   "tokenLabel": "Personal Access Token",
@@ -171,6 +163,17 @@
   "hideToken": "Hide token",
   "connecting": "Connecting…",
   "connect": "Connect",
+  "insecureInstanceUrl": "This server URL uses plain http, so your token would travel unencrypted. Use https (http is allowed only for localhost and private-network addresses).",
+  "remoteImageBlocked": "Image blocked",
+  "loadRemoteImage": "Load image from {host}",
+  "@loadRemoteImage": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "webTokenWarning": "Web version: your token is kept in this browser's local storage, which is less protected than the desktop and mobile apps. Use those for long-lived tokens, and not on a shared computer.",
   "createTokenOn": "Create a token on {provider}",
   "@createTokenOn": {
     "placeholders": {

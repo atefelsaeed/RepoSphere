@@ -11,10 +11,11 @@ import '../repos/data/inbox_loader.dart';
 import '../repos/domain/repositories/git_provider.dart';
 import 'inbox_alerts.dart';
 import 'notification_service.dart';
+import '../../core/constants/pref_keys.dart';
 
 const kInboxCheckTask = 'inbox-check';
-const _enabledKey = 'inbox_alerts_enabled';
-const _seenKey = 'inbox_alert_seen_v1';
+const _enabledKey = PrefKeys.inboxAlertsEnabled;
+const _seenKey = PrefKeys.inboxAlertSeen;
 
 /// How often Android is asked to run the check (its minimum is 15 min). iOS
 /// decides the real timing itself and may run it far less often.
@@ -101,6 +102,17 @@ Future<void> _schedule() => Workmanager().registerPeriodicTask(
       constraints: Constraints(networkType: NetworkType.connected),
       existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
     );
+
+/// Stops the periodic inbox check. Called when the user disconnects every
+/// account; harmless on platforms without background work.
+Future<void> cancelInboxChecks() async {
+  if (!NotificationService.supported) return;
+  try {
+    await Workmanager().cancelByUniqueName(kInboxCheckTask);
+  } on Object {
+    // Nothing scheduled, or the plugin is not available (tests).
+  }
+}
 
 /// Turns inbox alerts on/off. Enabling asks for notification permission and
 /// returns false (leaving alerts off) if it is denied.

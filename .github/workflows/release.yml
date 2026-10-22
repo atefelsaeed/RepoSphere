@@ -21,9 +21,20 @@ permissions:
   contents: read
 
 env:
-  FLUTTER_VERSION: '3.41.x'
+  FLUTTER_VERSION: '3.41.6'
 
 jobs:
+  # Never publish something that does not pass the same checks as CI.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with: { flutter-version: '${{ env.FLUTTER_VERSION }}', channel: stable, cache: true }
+      - run: flutter pub get
+      - run: dart analyze lib/ --fatal-infos
+      - run: flutter test
+
   web:
     runs-on: ubuntu-latest
     steps:
@@ -90,7 +101,10 @@ jobs:
       # ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD secrets set, the APK is signed
       # with your release key. Without them it falls back to the debug key
       # (installable by sideloading, not suitable for the Play Store).
+      # A release (tag) build without the secrets fails at "Require a signed
+      # APK when publishing" below instead of shipping a debug-signed APK.
       - name: Prepare release signing
+        id: signing
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -107,15 +121,23 @@ jobs:
             } > android/key.properties
           else
             echo "No release keystore configured; using the debug key."
+            echo "unsigned=true" >> "$GITHUB_OUTPUT"
           fi
       - run: flutter build apk --release
       - run: cp build/app/outputs/flutter-apk/app-release.apk RepoSphere-android.apk
+      # A debug-signed APK must never be attached to a public release: users
+      # could not upgrade from it to the properly signed one.
+      - name: Require a signed APK when publishing
+        if: steps.signing.outputs.unsigned == 'true' && (startsWith(github.ref, 'refs/tags/v') || inputs.tag != '')
+        run: |
+          echo "::error::Publishing needs the ANDROID_KEYSTORE_* secrets (see doc/follow-ups.md). Re-run without a tag to only build."
+          exit 1
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with: { name: android, path: RepoSphere-android.apk }
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
-    needs: [web, macos, windows, linux, android]
+    needs: [verify, web, macos, windows, linux, android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -123,6 +145,16 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with: { path: dist, merge-multiple: true }
+      - name: Validate tag
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then
+            echo "::error::Tag '$TAG' must look like v1.2.3 or v1.2.3-rc.1"
+            exit 1
+          fi
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt
       - name: Release notes from CHANGELOG
         env:
           TAG: ${{ inputs.tag || github.ref_name }}

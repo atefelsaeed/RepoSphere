@@ -76,14 +76,6 @@
   "connectAzureUrlLabel": "رابط المؤسسة (https://dev.azure.com/your-org)",
   "connectGitlabUrlLabel": "رابط GitLab المستضاف ذاتيًا (اختياري)",
   "connectGiteaUrlLabel": "رابط Forgejo / Gitea (مثل https://codeberg.org)",
-  "insecureInstanceUrl": "رابط الخادم يستخدم http العادي، فالرمز سيُرسل بدون تشفير. استخدم https (يُسمح بـ http فقط لـ localhost وعناوين الشبكة الخاصة).",
-  "loadRemoteImage": "تحميل الصورة من {host}",
-  "@loadRemoteImage": {
-    "placeholders": {
-      "host": { "type": "String" }
-    }
-  },
-  "remoteImageBlocked": "تم حظر الصورة",
   "giteaNeedsUrl": "يحتاج Forgejo / Gitea إلى رابط الخادم.",
   "connectGitlabUrlHint": "فارغ = gitlab.com",
   "tokenLabel": "رمز الوصول الشخصي",
@@ -96,6 +88,10 @@
   "hideToken": "إخفاء الرمز",
   "connecting": "جارٍ الاتصال…",
   "connect": "اتصال",
+  "insecureInstanceUrl": "رابط الخادم يستخدم http العادي، فالرمز سيُرسل بدون تشفير. استخدم https (يُسمح بـ http فقط لـ localhost وعناوين الشبكة الخاصة).",
+  "remoteImageBlocked": "تم حظر الصورة",
+  "loadRemoteImage": "تحميل الصورة من {host}",
+  "webTokenWarning": "نسخة الويب: يُحفظ الرمز في التخزين المحلي للمتصفح وهو أقل حماية من تطبيقات سطح المكتب والجوال. استخدم تلك التطبيقات للرموز طويلة الأمد، ولا تستخدمها على جهاز مشترك.",
   "createTokenOn": "إنشاء رمز على {provider}",
   "needsScopes": "الصلاحيات المطلوبة: {scopes}",
   "authTagline": "وارد واحد لكل عملك على Git.",

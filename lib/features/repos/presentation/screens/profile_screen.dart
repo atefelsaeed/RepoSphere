@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../providers/repos_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
@@ -115,9 +114,8 @@ class ProfileScreen extends ConsumerWidget {
                   _InfoRow(
                       icon: Icons.email_outlined,
                       text: user.email!,
-                      onTap: () => launchUrl(
-                          Uri.parse('mailto:${user.email}'),
-                          mode: LaunchMode.externalApplication)),
+                      onTap: () => openExternalLink(
+                          Uri(scheme: 'mailto', path: user.email).toString())),
                 if (user.blog != null && user.blog!.isNotEmpty)
                   _InfoRow(
                       icon: Icons.link_rounded,

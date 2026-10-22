@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/workspace_entity.dart';
+import '../../../../core/constants/pref_keys.dart';
+import '../../../auth/presentation/providers/connections_provider.dart';
 
 /// User-defined workspaces (one per client), persisted locally.
 class WorkspacesNotifier extends StateNotifier<List<Workspace>> {
-  static const _key = 'workspaces_v1';
+  static const _key = PrefKeys.workspaces;
 
   WorkspacesNotifier() : super(const []) {
     _load();
@@ -69,7 +71,12 @@ class WorkspacesNotifier extends StateNotifier<List<Workspace>> {
 
 final workspacesProvider =
     StateNotifierProvider<WorkspacesNotifier, List<Workspace>>(
-        (ref) => WorkspacesNotifier());
+        (ref) {
+  // Rebuilt (and reloaded from the now-cleared prefs) when the last account
+  // is disconnected.
+  ref.watch(hasConnectionsProvider);
+  return WorkspacesNotifier();
+});
 
 /// Sentinel for the "no workspace" filter.
 const kUnassignedWorkspace = '__none__';

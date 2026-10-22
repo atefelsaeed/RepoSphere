@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/gist_entity.dart';
 import '../providers/gists_provider.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 import '../../../../l10n/l10n.dart';
+import '../../../../core/utils/external_link.dart';
 
 class GistsScreen extends ConsumerWidget {
   const GistsScreen({super.key});
@@ -99,8 +99,7 @@ class _GistCard extends StatelessWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => launchUrl(Uri.parse(gist.htmlUrl),
-          mode: LaunchMode.externalApplication),
+      onTap: () => openExternalLink(gist.htmlUrl),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(

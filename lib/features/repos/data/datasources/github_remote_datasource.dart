@@ -17,6 +17,7 @@ import '../models/issue_model.dart';
 import '../models/pull_request_model.dart';
 import '../models/repo_model.dart';
 import '../models/user_model.dart';
+import '../../../../core/utils/url_path.dart';
 
 class GitHubRemoteDatasource {
   final http.Client _client;
@@ -230,7 +231,7 @@ class GitHubRemoteDatasource {
       String owner, String repo, String sha) async {
     final response = await _client.get(
       Uri.parse(
-          '${AppConstants.githubApiBase}/repos/$owner/$repo/commits/$sha'),
+          '${AppConstants.githubApiBase}/repos/${Uri.encodeComponent(owner)}/${Uri.encodeComponent(repo)}/commits/${Uri.encodeComponent(sha)}'),
       headers: _headers,
     );
     _checkResponse(response);
@@ -253,7 +254,7 @@ class GitHubRemoteDatasource {
   Future<List<RepoContentItem>> getContents(
       String owner, String repo, String path, {String? ref}) async {
     final uri = Uri.parse(
-            '${AppConstants.githubApiBase}/repos/$owner/$repo/contents/$path')
+            '${AppConstants.githubApiBase}/repos/${Uri.encodeComponent(owner)}/${Uri.encodeComponent(repo)}/contents/${encodePath(path)}')
         .replace(queryParameters: ref != null ? {'ref': ref} : null);
     final response = await _client.get(uri, headers: _headers);
     _checkResponse(response);
@@ -281,7 +282,7 @@ class GitHubRemoteDatasource {
       String owner, String repo, String path) async {
     final response = await _client.get(
       Uri.parse(
-          '${AppConstants.githubApiBase}/repos/$owner/$repo/contents/$path'),
+          '${AppConstants.githubApiBase}/repos/${Uri.encodeComponent(owner)}/${Uri.encodeComponent(repo)}/contents/${encodePath(path)}'),
       headers: _headers,
     );
     _checkResponse(response);

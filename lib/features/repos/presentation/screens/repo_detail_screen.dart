@@ -5,7 +5,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/language_colors.dart';
 import '../../../../core/git/git_provider_type.dart';
 import '../../domain/entities/repo_entity.dart';
@@ -19,6 +18,7 @@ import '../widgets/commit_tile.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 import '../../../../l10n/l10n.dart';
+import '../../../../core/utils/external_link.dart';
 
 class RepoDetailScreen extends ConsumerStatefulWidget {
   final RepoEntity repo;
@@ -71,7 +71,11 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
     final contributorsAsync = isGitLab
         ? null
         : ref.watch(repoContributorsProvider((owner: repo.ownerLogin, repo: repo.name)));
-    final starArgs = (owner: repo.ownerLogin, repo: repo.name);
+    final starArgs = (
+      owner: repo.ownerLogin,
+      repo: repo.name,
+      connectionId: repo.connectionId,
+    );
     final isStarredAsync = isGitLab ? null : ref.watch(isStarredProvider(starArgs));
 
     return Scaffold(
@@ -118,7 +122,9 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
                     ),
                   ),
                   onPressed: () async {
-                    final ds = ref.read(githubDatasourceProvider);
+                    final ds = ref.read(
+                        githubDatasourceForConnectionProvider(
+                            repo.connectionId));
                     if (ds == null) return;
                     starred
                         ? await ds.unstarRepo(repo.ownerLogin, repo.name)
@@ -146,10 +152,7 @@ class _RepoDetailScreenState extends ConsumerState<RepoDetailScreen> {
             ),
           ),
           FilledButton.tonalIcon(
-            onPressed: () => launchUrl(
-              Uri.parse(repo.htmlUrl),
-              mode: LaunchMode.externalApplication,
-            ),
+            onPressed: () => openExternalLink(repo.htmlUrl),
             icon: const Icon(Icons.open_in_new_rounded, size: 16),
             label: Text(l.openOnProvider(repo.provider.label)),
           ),

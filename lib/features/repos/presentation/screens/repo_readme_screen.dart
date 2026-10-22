@@ -7,8 +7,7 @@ import '../providers/repo_readme_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 import '../../../../l10n/l10n.dart';
-import '../../../../core/utils/external_link.dart';
-import '../../../../shared/widgets/remote_markdown_image.dart';
+import '../../../../shared/widgets/safe_markdown.dart';
 
 class RepoReadmeScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -56,15 +55,9 @@ class RepoReadmeScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(repoReadmeProvider),
-            child: Markdown(
-              imageBuilder: remoteMarkdownImage,
+            child: SafeMarkdown(
               data: content,
               selectable: true,
-              onTapLink: (_, href, __) {
-                if (href != null) {
-                  openExternalLink(href);
-                }
-              },
               key: const ValueKey('readme-content'),
               styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
                 code: TextStyle(

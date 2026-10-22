@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/utils/exceptions.dart';
 import '../domain/entities/inbox_item_entity.dart';
 import '../domain/repositories/git_provider.dart';
+import '../../../core/constants/pref_keys.dart';
 
 /// Items gathered from every account plus per-account failures.
 class InboxLoad {
@@ -58,7 +59,7 @@ String inboxErrorText(Object e,
 
 /// Last successful inbox snapshot, so the app opens instantly.
 class InboxCache {
-  static const _key = 'inbox_cache_v1';
+  static const _key = PrefKeys.inboxCache;
 
   static List<InboxItem> read(SharedPreferences prefs) {
     final raw = prefs.getString(_key);

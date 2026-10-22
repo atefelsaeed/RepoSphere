@@ -7,6 +7,7 @@ import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/git_provider.dart';
 import '../datasources/gitea_remote_datasource.dart';
 import 'inbox_only_provider.dart';
+import '../../../../core/utils/url_path.dart';
 
 /// Gitea / Forgejo / Codeberg adapter: Inbox, in-app detail and PR actions.
 /// The repository browser is not implemented for this provider yet.
@@ -135,7 +136,7 @@ class GiteaRepoRepositoryImpl extends InboxOnlyProvider {
   @override
   Future<void> performPrAction(InboxItem item, PrAction action,
       {String? comment}) async {
-    final base = '/repos/${item.repoFullName}/pulls/${item.number}';
+    final base = '/repos/${encodePath(item.repoFullName)}/pulls/${item.number}';
     switch (action) {
       case PrAction.approve:
         await _ds.send('POST', '$base/reviews', body: {
@@ -159,7 +160,7 @@ class GiteaRepoRepositoryImpl extends InboxOnlyProvider {
   // ─── Detail ─────────────────────────────────────────────────────────────────
   @override
   Future<ItemDetail> getItemDetail(InboxItem item) async {
-    final repo = '/repos/${item.repoFullName}';
+    final repo = '/repos/${encodePath(item.repoFullName)}';
     final isPr = item.kind == InboxItemKind.pullRequest;
     final main = await _ds.send(
             'GET', isPr ? '$repo/pulls/${item.number}' : '$repo/issues/${item.number}')

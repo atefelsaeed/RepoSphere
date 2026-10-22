@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/git/git_provider_type.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/item_detail_entity.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../../core/utils/external_link.dart';
-import '../../../../shared/widgets/remote_markdown_image.dart';
 import '../providers/item_detail_provider.dart';
 import '../widgets/inbox_action_sheet.dart';
+import '../../../../shared/widgets/safe_markdown.dart';
 
 /// In-app view of an inbox PR/MR or issue: description, changed files with
 /// diffs, and discussion, with the quick actions one tap away.
@@ -39,8 +37,7 @@ class ItemDetailScreen extends ConsumerWidget {
           IconButton(
             tooltip: l.actionOpenInBrowser,
             icon: const Icon(Icons.open_in_new_rounded),
-            onPressed: () => launchUrl(Uri.parse(item.htmlUrl),
-                mode: LaunchMode.externalApplication),
+            onPressed: () => openExternalLink(item.htmlUrl),
           ),
         ],
       ),
@@ -128,15 +125,9 @@ class _Body extends StatelessWidget {
         ],
         const SizedBox(height: 16),
         if (detail.body.trim().isNotEmpty)
-          MarkdownBody(
-imageBuilder: remoteMarkdownImage,
+          SafeMarkdownBody(
             data: detail.body,
             selectable: true,
-            onTapLink: (_, href, __) {
-              if (href != null) {
-                openExternalLink(href);
-              }
-            },
           )
         else
           Text(l.detailNoDescription,
@@ -236,7 +227,7 @@ class _Comment extends StatelessWidget {
                 ?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 6),
-          MarkdownBody(data: comment.body, selectable: true),
+          SafeMarkdownBody(data: comment.body, selectable: true),
         ],
       ),
     );

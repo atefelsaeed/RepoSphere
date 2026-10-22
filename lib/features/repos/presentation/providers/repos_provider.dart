@@ -27,6 +27,28 @@ final githubDatasourceProvider = Provider<GitHubRemoteDatasource?>((ref) {
   return GitHubRemoteDatasource(client: client, token: gh.token);
 });
 
+/// GitHub datasource for the account that owns a repo. Use this for anything
+/// that acts on one repo (star, create issue): with two GitHub accounts the
+/// request must go out with the token of the account the repo was listed
+/// under, not the first one. A repo with no [connectionId] (legacy data) uses
+/// the first GitHub account; an id that no longer matches any account yields
+/// null instead of silently using someone else's token.
+final githubDatasourceForConnectionProvider =
+    Provider.family<GitHubRemoteDatasource?, String>((ref, connectionId) {
+  final conns = ref.watch(connectionsProvider).valueOrNull ?? const [];
+  GitConnection? match;
+  if (connectionId.isEmpty) {
+    match = _firstConnectionOfType(conns, GitProviderType.github);
+  } else {
+    for (final c in conns) {
+      if (c.id == connectionId && c.type == GitProviderType.github) match = c;
+    }
+  }
+  if (match == null) return null;
+  final client = ref.watch(sharedHttpClientProvider);
+  return GitHubRemoteDatasource(client: client, token: match.token);
+});
+
 /// The active adapter used for account-level queries (profile, etc.).
 /// Prefers GitHub, falls back to the first connected account.
 final primaryProviderProvider = Provider<GitProvider?>((ref) {
