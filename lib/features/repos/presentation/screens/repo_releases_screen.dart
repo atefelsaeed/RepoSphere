@@ -9,6 +9,7 @@ import '../providers/repo_releases_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 import '../../../../l10n/l10n.dart';
+import '../../../../shared/widgets/remote_markdown_image.dart';
 
 class RepoReleasesScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -193,6 +194,7 @@ class _ReleaseTile extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               child: MarkdownBody(
+                imageBuilder: remoteMarkdownImage,
                 data: release.body!,
                 styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
                   code: TextStyle(

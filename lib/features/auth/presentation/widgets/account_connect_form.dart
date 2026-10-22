@@ -45,6 +45,29 @@ String normalizeInstanceUrl(String input) {
   return s.replaceAll(RegExp(r'/+$'), '');
 }
 
+/// True when [url] is plain `http://` to a host that is not on this machine or
+/// a private network. A token sent there crosses the internet unencrypted.
+bool isInsecureInstanceUrl(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null || uri.scheme.toLowerCase() != 'http') return false;
+  final host = uri.host.toLowerCase();
+  if (host == 'localhost' ||
+      host.endsWith('.localhost') ||
+      host.endsWith('.local') ||
+      host.endsWith('.lan') ||
+      host == '::1') {
+    return false;
+  }
+  final m = RegExp(r'^(\d+)\.(\d+)\.\d+\.\d+$').firstMatch(host);
+  if (m == null) return true;
+  final a = int.parse(m.group(1)!), b = int.parse(m.group(2)!);
+  final private = a == 10 ||
+      a == 127 ||
+      (a == 192 && b == 168) ||
+      (a == 172 && b >= 16 && b <= 31);
+  return !private;
+}
+
 /// Where to create a token for [type], and which scopes it needs.
 ({Uri url, String scopes}) tokenHelp(GitProviderType type, String baseUrl) {
   switch (type) {
@@ -153,6 +176,10 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
       setState(() => _error = _type == GitProviderType.gitea
           ? l.giteaNeedsUrl
           : l.azureNeedsOrg);
+      return;
+    }
+    if (isInsecureInstanceUrl(url)) {
+      setState(() => _error = l.insecureInstanceUrl);
       return;
     }
     setState(() {

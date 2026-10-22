@@ -9,6 +9,8 @@ import '../providers/issue_comments_provider.dart';
 import '../widgets/comment_thread.dart';
 import '../widgets/label_chip.dart';
 import '../../../../l10n/l10n.dart';
+import '../../../../core/utils/external_link.dart';
+import '../../../../shared/widgets/remote_markdown_image.dart';
 
 class RepoPrDetailScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -182,12 +184,12 @@ class RepoPrDetailScreen extends ConsumerWidget {
           // Body
           if (pr.body != null && pr.body!.trim().isNotEmpty)
             MarkdownBody(
+imageBuilder: remoteMarkdownImage,
               data: pr.body!,
               selectable: true,
               onTapLink: (_, href, __) {
                 if (href != null) {
-                  launchUrl(Uri.parse(href),
-                      mode: LaunchMode.externalApplication);
+                  openExternalLink(href);
                 }
               },
               styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
