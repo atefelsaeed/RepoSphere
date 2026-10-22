@@ -4,6 +4,8 @@ Thanks for helping. RepoSphere is early (alpha), so small, focused changes that 
 
 By contributing you agree that your contributions are licensed under the project's [MIT License](LICENSE).
 
+Start with the [architecture overview](doc/architecture.md); end users should read the [user guide](doc/user-guide.md) instead.
+
 ## Setup
 
 ```bash

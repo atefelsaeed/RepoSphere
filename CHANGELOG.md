@@ -13,6 +13,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 - Android releases are signed with your own key when the `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` secrets are set; otherwise they still use the debug key.
 - Release workflow: read-only permissions by default; only the publish job can write. Added Dependabot for pub packages and GitHub Actions.
 
+### Documentation
+- Rewritten README for newcomers (what it is, why, install, quick start, provider table, privacy), an Arabic README, and new guides in `doc/`: getting started (tokens per provider), user guide, FAQ / troubleshooting and architecture. More screenshots. The old spec and backlog are marked as historical.
+
 ## [0.3.0] — 2026-10-21
 
 **First published release.** RepoSphere answers "what needs me today?" across all your Git accounts: one prioritised Inbox for GitHub, GitLab (including self-hosted), Azure DevOps and Forgejo / Gitea with failing CI, requested changes, conflicts, review requests, assignments and mentions; open an item to read its diff and discussion; approve / request changes / merge / re-run CI from the item; client workspaces; urgent alerts on mobile; Arabic and English. Builds for web, macOS, Windows, Linux and Android. Version 0.2.0 was prepared but never tagged, so its changes are included here (see below).
