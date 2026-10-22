@@ -6,6 +6,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 ## [Unreleased]
 
 ### Security
+- Comments on the item detail screen now follow the same rule as every other text from your Git hosts: images load only when you tap them, and links open only as `http`, `https` or `mailto`. All Markdown now goes through one `SafeMarkdown` widget, and a test fails if a screen uses the raw widgets.
+- Every URL taken from a provider (open in browser buttons, notification, gist, release, commit and device-login links, the email on a profile) now goes through the same scheme check instead of being passed straight to the OS.
+- Disconnecting your last account now also deletes the cached Inbox, dismissals, workspaces, recent searches and alert settings, and stops the background check. Android no longer includes app data in backups.
+- Starring a repo and creating an issue use the token of the account the repo belongs to, not always the first GitHub account. An action for an account that was removed is no longer sent with another account's token.
+- CI and releases: workflows default to read-only permissions; only the Pages deploy job gets Pages/OIDC permissions; release tags must look like `v1.2.3`; SHA-256 checksums are attached; a release without the Android signing secrets now fails instead of shipping a debug-signed APK.
 - Links inside PR, issue, comment, release and README text now open only if they are `http`, `https` or `mailto`; other schemes (`tel:`, `intent:`, `file:`, custom app links) and malformed links are ignored instead of being passed to the OS.
 - Remote images in that text are no longer fetched automatically; tap *Load image from …* to show one.
 - Connecting to a self-hosted server over plain `http://` is refused unless the host is localhost or on a private network, so tokens are not sent unencrypted across the internet.

@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/release_entity.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_releases_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 import '../../../../l10n/l10n.dart';
-import '../../../../shared/widgets/remote_markdown_image.dart';
+import '../../../../core/utils/external_link.dart';
+import '../../../../shared/widgets/safe_markdown.dart';
 
 class RepoReleasesScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -193,9 +193,9 @@ class _ReleaseTile extends StatelessWidget {
             Divider(height: 1, color: cs.outlineVariant),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-              child: MarkdownBody(
-                imageBuilder: remoteMarkdownImage,
+              child: SafeMarkdownBody(
                 data: release.body!,
+                selectable: false,
                 styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
                   code: TextStyle(
                     fontFamily: 'monospace',
@@ -211,8 +211,7 @@ class _ReleaseTile extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
             child: TextButton.icon(
-              onPressed: () => launchUrl(Uri.parse(release.htmlUrl),
-                  mode: LaunchMode.externalApplication),
+              onPressed: () => openExternalLink(release.htmlUrl),
               icon: const Icon(Icons.open_in_new_rounded, size: 14),
               label: Text(l.viewOnGithub),
               style: TextButton.styleFrom(

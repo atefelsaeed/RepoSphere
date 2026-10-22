@@ -4,12 +4,12 @@ import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/atom-one-dark.dart';
 import 'package:flutter_highlight/themes/atom-one-light.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_contents_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 import '../../../../l10n/l10n.dart';
+import '../../../../core/utils/external_link.dart';
 
 class FileViewerScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -66,11 +66,17 @@ class FileViewerScreen extends ConsumerWidget {
           IconButton(
             tooltip: l.openOnProvider('GitHub'),
             icon: const Icon(Icons.open_in_new_rounded),
-            onPressed: () => launchUrl(
-              Uri.parse(
-                  'https://github.com/${repo.ownerLogin}/${repo.name}/blob/${repo.defaultBranch ?? 'main'}/$path'),
-              mode: LaunchMode.externalApplication,
-            ),
+            onPressed: () => openExternalLink(Uri(
+              scheme: 'https',
+              host: 'github.com',
+              pathSegments: [
+                repo.ownerLogin,
+                repo.name,
+                'blob',
+                repo.defaultBranch ?? 'main',
+                ...path.split('/'),
+              ],
+            ).toString()),
           ),
         ],
       ),

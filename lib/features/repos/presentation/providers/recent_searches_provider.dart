@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/constants/pref_keys.dart';
+import '../../../auth/presentation/providers/connections_provider.dart';
 
 class RecentSearchesNotifier extends StateNotifier<List<String>> {
   RecentSearchesNotifier() : super([]) {
     _load();
   }
 
-  static const _key = 'recent_searches';
+  static const _key = PrefKeys.recentSearches;
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -40,5 +42,8 @@ class RecentSearchesNotifier extends StateNotifier<List<String>> {
 
 final recentSearchesProvider =
     StateNotifierProvider<RecentSearchesNotifier, List<String>>(
-  (ref) => RecentSearchesNotifier(),
+  (ref) {
+    ref.watch(hasConnectionsProvider);
+    return RecentSearchesNotifier();
+  },
 );

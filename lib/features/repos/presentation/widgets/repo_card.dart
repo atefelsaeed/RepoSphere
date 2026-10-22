@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/language_colors.dart';
 import '../../../../core/git/git_provider_type.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/pinned_repos_provider.dart';
+import '../../../../core/utils/external_link.dart';
 
 /// Short badge code + brand colour per provider (shown on non-GitHub cards).
 ({String code, Color color}) _providerBadge(GitProviderType t) => switch (t) {
@@ -267,10 +267,7 @@ class _RepoCardState extends ConsumerState<RepoCard> {
                       const SizedBox(width: 4),
                       InkWell(
                         borderRadius: BorderRadius.circular(4),
-                        onTap: () => launchUrl(
-                          Uri.parse(repo.htmlUrl),
-                          mode: LaunchMode.externalApplication,
-                        ),
+                        onTap: () => openExternalLink(repo.htmlUrl),
                         child: Icon(Icons.open_in_new_rounded,
                             size: 14, color: cs.onSurfaceVariant),
                       ),

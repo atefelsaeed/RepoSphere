@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../domain/entities/inbox_item_entity.dart';
+import '../../../core/constants/pref_keys.dart';
 
 /// An item the user marked done or snoozed. A "done" item comes back only if
 /// it has new activity after it was dismissed.
@@ -28,7 +29,7 @@ class InboxDismissal {
 
 /// Persistence for [InboxDismissal]s, shared by the UI and background check.
 class InboxDismissalStore {
-  static const _key = 'inbox_dismissals_v1';
+  static const _key = PrefKeys.inboxDismissals;
 
   static Map<String, InboxDismissal> read(SharedPreferences prefs) {
     final raw = prefs.getString(_key);

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/app_config.dart';
 import '../../data/github_device_auth.dart';
 import '../../domain/git_connection.dart';
@@ -11,6 +10,7 @@ import '../providers/auth_provider.dart';
 import '../providers/connections_provider.dart';
 import '../../../../l10n/l10n.dart';
 import '../widgets/account_connect_form.dart';
+import '../../../../core/utils/external_link.dart';
 
 // Auth priority:
 //   1. AppConfig.hasSupabase    → Supabase GitHub OAuth (web redirect)
@@ -142,10 +142,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             ?.copyWith(color: cs.onSurfaceVariant)),
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
-                      onPressed: () => launchUrl(
-                        Uri.parse(code.verificationUri),
-                        mode: LaunchMode.externalApplication,
-                      ),
+                      onPressed: () => openExternalLink(code.verificationUri),
                       icon: const Icon(Icons.open_in_new_rounded, size: 14),
                       label: Text(code.verificationUri,
                           style: const TextStyle(fontFamily: 'monospace')),

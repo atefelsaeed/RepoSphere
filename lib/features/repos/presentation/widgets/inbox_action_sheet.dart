@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../data/git_provider_factory.dart';
 import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/repositories/git_provider.dart';
 import '../../../../l10n/l10n.dart';
 import '../providers/inbox_provider.dart';
+import '../../../../core/utils/external_link.dart';
 
 /// Opens the quick-action sheet (re-run CI, approve, request changes, merge,
 /// open in browser) for an inbox [item].
@@ -161,10 +161,7 @@ class InboxActionSheet extends ConsumerWidget {
               }, color: cs.error),
             action(Icons.open_in_new_rounded, l.actionOpenInBrowser, () {
               Navigator.pop(context);
-              final uri = Uri.tryParse(item.htmlUrl);
-              if (uri != null) {
-                launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
+              openExternalLink(item.htmlUrl);
             }),
             const SizedBox(height: 8),
           ],

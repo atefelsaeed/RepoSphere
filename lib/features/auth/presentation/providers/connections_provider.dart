@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/secure_token_storage.dart';
 import '../../domain/git_connection.dart';
+import '../../../../core/utils/account_data_cleaner.dart';
+import '../../../notifications/background_inbox_check.dart';
 
 /// Source of truth for all connected accounts. Persists to secure storage and
 /// migrates legacy single-account tokens on first load.
@@ -23,16 +25,22 @@ class ConnectionsNotifier extends AsyncNotifier<List<GitConnection>> {
   Future<void> remove(String id) async {
     final next = _current.where((c) => c.id != id).toList();
     await SecureTokenStorage.writeConnections(next);
-    if (next.isEmpty) {
-      // Clear any stale legacy keys too when the last account is removed.
-      await SecureTokenStorage.clear();
-    }
+    if (next.isEmpty) await _wipe();
     state = AsyncData(next);
   }
 
   Future<void> removeAll() async {
-    await SecureTokenStorage.clear();
+    await _wipe();
     state = const AsyncData([]);
+  }
+
+  /// Last account gone: clear every credential (including stale legacy keys),
+  /// the cached inbox/search/workspace data derived from those accounts, and
+  /// the background check.
+  Future<void> _wipe() async {
+    await SecureTokenStorage.clear();
+    await clearAccountScopedPrefs();
+    await cancelInboxChecks();
   }
 
   Future<void> updateConnection(GitConnection connection) async {

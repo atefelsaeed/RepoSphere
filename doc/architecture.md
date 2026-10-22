@@ -64,7 +64,13 @@ test/                unit, adapter (mocked HTTP), widget tests
 | Tokens (`GitConnection` list) | `flutter_secure_storage` (`SecureTokenStorage`), iOS keychain class `first_unlock` |
 | Workspaces, dismissals, Inbox cache, theme, language, alert state | `shared_preferences` |
 
+Keys that hold data from a connected account are listed in `lib/core/constants/pref_keys.dart` (`accountScopedPrefKeys`). When the last account is removed, `ConnectionsNotifier` clears the secure store, deletes those keys (`clearAccountScopedPrefs`) and cancels the background check. A new account-derived preference **must** be added to that list; theme and language are deliberately not.
+
 Changing the iOS keychain accessibility is a delete-then-add inside the plugin, so `KeychainMigration` backs the value up, verifies each step, never throws, and lets readers fall back to the backup.
+
+## Remote content
+
+Text written by other people goes through two chokepoints: `SafeMarkdown` / `SafeMarkdownBody` (`lib/shared/widgets/safe_markdown.dart`: tap-to-load images and checked links) and `openExternalLink` (`lib/core/utils/external_link.dart`: http / https / mailto only). Tests fail if a screen bypasses them. Actions on one repo resolve their adapter or datasource from the repo's `connectionId` (`providerForConnectionProvider`, `githubDatasourceForConnectionProvider`), never "the first account".
 
 ## Localisation
 

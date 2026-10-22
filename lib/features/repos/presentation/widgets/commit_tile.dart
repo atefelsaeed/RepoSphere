@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/commit_entity.dart';
+import '../../../../core/utils/external_link.dart';
 
 class CommitTile extends StatefulWidget {
   final CommitEntity commit;
@@ -69,10 +69,7 @@ class _CommitTileState extends State<CommitTile> {
               children: [
                 GestureDetector(
                   onTap: widget.onTap ??
-                      () => launchUrl(
-                            Uri.parse(widget.commit.htmlUrl),
-                            mode: LaunchMode.externalApplication,
-                          ),
+                      () => openExternalLink(widget.commit.htmlUrl),
                   child: Text(
                     widget.commit.firstLine,
                     style: theme.textTheme.bodyMedium?.copyWith(

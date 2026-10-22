@@ -3,7 +3,10 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Inbox alerts (Android 13+ runtime permission). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- allowBackup is off: cached inbox data and account state must not be
+         copied into Google Auto Backup / adb backup. -->
     <application
+        android:allowBackup="false"
         android:label="RepoSphere"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

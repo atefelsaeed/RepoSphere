@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import '../../../core/git/git_provider_type.dart';
 import '../../auth/domain/git_connection.dart';
 import '../../auth/presentation/providers/connections_provider.dart';
-import '../domain/entities/repo_entity.dart';
 import '../domain/repositories/git_provider.dart';
 import 'datasources/azure_remote_datasource.dart';
 import 'datasources/gitea_remote_datasource.dart';
@@ -84,20 +83,3 @@ final providerForConnectionProvider =
   return null;
 });
 
-/// Resolves the adapter that owns a given repo. Falls back to the first
-/// connected provider of the same type (covers legacy repos with no
-/// connectionId), then to any connected provider.
-final providerForRepoProvider =
-    Provider.family<GitProvider?, RepoEntity>((ref, repo) {
-  final providers = ref.watch(activeProvidersProvider);
-  if (providers.isEmpty) return null;
-  if (repo.connectionId.isNotEmpty) {
-    for (final p in providers) {
-      if (p.connection.id == repo.connectionId) return p;
-    }
-  }
-  for (final p in providers) {
-    if (p.type == repo.provider) return p;
-  }
-  return providers.first;
-});

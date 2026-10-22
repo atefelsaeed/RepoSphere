@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/issue_comments_provider.dart';
@@ -10,7 +9,7 @@ import '../widgets/comment_thread.dart';
 import '../widgets/label_chip.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../../core/utils/external_link.dart';
-import '../../../../shared/widgets/remote_markdown_image.dart';
+import '../../../../shared/widgets/safe_markdown.dart';
 
 class RepoIssueDetailScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -52,8 +51,7 @@ class RepoIssueDetailScreen extends ConsumerWidget {
           IconButton(
             tooltip: l.openOnProvider('GitHub'),
             icon: const Icon(Icons.open_in_new_rounded),
-            onPressed: () => launchUrl(Uri.parse(issue.htmlUrl),
-                mode: LaunchMode.externalApplication),
+            onPressed: () => openExternalLink(issue.htmlUrl),
           ),
         ],
       ),
@@ -144,15 +142,9 @@ class RepoIssueDetailScreen extends ConsumerWidget {
 
           // Body
           if (issue.body != null && issue.body!.trim().isNotEmpty)
-            MarkdownBody(
-imageBuilder: remoteMarkdownImage,
+            SafeMarkdownBody(
               data: issue.body!,
               selectable: true,
-              onTapLink: (_, href, __) {
-                if (href != null) {
-                  openExternalLink(href);
-                }
-              },
               styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
                 code: TextStyle(
                   fontFamily: 'monospace',

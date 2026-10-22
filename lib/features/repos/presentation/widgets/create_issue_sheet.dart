@@ -34,7 +34,8 @@ class _CreateIssueSheetState extends ConsumerState<CreateIssueSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final ds = ref.read(githubDatasourceProvider);
+    final ds = ref.read(
+        githubDatasourceForConnectionProvider(widget.repo.connectionId));
     if (ds == null) return;
 
     setState(() {

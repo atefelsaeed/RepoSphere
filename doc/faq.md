@@ -11,6 +11,12 @@ No server. The app talks **directly** to GitHub, GitLab, Azure DevOps or your Fo
 **Can I connect a self-hosted server over plain `http://`?**
 Only on `localhost` or a private network (10.x, 172.16-31.x, 192.168.x, `*.local`). For any other host the app refuses `http://`, because your token would cross the internet unencrypted. Use `https://`.
 
+**What is deleted when I disconnect?**
+Removing your last account deletes the tokens and everything the app cached from those accounts: the Inbox snapshot, dismissals, workspaces, recent searches and alert settings, and it stops the background check. Theme and language are kept. The token itself is not revoked on the provider: revoke it there if the device is lost.
+
+**Does Android back up the app's data?**
+No. `allowBackup` is turned off so cached Inbox titles and account state do not end up in Google backups.
+
 **Why do images in a PR or issue show a "Load image" button?**
 Images in text written by other people are not fetched automatically: the host serving the image would learn your IP address and when you looked. Tap the button to load one.
 

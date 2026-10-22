@@ -78,11 +78,13 @@ Tokens are the sensitive part of this app.
 
 - Never log, print or send a token anywhere except the provider it belongs to.
 - New persistence of secrets goes through `SecureTokenStorage`, never `shared_preferences`.
-- Text from Git hosts (PR/issue bodies, comments, READMEs) is written by other people. Open its links with `openExternalLink` (`lib/core/utils/external_link.dart`, http/https/mailto only), never `launchUrl(Uri.parse(href))`, and give every `Markdown`/`MarkdownBody` `imageBuilder: remoteMarkdownImage` so images load only on tap.
+- Text from Git hosts (PR/issue bodies, comments, READMEs) is written by other people. Render Markdown only with `SafeMarkdown` / `SafeMarkdownBody` (`lib/shared/widgets/safe_markdown.dart`: images load on tap, links are checked) and open any URL that came from a provider with `openExternalLink` (`lib/core/utils/external_link.dart`, http/https/mailto only), never `launchUrl(Uri.parse(...))`. `test/widget/safe_markdown_test.dart` fails if `lib/` uses the raw Markdown widgets.
+- Anything you persist that comes from a connected account (titles, repo names, queries) goes in `shared_preferences` under a key registered in `lib/core/constants/pref_keys.dart`, so disconnecting deletes it.
+- Code that acts on one repo must use that repo's `connectionId` to pick the account, not the first connection of the same type.
 - Keep private repo names and URLs out of crash reports.
 - Release signing: the *Release* workflow signs the Android APK when the `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` secrets exist, and falls back to the debug key otherwise. Locally, `android/key.properties` (git-ignored) does the same.
 - Pin new GitHub Actions to a commit SHA with the tag in a comment; Dependabot keeps them current.
-- If you find a vulnerability, please report it privately through GitHub's *Security → Report a vulnerability* on this repository rather than a public issue.
+- If you find a vulnerability, please follow [SECURITY.md](SECURITY.md) and report it privately rather than in a public issue.
 
 ## Where help is most useful
 

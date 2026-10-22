@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/git/git_provider_type.dart';
 import '../../../../core/utils/exceptions.dart';
 import '../../../repos/data/datasources/azure_remote_datasource.dart';
@@ -10,6 +9,7 @@ import '../../../repos/data/datasources/gitea_remote_datasource.dart';
 import '../../data/secure_token_storage.dart';
 import '../../../../l10n/l10n.dart';
 import '../../domain/git_connection.dart';
+import '../../../../core/utils/external_link.dart';
 
 /// Brand colour and icon for a provider, shared by the account list and the
 /// connect form.
@@ -363,8 +363,7 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
         ),
         const SizedBox(height: 8),
         TextButton.icon(
-          onPressed: () =>
-              launchUrl(help.url, mode: LaunchMode.externalApplication),
+          onPressed: () => openExternalLink(help.url.toString()),
           icon: const Icon(Icons.open_in_new_rounded, size: 16),
           label: Text(l.createTokenOn(_type.label)),
         ),

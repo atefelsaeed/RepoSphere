@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../providers/notifications_provider.dart';
 import '../providers/repos_provider.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 import '../../../../l10n/l10n.dart';
+import '../../../../core/utils/external_link.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -106,8 +106,7 @@ class NotificationsScreen extends ConsumerWidget {
                     ref.invalidate(notificationsProvider);
                   }
                   if (notifs[i].htmlUrl.isNotEmpty) {
-                    launchUrl(Uri.parse(notifs[i].htmlUrl),
-                        mode: LaunchMode.externalApplication);
+                    openExternalLink(notifs[i].htmlUrl);
                   }
                 },
               )
