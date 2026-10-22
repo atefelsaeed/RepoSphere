@@ -18,7 +18,7 @@ on:
         default: ''
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   FLUTTER_VERSION: '3.41.x'
@@ -97,6 +97,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
     needs: [web, macos, windows, linux, android]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

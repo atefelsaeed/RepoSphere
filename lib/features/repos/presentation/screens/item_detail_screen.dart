@@ -7,6 +7,8 @@ import '../../../../shared/widgets/error_view.dart';
 import '../../domain/entities/inbox_item_entity.dart';
 import '../../domain/entities/item_detail_entity.dart';
 import '../../../../l10n/l10n.dart';
+import '../../../../core/utils/external_link.dart';
+import '../../../../shared/widgets/remote_markdown_image.dart';
 import '../providers/item_detail_provider.dart';
 import '../widgets/inbox_action_sheet.dart';
 
@@ -127,12 +129,12 @@ class _Body extends StatelessWidget {
         const SizedBox(height: 16),
         if (detail.body.trim().isNotEmpty)
           MarkdownBody(
+imageBuilder: remoteMarkdownImage,
             data: detail.body,
             selectable: true,
             onTapLink: (_, href, __) {
               if (href != null) {
-                launchUrl(Uri.parse(href),
-                    mode: LaunchMode.externalApplication);
+                openExternalLink(href);
               }
             },
           )

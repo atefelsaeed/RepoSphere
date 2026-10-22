@@ -76,6 +76,14 @@
   "connectAzureUrlLabel": "رابط المؤسسة (https://dev.azure.com/your-org)",
   "connectGitlabUrlLabel": "رابط GitLab المستضاف ذاتيًا (اختياري)",
   "connectGiteaUrlLabel": "رابط Forgejo / Gitea (مثل https://codeberg.org)",
+  "insecureInstanceUrl": "رابط الخادم يستخدم http العادي، فالرمز سيُرسل بدون تشفير. استخدم https (يُسمح بـ http فقط لـ localhost وعناوين الشبكة الخاصة).",
+  "loadRemoteImage": "تحميل الصورة من {host}",
+  "@loadRemoteImage": {
+    "placeholders": {
+      "host": { "type": "String" }
+    }
+  },
+  "remoteImageBlocked": "تم حظر الصورة",
   "giteaNeedsUrl": "يحتاج Forgejo / Gitea إلى رابط الخادم.",
   "connectGitlabUrlHint": "فارغ = gitlab.com",
   "tokenLabel": "رمز الوصول الشخصي",

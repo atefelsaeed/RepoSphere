@@ -151,6 +151,14 @@
   "connectAzureUrlLabel": "Organisation URL (https://dev.azure.com/your-org)",
   "connectGitlabUrlLabel": "Self-hosted GitLab URL (optional)",
   "connectGiteaUrlLabel": "Forgejo / Gitea URL (e.g. https://codeberg.org)",
+  "insecureInstanceUrl": "This server URL uses plain http, so your token would travel unencrypted. Use https (http is allowed only for localhost and private-network addresses).",
+  "loadRemoteImage": "Load image from {host}",
+  "@loadRemoteImage": {
+    "placeholders": {
+      "host": { "type": "String" }
+    }
+  },
+  "remoteImageBlocked": "Image blocked",
   "giteaNeedsUrl": "Forgejo / Gitea needs the server URL.",
   "connectGitlabUrlHint": "Empty = gitlab.com",
   "tokenLabel": "Personal Access Token",

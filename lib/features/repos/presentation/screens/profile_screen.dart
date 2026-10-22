@@ -7,6 +7,7 @@ import '../providers/repos_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 import '../../../../l10n/l10n.dart';
+import '../../../../core/utils/external_link.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -122,11 +123,12 @@ class ProfileScreen extends ConsumerWidget {
                       icon: Icons.link_rounded,
                       text: user.blog!,
                       onTap: () {
-                        final url = user.blog!.startsWith('http')
-                            ? user.blog!
-                            : 'https://${user.blog}';
-                        launchUrl(Uri.parse(url),
-                            mode: LaunchMode.externalApplication);
+                        final blog = user.blog!;
+                        final url = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*:')
+                                .hasMatch(blog)
+                            ? blog
+                            : 'https://$blog';
+                        openExternalLink(url);
                       }),
                 if (user.createdAt != null)
                   _InfoRow(

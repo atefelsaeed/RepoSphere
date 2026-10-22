@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../providers/repo_readme_provider.dart';
 import '../../../../shared/widgets/error_view.dart';
 import '../../../../shared/widgets/shimmer_box.dart';
 import '../../../../l10n/l10n.dart';
+import '../../../../core/utils/external_link.dart';
+import '../../../../shared/widgets/remote_markdown_image.dart';
 
 class RepoReadmeScreen extends ConsumerWidget {
   final RepoEntity repo;
@@ -56,12 +57,12 @@ class RepoReadmeScreen extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(repoReadmeProvider),
             child: Markdown(
+              imageBuilder: remoteMarkdownImage,
               data: content,
               selectable: true,
               onTapLink: (_, href, __) {
                 if (href != null) {
-                  launchUrl(Uri.parse(href),
-                      mode: LaunchMode.externalApplication);
+                  openExternalLink(href);
                 }
               },
               key: const ValueKey('readme-content'),

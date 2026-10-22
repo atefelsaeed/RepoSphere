@@ -5,6 +5,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 
 ## [Unreleased]
 
+### Security
+- Links inside PR, issue, comment, release and README text now open only if they are `http`, `https` or `mailto`; other schemes (`tel:`, `intent:`, `file:`, custom app links) and malformed links are ignored instead of being passed to the OS.
+- Remote images in that text are no longer fetched automatically; tap *Load image from …* to show one.
+- Connecting to a self-hosted server over plain `http://` is refused unless the host is localhost or on a private network, so tokens are not sent unencrypted across the internet.
+- Release workflow: read-only permissions by default; only the publish job can write. Added Dependabot for pub packages and GitHub Actions.
+
 ## [0.3.0] — 2026-10-21
 
 **First published release.** RepoSphere answers "what needs me today?" across all your Git accounts: one prioritised Inbox for GitHub, GitLab (including self-hosted), Azure DevOps and Forgejo / Gitea with failing CI, requested changes, conflicts, review requests, assignments and mentions; open an item to read its diff and discussion; approve / request changes / merge / re-run CI from the item; client workspaces; urgent alerts on mobile; Arabic and English. Builds for web, macOS, Windows, Linux and Android. Version 0.2.0 was prepared but never tagged, so its changes are included here (see below).

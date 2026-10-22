@@ -260,6 +260,18 @@ class AppLocalizationsAr extends AppLocalizations {
       'رابط Forgejo / Gitea (مثل https://codeberg.org)';
 
   @override
+  String get insecureInstanceUrl =>
+      'رابط الخادم يستخدم http العادي، فالرمز سيُرسل بدون تشفير. استخدم https (يُسمح بـ http فقط لـ localhost وعناوين الشبكة الخاصة).';
+
+  @override
+  String loadRemoteImage(String host) {
+    return 'تحميل الصورة من $host';
+  }
+
+  @override
+  String get remoteImageBlocked => 'تم حظر الصورة';
+
+  @override
   String get giteaNeedsUrl => 'يحتاج Forgejo / Gitea إلى رابط الخادم.';
 
   @override
