@@ -44,7 +44,7 @@ jobs:
       - run: flutter pub get
       - run: flutter build web --release
       - run: cd build/web && zip -r ../../RepoSphere-web.zip .
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: { name: web, path: RepoSphere-web.zip }
 
   macos:
@@ -56,7 +56,7 @@ jobs:
       - run: flutter pub get
       - run: flutter build macos --release
       - run: ditto -c -k --keepParent build/macos/Build/Products/Release/RepoSphere.app RepoSphere-macos.zip
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: { name: macos, path: RepoSphere-macos.zip }
 
   windows:
@@ -69,7 +69,7 @@ jobs:
       - run: flutter build windows --release
       - run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath RepoSphere-windows-x64.zip
         shell: pwsh
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: { name: windows, path: RepoSphere-windows-x64.zip }
 
   linux:
@@ -85,7 +85,7 @@ jobs:
       - run: flutter pub get
       - run: flutter build linux --release
       - run: tar -C build/linux/x64/release/bundle -czf RepoSphere-linux-x64.tar.gz .
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: { name: linux, path: RepoSphere-linux-x64.tar.gz }
 
   android:
@@ -132,7 +132,7 @@ jobs:
         run: |
           echo "::error::Publishing needs the ANDROID_KEYSTORE_* secrets (see doc/follow-ups.md). Re-run without a tag to only build."
           exit 1
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: { name: android, path: RepoSphere-android.apk }
 
   publish:
