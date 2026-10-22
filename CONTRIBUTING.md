@@ -78,6 +78,10 @@ Tokens are the sensitive part of this app.
 
 - Never log, print or send a token anywhere except the provider it belongs to.
 - New persistence of secrets goes through `SecureTokenStorage`, never `shared_preferences`.
+- Text from Git hosts (PR/issue bodies, comments, READMEs) is written by other people. Open its links with `openExternalLink` (`lib/core/utils/external_link.dart`, http/https/mailto only), never `launchUrl(Uri.parse(href))`, and give every `Markdown`/`MarkdownBody` `imageBuilder: remoteMarkdownImage` so images load only on tap.
+- Keep private repo names and URLs out of crash reports.
+- Release signing: the *Release* workflow signs the Android APK when the `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` secrets exist, and falls back to the debug key otherwise. Locally, `android/key.properties` (git-ignored) does the same.
+- Pin new GitHub Actions to a commit SHA with the tag in a comment; Dependabot keeps them current.
 - If you find a vulnerability, please report it privately through GitHub's *Security → Report a vulnerability* on this repository rather than a public issue.
 
 ## Where help is most useful

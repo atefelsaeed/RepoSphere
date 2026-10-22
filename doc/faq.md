@@ -8,6 +8,15 @@ On your device, in the platform's secure store: Keychain (iOS, macOS), Keystore-
 **Is there a RepoSphere server? Does anyone else see my code or tokens?**
 No server. The app talks **directly** to GitHub, GitLab, Azure DevOps or your Forgejo / Gitea server. Nothing is proxied or collected. Crash reporting (Sentry) is **off** unless you build the app yourself with a `SENTRY_DSN`.
 
+**Can I connect a self-hosted server over plain `http://`?**
+Only on `localhost` or a private network (10.x, 172.16-31.x, 192.168.x, `*.local`). For any other host the app refuses `http://`, because your token would cross the internet unencrypted. Use `https://`.
+
+**Why do images in a PR or issue show a "Load image" button?**
+Images in text written by other people are not fetched automatically: the host serving the image would learn your IP address and when you looked. Tap the button to load one.
+
+**What happens when I tap a link inside a PR, issue or README?**
+Only `http`, `https` and `mailto` links open. Other kinds (`tel:`, `file:`, app-specific links) are ignored.
+
 **What else is saved locally?**
 Your workspaces, the items you marked done or snoozed, the last Inbox snapshot (so the app opens instantly), and your theme and language choice. None of it is synced anywhere.
 
@@ -61,7 +70,7 @@ Right-click `RepoSphere.app` → **Open** → **Open** again. The build isn't no
 It needs `libsecret` and a running secret service (GNOME Keyring or KWallet). On minimal desktops, install and start one, then try again.
 
 **The Android APK won't install.**
-Allow "install unknown apps" for the app you opened it from. It's signed with a debug key, so you can't update over a Play Store version.
+Allow "install unknown apps" for the app you opened it from. Until a release key is configured (see [follow-ups](follow-ups.md)) it is signed with a debug key, so you can't update over a Play Store version.
 
 **Web: connecting my self-hosted GitLab fails.**
 The browser only lets the site call servers that allow cross-origin requests (CORS). GitHub, GitLab.com and Azure DevOps do. Your own server may not: use the desktop or mobile app instead, or enable CORS for the web origin on your server.
