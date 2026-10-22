@@ -554,24 +554,6 @@ abstract class AppLocalizations {
   /// **'Forgejo / Gitea URL (e.g. https://codeberg.org)'**
   String get connectGiteaUrlLabel;
 
-  /// No description provided for @insecureInstanceUrl.
-  ///
-  /// In en, this message translates to:
-  /// **'This server URL uses plain http, so your token would travel unencrypted. Use https (http is allowed only for localhost and private-network addresses).'**
-  String get insecureInstanceUrl;
-
-  /// No description provided for @loadRemoteImage.
-  ///
-  /// In en, this message translates to:
-  /// **'Load image from {host}'**
-  String loadRemoteImage(String host);
-
-  /// No description provided for @remoteImageBlocked.
-  ///
-  /// In en, this message translates to:
-  /// **'Image blocked'**
-  String get remoteImageBlocked;
-
   /// No description provided for @giteaNeedsUrl.
   ///
   /// In en, this message translates to:
@@ -643,6 +625,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Connect'**
   String get connect;
+
+  /// No description provided for @insecureInstanceUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'This server URL uses plain http, so your token would travel unencrypted. Use https (http is allowed only for localhost and private-network addresses).'**
+  String get insecureInstanceUrl;
+
+  /// No description provided for @remoteImageBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Image blocked'**
+  String get remoteImageBlocked;
+
+  /// No description provided for @loadRemoteImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Load image from {host}'**
+  String loadRemoteImage(String host);
+
+  /// No description provided for @webTokenWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Web version: your token is kept in this browser\'s local storage, which is less protected than the desktop and mobile apps. Use those for long-lived tokens, and not on a shared computer.'**
+  String get webTokenWarning;
 
   /// No description provided for @createTokenOn.
   ///

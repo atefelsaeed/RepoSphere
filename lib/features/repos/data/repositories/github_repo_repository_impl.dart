@@ -19,6 +19,7 @@ import '../../domain/entities/repo_entity.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/git_provider.dart';
 import '../datasources/github_remote_datasource.dart';
+import '../../../../core/utils/url_path.dart';
 
 /// GitHub adapter — wraps [GitHubRemoteDatasource] behind [GitProvider] and
 /// stamps every repo with its originating [GitConnection].
@@ -311,7 +312,7 @@ query {
   @override
   Future<void> performPrAction(InboxItem item, PrAction action,
       {String? comment}) async {
-    final base = '/repos/${item.repoFullName}/pulls/${item.number}';
+    final base = '/repos/${encodePath(item.repoFullName)}/pulls/${item.number}';
     switch (action) {
       case PrAction.approve:
         await _ds.send('POST', '$base/reviews', body: {
@@ -334,7 +335,7 @@ query {
           throw const GitHubApiException('Could not find the PR head commit.');
         }
         final runs = await _ds.send('GET',
-                '/repos/${item.repoFullName}/actions/runs?head_sha=$sha&per_page=50')
+                '/repos/${encodePath(item.repoFullName)}/actions/runs?head_sha=$sha&per_page=50')
             as Map<String, dynamic>;
         final failed = (runs['workflow_runs'] as List? ?? const [])
             .cast<Map<String, dynamic>>()
@@ -346,14 +347,14 @@ query {
         }
         for (final r in failed) {
           await _ds.send('POST',
-              '/repos/${item.repoFullName}/actions/runs/${r['id']}/rerun-failed-jobs');
+              '/repos/${encodePath(item.repoFullName)}/actions/runs/${r['id']}/rerun-failed-jobs');
         }
     }
   }
 
   @override
   Future<ItemDetail> getItemDetail(InboxItem item) async {
-    final repo = '/repos/${item.repoFullName}';
+    final repo = '/repos/${encodePath(item.repoFullName)}';
     final isPr = item.kind == InboxItemKind.pullRequest;
     final main = await _ds.send(
             'GET', isPr ? '$repo/pulls/${item.number}' : '$repo/issues/${item.number}')

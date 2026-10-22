@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/git/git_provider_type.dart';
@@ -372,6 +373,15 @@ class _AccountConnectFormState extends State<AccountConnectForm> {
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
         ),
+        if (kIsWeb) ...[
+          const SizedBox(height: 12),
+          Text(
+            l.webTokenWarning,
+            key: const ValueKey('web-token-warning'),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: cs.error),
+          ),
+        ],
       ],
     );
   }

@@ -10,6 +10,7 @@ import 'core/providers/theme_provider.dart';
 import 'l10n/l10n.dart';
 import 'features/auth/data/secure_token_storage.dart';
 import 'features/notifications/background_inbox_check.dart';
+import 'core/utils/sentry_scrub.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +57,8 @@ Future<void> main() async {
         // Request URLs carry private repo / PR names: keep them out of reports.
         options.beforeBreadcrumb = (breadcrumb, hint) =>
             breadcrumb?.category == 'http' ? null : breadcrumb;
+        // Exception text can quote request URLs: scrub them too.
+        options.beforeSend = scrubSentryEvent;
         options.environment = const bool.fromEnvironment('dart.vm.product')
             ? 'production'
             : 'debug';

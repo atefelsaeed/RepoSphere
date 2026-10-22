@@ -260,18 +260,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Forgejo / Gitea URL (e.g. https://codeberg.org)';
 
   @override
-  String get insecureInstanceUrl =>
-      'This server URL uses plain http, so your token would travel unencrypted. Use https (http is allowed only for localhost and private-network addresses).';
-
-  @override
-  String loadRemoteImage(String host) {
-    return 'Load image from $host';
-  }
-
-  @override
-  String get remoteImageBlocked => 'Image blocked';
-
-  @override
   String get giteaNeedsUrl => 'Forgejo / Gitea needs the server URL.';
 
   @override
@@ -308,6 +296,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get connect => 'Connect';
+
+  @override
+  String get insecureInstanceUrl =>
+      'This server URL uses plain http, so your token would travel unencrypted. Use https (http is allowed only for localhost and private-network addresses).';
+
+  @override
+  String get remoteImageBlocked => 'Image blocked';
+
+  @override
+  String loadRemoteImage(String host) {
+    return 'Load image from $host';
+  }
+
+  @override
+  String get webTokenWarning =>
+      'Web version: your token is kept in this browser\'s local storage, which is less protected than the desktop and mobile apps. Use those for long-lived tokens, and not on a shared computer.';
 
   @override
   String createTokenOn(String provider) {

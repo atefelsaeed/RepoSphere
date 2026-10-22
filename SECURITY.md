@@ -21,12 +21,12 @@ There is **no RepoSphere server**. The app talks directly to the Git hosts you c
 | Several accounts | Inbox actions (approve, merge, re-run CI), starring and creating issues use the token of the account the item or repo belongs to; if that account is gone nothing is sent. Reading a GitHub repo's details (README, files, commits) still uses your first GitHub account, see the known limitations. |
 | Disconnecting | Removing the last account deletes the tokens, the cached Inbox, dismissals, workspaces, search history and alert state, and stops background checks. |
 | Android backup | `allowBackup` is off, so app data is not copied into Google backups. |
-| Crash reports | Off unless you build with your own Sentry DSN; HTTP breadcrumbs are dropped. |
-| CI / releases | Actions are pinned to commit SHAs, workflows default to read-only permissions, release tags are validated, SHA-256 checksums are published, and a release is refused rather than shipped signed with the debug key. |
+| Crash reports | Off unless you build with your own Sentry DSN; HTTP breadcrumbs are dropped and URLs are scrubbed from exception messages. |
+| CI / releases | Actions are pinned to commit SHAs, workflows default to read-only permissions, release tags are validated, analyze and tests run before a release or web deploy, Flutter is pinned, SHA-256 checksums are published, and a release is refused rather than shipped signed with the debug key. |
 
 ## Known limitations
 
-- **Web build:** tokens are kept in the browser's local storage (the web plugin stores its encryption key next to the data), and GitHub Pages cannot send a Content-Security-Policy header. Use the desktop or mobile app for long-lived tokens, and never the web build on a shared computer.
+- **Web build:** tokens are kept in the browser's local storage (the web plugin stores its encryption key next to the data; the connect screen says so), and GitHub Pages cannot send a Content-Security-Policy header. Use the desktop or mobile app for long-lived tokens, and never the web build on a shared computer.
 - With two GitHub accounts, repo detail screens (README, files, commits, issues) read with the first GitHub account, so a private repo that only the second account can see may show an error. Writes are not affected.
 - Tokens are not revoked on the provider when you disconnect; revoke them on the host if the device is lost.
 - Avatars load automatically from the URL the provider returns, so the host serving them can see your IP address.
