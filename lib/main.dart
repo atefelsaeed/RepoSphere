@@ -53,6 +53,9 @@ Future<void> main() async {
       (options) {
         options.dsn = AppConfig.sentryDsn;
         options.tracesSampleRate = 0.2;
+        // Request URLs carry private repo / PR names: keep them out of reports.
+        options.beforeBreadcrumb = (breadcrumb, hint) =>
+            breadcrumb?.category == 'http' ? null : breadcrumb;
         options.environment = const bool.fromEnvironment('dart.vm.product')
             ? 'production'
             : 'debug';

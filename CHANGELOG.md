@@ -9,6 +9,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versio
 - Links inside PR, issue, comment, release and README text now open only if they are `http`, `https` or `mailto`; other schemes (`tel:`, `intent:`, `file:`, custom app links) and malformed links are ignored instead of being passed to the OS.
 - Remote images in that text are no longer fetched automatically; tap *Load image from …* to show one.
 - Connecting to a self-hosted server over plain `http://` is refused unless the host is localhost or on a private network, so tokens are not sent unencrypted across the internet.
+- GitHub Actions are pinned to commit SHAs (Dependabot keeps them current). Crash reports no longer include HTTP breadcrumbs, which carried private repo URLs.
+- Android releases are signed with your own key when the `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` secrets are set; otherwise they still use the debug key.
 - Release workflow: read-only permissions by default; only the publish job can write. Added Dependabot for pub packages and GitHub Actions.
 
 ## [0.3.0] — 2026-10-21
